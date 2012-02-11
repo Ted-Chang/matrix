@@ -2,6 +2,18 @@
 	;; boot.s -- Kernel start location. Also defines multiboot header.
 	;;
 
+	;; Multiboot constant definitions
+	;; Load kernel and modules on a page boundary
+	MBOOT_PAGE_ALIGN	equ 1<<0
+	;; Provide your kernel with memory info
+	MBOOT_MEM_INFO		equ 1<<1
+	;; Multiboot magic number
+	MBOOT_HEADER_MAGIC	equ 0x1BADB002
+	;; NOTE: We do not use MBOOT_AOUT_KLUDGE. It means that GRUB does
+	;; not pass a symbol table to us.
+	MBOOT_HEADER_FLAGS	equ MBOOT_PAGE_ALIGN | MBOOT_MEM_INFO
+	MBOOT_CHECKSUM		equ -(MBOOT_HEADER_MAGIC + MBOOT_HEADER_FLAGS)
+
 	[BITS 32]		; All instructions should be 32-bit
 
 	[GLOBAL mboot]		; Make 'mboot' accessible from C.

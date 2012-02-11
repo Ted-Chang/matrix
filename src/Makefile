@@ -3,19 +3,19 @@
 # The only one that needs changing is the assembler
 # rule, as we use nasm instead of GNU as
 
-SOURCES=boot.o
+SOURCES=boot.o main.o
 
-CFLAGS=
-LDFLAGS=-Tlink.ld
+CFLAGS=-m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector
+LDFLAGS=-TLink.ld
 ASFLAGS=-felf
 
 all: $(SOURCES) link
 
 clean:
-	-rm *.o kernel
+	-rm *.o matrix
 
 link:
-	ld $(LDFLAGS) -o kernel $(SOURCES)
+	ld -melf_i386 $(LDFLAGS) -o matrix $(SOURCES)
 
 .s.o:
 	nasm $(ASFLAGS) $<
