@@ -7,4 +7,6 @@ void clear_scr();
 
 void putstr(char *str);
 
+int kprintf(const char *str, ...);
+
 #endif	/* __UTIL_H__ */

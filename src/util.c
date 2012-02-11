@@ -1,4 +1,7 @@
 #include "types.h"
+#include <stdarg.h>
+#include <string.h>
+#include <stdio.h>
 #include "util.h"
 
 static uint16_t cursor_x = 0;
@@ -69,7 +72,10 @@ void putch(char ch)
 
 void putstr(char *str)
 {
-	int i = 0;
+	int i;
+	if (!str)
+		return;
+	i = 0;
 	while (str[i]) {
 		putch(str[i++]);
 	}
@@ -87,4 +93,69 @@ void clear_scr()
 	cursor_x = 0;
 	cursor_y = 0;
 	update_cursor();
+}
+
+int kprintf(const char *str, ...)
+{
+	size_t i;
+	va_list args;
+
+	if (!str)
+		return 0;
+
+	va_start(args, str);
+
+	for (i = 0; i < strlen(str); i++) {
+		switch (str[i]) {
+		case '%':
+			switch (str[i+1]) {
+			/* Characters */
+			case 'c': {
+				char c = va_arg(args, char);
+				putch(c);
+				i++;
+				break;
+			}
+			/* Address of the string */
+			case 's': {
+				int c = (int)va_arg(args, int);
+				char temp_str[64] = {0};
+				strcpy(temp_str, (const char *)c);
+				putstr(temp_str);
+				i++;
+				break;
+			}
+			/* Integers */
+			case 'd':
+			case 'i': {
+				int c = va_arg(args, int);
+				char temp_str[32] = {0};
+				itoa_s(c, 10, temp_str);
+				putstr(temp_str);
+				i++;
+				break;
+			}
+			/* Display in hex */
+			case 'X':
+			case 'x': {
+				int c = va_arg(args, int);
+				char temp_str[32] = {0};
+				itoa_s(c, 16, temp_str);
+				putstr(temp_str);
+				i++;
+				break;
+			}
+			default:
+				va_end(args);
+				return 1;
+			}
+			break;
+		default:
+			putch(str[i]);
+			break;
+		}
+	}
+
+	va_end(args);
+	return 1;
 }
