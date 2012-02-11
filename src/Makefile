@@ -3,9 +3,9 @@
 # The only one that needs changing is the assembler
 # rule, as we use nasm instead of GNU as
 
-SOURCES=boot.o main.o
+SOURCES=boot.o main.o hal.o util.o
 
-CFLAGS=-m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector
+CFLAGS=-m32 -Iinc -nostdlib -nostdinc -fno-builtin -fno-stack-protector
 LDFLAGS=-TLink.ld
 ASFLAGS=-felf
 
