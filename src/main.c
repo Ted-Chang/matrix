@@ -22,6 +22,9 @@ int main(struct multiboot *mboot_ptr)
 	asm volatile("int $0x3");
 	asm volatile("int $0x4");
 
+	/* Enable the interrupt so our timer could work */
+	enable_interrupt();
+	
 	init_timer(50);
 
 	return 0;
