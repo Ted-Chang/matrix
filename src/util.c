@@ -159,3 +159,11 @@ int kprintf(const char *str, ...)
 	va_end(args);
 	return 1;
 }
+
+
+void panic(const char message, const char *file, uint32_t line)
+{
+	asm volatile("cli");	// Disable all interrupts
+	kprintf("PANIC(%s) at %s:%d", message, file, line);
+	for (; ; ) ;
+}
