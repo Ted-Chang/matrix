@@ -87,7 +87,6 @@ void free_frame(struct pte *pte)
 	}
 }
 
-
 void init_paging()
 {
 	/*
@@ -163,6 +162,7 @@ void page_fault(struct registers regs)
 	int us;
 	int reserved;
 	int id;
+
 	asm volatile("mov %%cr2, %0" : "=r"(faulting_addr));
 
 	present = !(regs.err_code & 0x1);
@@ -178,5 +178,6 @@ void page_fault(struct registers regs)
 		us ? "user-mode" : "",
 		reserved ? "reserved" : "",
 		faulting_addr);
+
 	PANIC("Page fault");
 }

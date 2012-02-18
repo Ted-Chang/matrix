@@ -6,6 +6,9 @@
 #include "util.h"
 #include "hal.h"
 #include "timer.h"
+#include "isr.h"
+
+extern isr_t interrupt_handlers[];
 
 int main(struct multiboot *mboot_ptr)
 {
@@ -15,6 +18,7 @@ int main(struct multiboot *mboot_ptr)
 	/* Install the gdt and idt */
 	init_gdt();
 	init_idt();
+	memset(&interrupt_handlers, 0, 256*sizeof(isr_t));
 
 	/* Clear the screen */
 	clear_scr();
