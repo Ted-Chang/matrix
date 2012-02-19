@@ -164,6 +164,13 @@ int kprintf(const char *str, ...)
 void panic(const char *message, const char *file, uint32_t line)
 {
 	asm volatile("cli");	// Disable all interrupts
-	kprintf("PANIC(%s) at %s:%d", message, file, line);
+	kprintf("PANIC(%s) at %s:%d\n", message, file, line);
+	for (; ; ) ;
+}
+
+void panic_assert(const char *file, uint32_t line, const char *desc)
+{
+	asm volatile("cli");
+	kprintf("ASSERTION FAILED(%s) at %s:%d\n", desc, file, line);
 	for (; ; ) ;
 }

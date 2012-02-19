@@ -16,6 +16,7 @@ SOURCES=\
 	timer.o \
 	kheap.o \
 	mmgr.o \
+	vector.o \
 
 
 CFLAGS=-m32 -Iinc -nostdlib -nostdinc -fno-builtin -fno-stack-protector
