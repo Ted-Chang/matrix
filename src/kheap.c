@@ -10,23 +10,33 @@ extern struct pd *kernel_dir;
 
 uint32_t placement_addr = (uint32_t)&end;
 
+struct heap *kheap = 0;
+
 uint32_t kmalloc_int(uint32_t size, int align, uint32_t *phys)
 {
-	uint32_t tmp;
-	
-	if ((align == 1) && (placement_addr & 0xFFFFF000)) {
-		placement_addr &= 0xFFFFF000;
-		placement_addr += 0x1000;
+	if (kheap != 0) {
+		void *addr = alloc(kheap, size, (uint8_t)align);
+		if (phys) {
+			struct pte *page = get_pte((uint32_t)addr, 0, kernel_dir);
+			*phys = page->frame * 0x1000 + (uint32_t)addr & 0xFFF;
+			return (uint32_t)addr;
+		}
+	} else {
+		uint32_t tmp;
+
+		if ((align == 1) && (placement_addr & 0xFFFFF000)) {
+			placement_addr &= 0xFFFFF000;
+			placement_addr += 0x1000;
+		}
+
+		if (phys) {
+			*phys = placement_addr;
+		}
+
+		tmp = placement_addr;
+		placement_addr += size;
+		return tmp;
 	}
-
-	if (phys) {
-		*phys = placement_addr;
-	}
-
-	tmp = placement_addr;
-	placement_addr += size;
-
-	return tmp;
 }
 
 uint32_t kmalloc(uint32_t size)
@@ -331,8 +341,8 @@ void free(struct heap *heap, void *p)
 	footer = (struct footer *)((uint32_t)header + header->size - sizeof(struct footer));
 
 	/* Sanity check */
-	ASSERT((header->magic == HEAP_MAGIC));
-	ASSERT((header->magic == HEAP_MAGIC));
+	ASSERT(header->magic == HEAP_MAGIC);
+	ASSERT(header->magic == HEAP_MAGIC);
 
 	/* Make us a hole */
 	header->is_hole = 1;
@@ -394,4 +404,10 @@ void free(struct heap *heap, void *p)
 
 	if (do_add)
 		insert_vector(&heap->index, (void *)header);
+}
+
+
+void kfree(void *p)
+{
+	free(kheap, p);
 }

@@ -1,6 +1,8 @@
 #ifndef __MMGR_H__
 #define __MMGR_H__
 
+#include <isr.h>	// For struct registers
+
 /*
  * Page Table Entry
  */
