@@ -1,4 +1,5 @@
 #include "initrd.h"
+#include "debug.h"
 
 struct initrd_header *initrd_hdr;
 struct initrd_file_header *file_hdrs;
@@ -104,6 +105,8 @@ struct vfs_node *init_initrd(uint32_t location)
 	root_nodes = (struct vfs_node *)kmalloc(sizeof(struct vfs_node) * initrd_hdr->nr_files);
 	nr_root_nodes = initrd_hdr->nr_files;
 
+	DEBUG(DL_INF, ("nr_root_nodes: %d\n", nr_root_nodes));
+	
 	/* For each file in the root directory */
 	for (i = 0; i < nr_root_nodes; i++) {
 		file_hdrs[i].offset += location;

@@ -19,6 +19,7 @@ SOURCES=\
 	vector.o \
 	fs.o \
 	initrd.o \
+	debug.o \
 
 
 CFLAGS=-m32 -Iinc -nostdlib -nostdinc -fno-builtin -fno-stack-protector
