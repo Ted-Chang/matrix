@@ -14,10 +14,12 @@ struct dirent dirent;
 static uint32_t initrd_read(struct vfs_node *node, uint32_t offset,
 			    uint32_t size, uint8_t *buffer)
 {
-	struct initrd_file_header hdr = file_hdrs[node->inode];
+	struct initrd_file_header hdr;
 
 	DEBUG(DL_DBG, ("initrd_read: node(0x%x) offset(%d) size(%d)\n",
 		       node, offset, size));
+
+	hdr = file_hdrs[node->inode];
 	
 	if (offset > hdr.length) {
 		DEBUG(DL_DBG, ("initrd_read: offset(%d), length(%d)\n", offset, hdr.length));

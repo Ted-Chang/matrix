@@ -55,16 +55,16 @@ int main(struct multiboot *mboot_ptr)
 
 		struct vfs_node *fs_node;
 		
-		kprintf("Found file %s\n", node->name);
+		kprintf("Found file: %s\n", node->name);
 
 		fs_node = vfs_finddir(root_node, node->name);
 		if ((fs_node->flags & 0x7) == VFS_DIRECTORY) {
-			kprintf("\n\t(directory)\n");
+			kprintf("\t(directory)\n");
 		} else {
 			char buf[256];
 			uint32_t sz;
 			int j;
-			kprintf("\n\tcontent: \"");
+			kprintf("\tcontent: \"");
 			sz = vfs_read(fs_node, 0, 256, buf);
 			for (j = 0; j < sz; j++)
 				kprintf("%c", buf[j]);
