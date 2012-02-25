@@ -1,4 +1,5 @@
 #include "fs.h"
+#include "debug.h"
 
 struct vfs_node *root_node = 0;
 
@@ -32,15 +33,15 @@ void vfs_close(struct vfs_node *node)
 
 struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index)
 {
-	if ((node->flags & 0x07 == VFS_DIRECTORY) && (node->readdir != 0))
+	if (((node->flags & 0x07) == VFS_DIRECTORY) && (node->readdir != 0)) {
 		return node->readdir(node, index);
-	else
+	} else
 		return 0;
 }
 
 struct vfs_node *vfs_finddir(struct vfs_node *node, char *name)
 {
-	if ((node->flags & 0x07 == VFS_DIRECTORY) && (node->finddir != 0))
+	if (((node->flags & 0x07) == VFS_DIRECTORY) && (node->finddir != 0))
 		return node->finddir(node, name);
 	else
 		return 0;

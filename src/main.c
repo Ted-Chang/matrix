@@ -50,7 +50,9 @@ int main(struct multiboot *mboot_ptr)
 
 	i = 0;
 	node = 0;
+	
 	while ((node = vfs_readdir(root_node, i)) != 0) {
+
 		struct vfs_node *fs_node;
 		
 		kprintf("Found file %s\n", node->name);
