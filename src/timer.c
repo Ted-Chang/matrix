@@ -2,13 +2,14 @@
 #include "isr.h"
 #include "hal.h"
 #include "timer.h"
+#include "task.h"
 
 uint32_t tick = 0;
 
 static void timer_callback(struct registers regs)
 {
 	tick++;
-	kprintf("Current tick: %d\n", tick);
+	switch_task();
 }
 
 void init_timer(uint32_t frequency)

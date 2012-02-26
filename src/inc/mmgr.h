@@ -40,4 +40,6 @@ struct pte *get_pte(uint32_t addr, int make, struct pd *dir);
 
 void page_fault(struct registers regs);
 
+struct pd *clone_pd(struct pd *src);
+
 #endif	/* __MMGR_H__ */

@@ -20,6 +20,8 @@ SOURCES=\
 	fs.o \
 	initrd.o \
 	debug.o \
+	process.o \
+	task.o \
 
 
 CFLAGS=-m32 -Iinc -nostdlib -nostdinc -fno-builtin -fno-stack-protector

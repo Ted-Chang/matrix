@@ -37,7 +37,8 @@ mboot:
 [EXTERN main]		; This is the entry point of our C code
 
 start:
-	push	ebx		; Load multiboot header location
+	push esp		; We need to know exactly where the current stack starts
+	push ebx		; Load multiboot header location
 
 	;; Execute our kernel
 	cli

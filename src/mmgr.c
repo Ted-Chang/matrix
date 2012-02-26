@@ -107,6 +107,7 @@ void init_paging()
 	/* The size of physical memory. We assume it is 32 MB */
 	int i;
 	uint32_t mem_end_page = 0x2000000;
+	uint32_t physical_addr;
 
 	nr_frames = mem_end_page / 0x1000;
 	frames = (uint32_t *)kmalloc(INDEX_FROM_BIT(nr_frames));
@@ -115,7 +116,7 @@ void init_paging()
 	/* Lets make a page directory for our kernel */
 	kernel_dir = (struct pd *)kmalloc_a(sizeof(struct pd));
 	memset(kernel_dir, 0, sizeof(struct pd));
-	current_dir = kernel_dir;
+	kernel_dir->physical_addr = (uint32_t)kernel_dir->physical_tables;
 
 	/* Map some pages in the kernel heap area.
 	 * Here we call get_pte but not alloc_frame. This causes page_table's
@@ -151,13 +152,17 @@ void init_paging()
 	/* Initialize the kernel heap */
 	kheap = create_heap(KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE,
 			    0xCFFFF000, 0, 0);
+
+	/* Clone the kernel page directory and switch to it */
+	current_dir = clone_pd(kernel_dir);
+	switch_page_dir(current_dir);
 }
 
 void switch_page_dir(struct pd *dir)
 {
 	uint32_t cr0;
 	current_dir = dir;
-	asm volatile("mov %0, %%cr3":: "r"(&dir->physical_tables));
+	asm volatile("mov %0, %%cr3":: "r"(&dir->physical_addr));
 	asm volatile("mov %%cr0, %0": "=r"(cr0));
 	cr0 |= 0x80000000;	// Enable paging
 	asm volatile("mov %0, %%cr0":: "r"(cr0));
@@ -215,4 +220,62 @@ void page_fault(struct registers regs)
 		faulting_addr);
 
 	PANIC("Page fault");
+}
+
+static struct pt *clone_pt(struct pt *src, uint32_t *physical_addr)
+{
+	int i;
+	struct pt *table = (struct pt *)kmalloc_ap(sizeof(struct pt), physical_addr);
+	memset(table, 0, sizeof(struct pt));
+
+	for (i = 0; i < 1024; i++) {
+		/* If the source entry has a frame associated with it */
+		if (src->pages[i].frame) {
+			/* Get a new frame */
+			alloc_frame(&table->pages[i], 0, 0);
+			/* Clone the flags from source to destination */
+			if (src->pages[i].present) table->pages[i].present = 1;
+			if (src->pages[i].rw) table->pages[i].rw = 1;
+			if (src->pages[i].user) table->pages[i].user = 1;
+			if (src->pages[i].accessed) table->pages[i].accessed = 1;
+			if (src->pages[i].dirty) table->pages[i].dirty = 1;
+			/* Physically copy the data accross */
+			copy_page_physical(src->pages[i].frame * 0x1000,
+					   table->pages[i].frame * 0x1000);
+		}
+	}
+
+	return table;
+}
+
+struct pd *clone_pd(struct pd *src)
+{
+	int i;
+	uint32_t physical_addr;
+	struct pd *dir;
+	uint32_t offset;
+
+	dir = (struct pd *)kmalloc_ap(sizeof(struct pd), &physical_addr);
+	memset(dir, 0, sizeof(struct pd));
+
+	offset = (uint32_t)dir->physical_tables - (uint32_t)dir;
+
+	dir->physical_addr = physical_addr + offset;
+
+	for (i = 0; i < 1024; i++) {
+		if (!src->tables[i])
+			continue;
+		if (kernel_dir->tables[i] == src->tables[i]) {
+			/* They are the same in kernel directory */
+			dir->tables[i] = src->tables[i];
+			dir->physical_tables[i] = src->physical_tables[i];
+		} else {
+			/* Copy the table */
+			uint32_t physical;
+			dir->tables[i] = clone_pt(src->tables[i], &physical);
+			dir->physical_tables[i] = physical | 0x07;
+		}
+	}
+
+	return dir;
 }
