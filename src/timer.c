@@ -3,6 +3,7 @@
 #include "hal.h"
 #include "timer.h"
 #include "task.h"
+#include "debug.h"
 
 uint32_t tick = 0;
 

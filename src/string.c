@@ -1,6 +1,7 @@
 /*
  * string.c
  */
+#include <types.h>
 #include <stdio.h>
 #include <string.h>
 

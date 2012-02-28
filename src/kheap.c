@@ -3,6 +3,7 @@
 #include "vector.h"
 #include "kheap.h"
 #include "mmgr.h"
+#include "debug.h"
 
 extern uint32_t end;	// end is defined in linker scripts
 
@@ -18,13 +19,15 @@ uint32_t kmalloc_int(uint32_t size, int align, uint32_t *phys)
 		void *addr = alloc(kheap, size, (uint8_t)align);
 		if (phys) {
 			struct pte *page = get_pte((uint32_t)addr, 0, kernel_dir);
-			*phys = page->frame * 0x1000 + (uint32_t)addr & 0xFFF;
-			return (uint32_t)addr;
+			*phys = page->frame * 0x1000 + ((uint32_t)addr & 0xFFF);
 		}
+		return (uint32_t)addr;
 	} else {
 		uint32_t tmp;
 
+		/* If the address is not already page-aligned */
 		if ((align == 1) && (placement_addr & 0xFFFFF000)) {
+			/* Align the placement address */
 			placement_addr &= 0xFFFFF000;
 			placement_addr += 0x1000;
 		}

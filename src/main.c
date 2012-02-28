@@ -12,6 +12,7 @@
 #include "fs.h"
 #include "initrd.h"
 #include "task.h"
+#include "debug.h"
 
 extern isr_t interrupt_handlers[];
 
@@ -33,12 +34,18 @@ int main(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	init_idt();
 	memset(&interrupt_handlers, 0, 256*sizeof(isr_t));
 
+	kprintf("Gdt and idt initialized.\n");
+
 	/* Clear the screen */
 	clear_scr();
 
+	/* Enable interrupt so our timer can work */
 	enable_interrupt();
-	
+
+	/* Initialize our timer */
 	init_timer(50);
+
+	kprintf("Timer initialized.\n");
 
 	ASSERT(mboot_ptr->mods_count > 0);
 	/* Find the location of our initial ramdisk */
@@ -47,12 +54,16 @@ int main(struct multiboot *mboot_ptr, uint32_t initial_stack)
 
 	/* Don't trample our module with placement address */
 	placement_addr = initrd_end;
-	
+
 	/* Enable paging now */
 	init_paging();
 
+	kprintf("Memory paging initialized.\n");
+
 	/* Start multitasking now */
 	init_multitask();
+
+	kprintf("Multitask initialized.\n");
 
 	/* Initialize the initial ramdisk and set it as the filesystem root */
 	root_node = init_initrd(initrd_location);

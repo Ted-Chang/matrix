@@ -2,10 +2,11 @@
 #include "hal.h"
 #include "mmgr.h"
 #include "task.h"
+#include "debug.h"
 
-volatile struct task *current_task;
+volatile struct task *current_task = 0;
 
-volatile struct task *ready_queue;
+volatile struct task *ready_queue = 0;
 
 uint32_t next_pid = 1;
 
@@ -23,11 +24,12 @@ void move_stack(void *new_stack, uint32_t size)
 	uint32_t new_esp, new_ebp;
 	uint32_t offset;
 
+	/* Allocate some space for the new stack */
 	for (i = (uint32_t)new_stack;
 	     i >= (uint32_t)new_stack - size;
 	     i -= 0x1000) {
 		/* General purpose stack is in user-mode */
-		alloc_frame(get_pte(i, 1, current_dir), 0, 1);
+		alloc_frame(get_pte(i, TRUE, current_dir), FALSE, TRUE);
 	}
 
 	/* Flush the TLB by reading and writing the page directory address again */
@@ -38,11 +40,15 @@ void move_stack(void *new_stack, uint32_t size)
 	asm volatile("mov %%esp, %0" : "=r" (old_esp));
 	asm volatile("mov %%ebp, %0" : "=r" (old_ebp));
 
-	offset = (uint32_t)new_stack + initial_esp;
+	offset = (uint32_t)new_stack - initial_esp;
 	
 	/* Initialize the new ESP and EBP */
 	new_esp = old_esp + offset;
 	new_ebp = old_ebp + offset;
+
+	DEBUG(DL_DBG, ("old_esp(0x%x), old_ebp(0x%x), offset(0x%x)\n"
+		       "        initial_esp(0x%x) new_stack(0x%x)\n",
+		       old_esp, old_ebp, offset, initial_esp, new_stack));
 
 	/* Copy the stack */
 	memcpy((void *)new_stack, (void *)old_esp, initial_esp - old_esp);

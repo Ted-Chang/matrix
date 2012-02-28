@@ -24,7 +24,7 @@ SOURCES=\
 	task.o \
 
 
-CFLAGS=-m32 -Iinc -nostdlib -nostdinc -fno-builtin -fno-stack-protector
+CFLAGS=-m32 -D_X86_ -Iinc -nostdlib -nostdinc -fno-builtin -fno-stack-protector
 LDFLAGS=-TLink.ld
 ASFLAGS=-felf
 

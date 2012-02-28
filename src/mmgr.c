@@ -3,11 +3,14 @@
 #include "util.h"	// PANIC
 #include "mmgr.h"
 #include "kheap.h"
+#include "debug.h"
 
 #define INDEX_FROM_BIT(a)	(a/(8*4))
 #define OFFSET_FROM_BIT(a)	(a%(8*4))
 
+/* Global memory page frame set */
 uint32_t *frames;
+
 uint32_t nr_frames;
 
 struct pd *kernel_dir = 0;
@@ -74,11 +77,17 @@ static uint32_t first_frame()
 	return 0;
 }
 
+/*
+ * Allocate an entry from our global memory page frame set and associated
+ * a page table entry with it
+ */
 void alloc_frame(struct pte *pte, int is_kernel, int is_writable)
 {
-	if (pte->frame != 0)
+	if (pte->frame != 0) {
+		DEBUG(DL_DBG, ("alloc_frame: pte(0x%x), kernel(%d), writable(%d)\n",
+			       pte, is_kernel, is_writable));
 		return;
-	else {
+	} else {
 		uint32_t idx = first_frame();	// Get the first free frame
 		if (idx == (uint32_t)(-1)) {
 			PANIC("No free frames!\n");
@@ -94,9 +103,9 @@ void alloc_frame(struct pte *pte, int is_kernel, int is_writable)
 void free_frame(struct pte *pte)
 {
 	uint32_t frame;
-	if (!(frame = pte->frame))
+	if (!(frame = pte->frame)) {
 		return;
-	else {
+	} else {
 		clear_frame(frame);
 		pte->frame = 0x0;
 	}
@@ -118,6 +127,9 @@ void init_paging()
 	memset(kernel_dir, 0, sizeof(struct pd));
 	kernel_dir->physical_addr = (uint32_t)kernel_dir->physical_tables;
 
+	DEBUG(DL_DBG, ("kernel page directory: 0x%x, physical address: 0x%x\n",
+		       kernel_dir, kernel_dir->physical_addr));
+
 	/* Map some pages in the kernel heap area.
 	 * Here we call get_pte but not alloc_frame. This causes page_table's
 	 * to be created when necessary. We can't allocate frames yet because
@@ -134,35 +146,47 @@ void init_paging()
 	 */
 	i = 0;
 	while (i < placement_addr+0x1000) {
-		/* Kernel code is readable but not writable from userspace */
-		alloc_frame(get_pte(i, 1, kernel_dir), 0, 0);
+		/* Kernel code is readable but not writable from user-mode */
+		alloc_frame(get_pte(i, 1, kernel_dir), FALSE, FALSE);
 		i += 0x1000;
 	}
 
-	/* Allocate those pages we mapped earlier */
-	for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i+= 0x1000)
-		alloc_frame(get_pte(i, 1, kernel_dir), 0, 0);
+	/* Allocate those pages we mapped earlier, our kernel start from
+	 * address 0xC0000000 and size is 0x100000
+	 */
+	for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i += 0x1000)
+		alloc_frame(get_pte(i, 1, kernel_dir), FALSE, FALSE);
 
 	/* Before we enable paging, we must register our page fault handler */
 	register_interrupt_handler(14, page_fault);
 
+	DEBUG(DL_DBG, ("page fault handler: 0x%x\n", page_fault));
+
 	/* Enable paging now */
 	switch_page_dir(kernel_dir);
 
+	DEBUG(DL_DBG, ("switched to kernel page directory.\n"));
+
 	/* Initialize the kernel heap */
 	kheap = create_heap(KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE,
-			    0xCFFFF000, 0, 0);
+			    0xCFFFF000, FALSE, FALSE);
 
 	/* Clone the kernel page directory and switch to it */
 	current_dir = clone_pd(kernel_dir);
+
+	DEBUG(DL_DBG, ("cloned page directory: 0x%x, physical address: 0x%x.\n",
+		       current_dir, current_dir->physical_addr));
+
 	switch_page_dir(current_dir);
+
+	DEBUG(DL_DBG, ("switched to cloned page directory.\n"));
 }
 
 void switch_page_dir(struct pd *dir)
 {
 	uint32_t cr0;
 	current_dir = dir;
-	asm volatile("mov %0, %%cr3":: "r"(&dir->physical_addr));
+	asm volatile("mov %0, %%cr3":: "r"(dir->physical_addr));
 	asm volatile("mov %%cr0, %0": "=r"(cr0));
 	cr0 |= 0x80000000;	// Enable paging
 	asm volatile("mov %0, %%cr0":: "r"(cr0));
@@ -171,23 +195,24 @@ void switch_page_dir(struct pd *dir)
 struct pte *get_pte(uint32_t addr, int make, struct pd *dir)
 {
 	uint32_t table_idx;
-	
-	/* Turn an address into an index */
+
+	/* Turn the address into an index */
 	addr /= 0x1000;
 
 	/* Find the page table containing this address */
 	table_idx = addr / 1024;
 
-	if (dir->tables[table_idx])	// The page table already assigned
+	if (dir->tables[table_idx]) {	// The page table already assigned
 		return &dir->tables[table_idx]->pages[addr%1024];
-	else if (make) {		// Make a new page table
+	} else if (make) {		// Make a new page table
 		uint32_t tmp;
 		dir->tables[table_idx] = (struct pt *)kmalloc_ap(sizeof(struct pte), &tmp);
 		memset(dir->tables[table_idx], 0, 0x1000);
 		dir->physical_tables[table_idx] = tmp | 0x7;	// PRESENT, RW, US.
 		return &dir->tables[table_idx]->pages[addr % 1024];
-	} else
+	} else {
 		return 0;
+	}
 }
 
 void page_fault(struct registers regs)
@@ -212,11 +237,11 @@ void page_fault(struct registers regs)
 	id = regs.err_code & 0x10;
 
 	/* Print an error message */
-	kprintf("Page fault(%s %s %s %s) at 0x%x\n", 
-		present ? "present" : "",
-		rw ? "read-only" : "",
-		us ? "user-mode" : "",
-		reserved ? "reserved" : "",
+	kprintf("Page fault(%s%s%s%s) at 0x%x\n", 
+		present ? "present " : "",
+		rw ? "write " : "read ",
+		us ? "supervisor-mode " : "user-mode ",
+		reserved ? "reserved " : "",
 		faulting_addr);
 
 	PANIC("Page fault");
@@ -255,18 +280,24 @@ struct pd *clone_pd(struct pd *src)
 	struct pd *dir;
 	uint32_t offset;
 
+	/* Make a new page directory and retrieve its physical address */
 	dir = (struct pd *)kmalloc_ap(sizeof(struct pd), &physical_addr);
 	memset(dir, 0, sizeof(struct pd));
 
 	offset = (uint32_t)dir->physical_tables - (uint32_t)dir;
 
 	dir->physical_addr = physical_addr + offset;
+	
+	DEBUG(DL_DBG, ("dir: 0x%x, physical_addr: 0x%x, offset: 0x%x\n",
+		       dir, physical_addr, offset));
 
 	for (i = 0; i < 1024; i++) {
+
 		if (!src->tables[i])
 			continue;
+		
 		if (kernel_dir->tables[i] == src->tables[i]) {
-			/* They are the same in kernel directory */
+			/* It's in the kernel, so just use the same pointer */
 			dir->tables[i] = src->tables[i];
 			dir->physical_tables[i] = src->physical_tables[i];
 		} else {

@@ -1,8 +1,8 @@
-#include "types.h"
+#include <types.h>
 #include <stdarg.h>
 #include <string.h>
 #include <stdio.h>
-#include "util.h"
+#include <util.h>
 
 static uint16_t cursor_x = 0;
 static uint16_t cursor_y = 0;
@@ -140,7 +140,7 @@ int kprintf(const char *str, ...)
 			case 'x': {
 				int c = va_arg(args, int);
 				char temp_str[32] = {0};
-				itoa_s(c, 16, temp_str);
+				itoa(c, 16, temp_str);
 				putstr(temp_str);
 				i++;
 				break;

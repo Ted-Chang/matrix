@@ -17,4 +17,10 @@
 
 extern uint32_t debug_level;
 
+#ifdef _X86_
+#define dbg_break()	asm volatile("int $0x3")
+#else
+#define dbg_break()
+#endif	/* _X86_ */
+
 #endif	/* __DEBUG_H__ */

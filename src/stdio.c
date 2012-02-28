@@ -1,6 +1,7 @@
 /*
  * stdio.c
  */
+#include <types.h>
 #include <limit.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -9,6 +10,9 @@
 char tbuf[32];
 char bchars[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
+/*
+ * Convert a numeric value to a unsigned string
+ */
 void itoa(unsigned i, unsigned base, char *buf)
 {
 	int pos = 0;
@@ -33,6 +37,9 @@ void itoa(unsigned i, unsigned base, char *buf)
 	buf[opos] = 0;
 }
 
+/*
+ * Convert a numeric value to a signed string
+ */
 void itoa_s(int i, unsigned base, char *buf)
 {
 	if (base > 16) return;
