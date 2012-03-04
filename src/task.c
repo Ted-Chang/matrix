@@ -26,10 +26,16 @@ void move_stack(void *new_stack, uint32_t size)
 
 	/* Allocate some space for the new stack */
 	for (i = (uint32_t)new_stack;
-	     i >= (uint32_t)new_stack - size;
+	     i >= ((uint32_t)new_stack - size);
 	     i -= 0x1000) {
+
 		/* General purpose stack is in user-mode */
-		alloc_frame(get_pte(i, TRUE, current_dir), FALSE, TRUE);
+		struct pte *page = get_pte(i, TRUE, current_dir);
+		/* Associate the pte with a physical page */
+		alloc_frame(page, FALSE, TRUE);
+		
+		DEBUG(DL_DBG, ("move_stack: addr(0x%x), frame number(0x%x)\n",
+			       i, page->frame));
 	}
 
 	/* Flush the TLB by reading and writing the page directory address again */
@@ -46,8 +52,8 @@ void move_stack(void *new_stack, uint32_t size)
 	new_esp = old_esp + offset;
 	new_ebp = old_ebp + offset;
 
-	DEBUG(DL_DBG, ("old_esp(0x%x), old_ebp(0x%x), offset(0x%x)\n"
-		       "        initial_esp(0x%x) new_stack(0x%x)\n",
+	DEBUG(DL_DBG, ("move_stack: old_esp(0x%x), old_ebp(0x%x), offset(0x%x)\n"
+		       "            initial_esp(0x%x) new_stack(0x%x)\n",
 		       old_esp, old_ebp, offset, initial_esp, new_stack));
 
 	/* Copy the stack */

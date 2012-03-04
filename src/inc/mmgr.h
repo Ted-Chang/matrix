@@ -45,6 +45,11 @@ typedef struct pd {
 } pd_t;
 
 
+#ifdef _X86_
+#define PAGE_SIZE	4096
+#endif	/* _X86_ */
+
+
 void init_paging();
 
 void switch_page_dir(struct pd *new);
