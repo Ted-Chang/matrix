@@ -24,11 +24,17 @@ uint16_t inportw(uint16_t port)
 	return ret;
 }
 
+/*
+ * Enable the hardware interrupts
+ */
 void enable_interrupt()
 {
 	asm volatile("sti");
 }
 
+/*
+ * Disable the hardware interrupts
+ */
 void disable_interrupt()
 {
 	asm volatile("cli");

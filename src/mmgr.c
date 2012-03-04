@@ -1,3 +1,7 @@
+/*
+ * mmgr.c
+ */
+
 #include "types.h"
 #include "isr.h"	// register interrupt handler
 #include "util.h"	// PANIC
@@ -142,14 +146,14 @@ void free_frame(struct pte *pte)
 	}
 }
 
-void init_paging()
+void init_paging(uint64_t mem_size)
 {
 	/* The size of physical memory. We assume it is 32 MB */
 	int i;
-	uint32_t mem_end_page = 0x2000000;
 	uint32_t physical_addr;
 
-	nr_frames = mem_end_page / PAGE_SIZE;
+	/* Calculate the number of frames, 32 bit integer is enough for now. */
+	nr_frames = (uint32_t)(mem_size / PAGE_SIZE);
 	frames = (uint32_t *)kmalloc(INDEX_FROM_BIT(nr_frames));
 	memset(frames, 0, INDEX_FROM_BIT(nr_frames));
 

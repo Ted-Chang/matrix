@@ -1,6 +1,7 @@
 #ifndef __KHEAP_H__
 #define __KHEAP_H__
 
+#include <size_t.h>
 #include <vector.h>
 
 #define KHEAP_START		0xC0000000
@@ -36,22 +37,22 @@ struct heap {
 struct heap *create_heap(uint32_t start, uint32_t end, uint32_t max,
 			 uint8_t supervisor, uint8_t readonly);
 
-void *alloc(struct heap *heap, uint32_t size, uint8_t page_align);
+void *alloc(struct heap *heap, size_t size, uint8_t page_align);
 
 void free(struct heap *heap, void *p);
 
 /*
  * Routines for allocate a chunk of memory
  */
-uint32_t kmalloc(uint32_t size);
+uint32_t kmalloc(size_t size);
 
-uint32_t kmalloc_a(uint32_t size);
+uint32_t kmalloc_a(size_t size);
 
-uint32_t kmalloc_p(uint32_t size, uint32_t *phys);
+uint32_t kmalloc_p(size_t size, uint32_t *phys);
 
-uint32_t kmalloc_ap(uint32_t size, uint32_t *phys);
+uint32_t kmalloc_ap(size_t size, uint32_t *phys);
 
-uint32_t kmalloc_int(uint32_t size, int align, uint32_t *phys);
+uint32_t kmalloc_int(size_t size, int align, uint32_t *phys);
 
 void kfree(void *p);
 

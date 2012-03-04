@@ -26,6 +26,10 @@ int main(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	uint32_t initrd_location;
 	uint32_t initrd_end;
 	struct dirent *node;
+	uint64_t mem_end_page;
+
+	/* Clear the screen */
+	clear_scr();
 
 	initial_esp = initial_stack;
 	
@@ -36,9 +40,6 @@ int main(struct multiboot *mboot_ptr, uint32_t initial_stack)
 
 	kprintf("Gdt and idt initialized.\n");
 
-	/* Clear the screen */
-	clear_scr();
-
 	/* Enable interrupt so our timer can work */
 	enable_interrupt();
 
@@ -48,6 +49,7 @@ int main(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	kprintf("Timer initialized.\n");
 
 	ASSERT(mboot_ptr->mods_count > 0);
+
 	/* Find the location of our initial ramdisk */
 	initrd_location = *((uint32_t *)mboot_ptr->mods_addr);
 	initrd_end = *(uint32_t *)(mboot_ptr->mods_addr + 4);
@@ -55,26 +57,30 @@ int main(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	/* Don't trample our module with placement address */
 	placement_addr = initrd_end;
 
+	/* Upper memory start from 1MB and in kilo bytes */
+	mem_end_page = (mboot_ptr->mem_upper + mboot_ptr->mem_lower) * 1024;
+	
 	/* Enable paging now */
-	init_paging();
+	init_paging(mem_end_page);
 
-	kprintf("Memory paging initialized.\n");
+	kprintf("Memory paging initialized, physical memory: %d bytes.\n",
+		mem_end_page);
 
 	/* Start multitasking now */
 	init_multitask();
 
 	kprintf("Multitask initialized.\n");
 
-	/* Initialize the initial ramdisk and set it as the filesystem root */
+	/* Initialize the initial ramdisk and set it as the root filesystem */
 	root_node = init_initrd(initrd_location);
 
 	/* Print the banner */
 	kprintf("Welcome to Matrix!\n");
 
 	/* Fork a new process which is a clone of this */
-	rc = fork();
+	//rc = fork();
 
-	kprintf("fork returned %d\n", rc);
+	//kprintf("fork returned %d\n", rc);
 
 	kprintf("current pid: %d\n", getpid());
 	

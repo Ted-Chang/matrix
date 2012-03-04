@@ -19,8 +19,7 @@ void isr_handler(struct registers regs)
 
 void irq_handler(struct registers regs)
 {
-	/*
-	 * Send an EOI (end of interrupt) signal to the PICs.
+	/* Send an EOI (end of interrupt) signal to the PICs.
 	 * If this interrupt involved the slave.
 	 */
 	if (regs.int_no >= 40) {

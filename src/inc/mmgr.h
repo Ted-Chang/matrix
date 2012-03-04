@@ -1,3 +1,7 @@
+/*
+ * mmgr.h
+ */
+
 #ifndef __MMGR_H__
 #define __MMGR_H__
 
@@ -50,7 +54,7 @@ typedef struct pd {
 #endif	/* _X86_ */
 
 
-void init_paging();
+void init_paging(uint64_t mem_size);
 
 void switch_page_dir(struct pd *new);
 

@@ -1,3 +1,7 @@
+/*
+ * task.c
+ */
+
 #include "types.h"
 #include "hal.h"
 #include "mmgr.h"
@@ -33,9 +37,6 @@ void move_stack(void *new_stack, uint32_t size)
 		struct pte *page = get_pte(i, TRUE, current_dir);
 		/* Associate the pte with a physical page */
 		alloc_frame(page, FALSE, TRUE);
-		
-		DEBUG(DL_DBG, ("move_stack: addr(0x%x), frame number(0x%x)\n",
-			       i, page->frame));
 	}
 
 	/* Flush the TLB by reading and writing the page directory address again */
@@ -52,17 +53,20 @@ void move_stack(void *new_stack, uint32_t size)
 	new_esp = old_esp + offset;
 	new_ebp = old_ebp + offset;
 
-	DEBUG(DL_DBG, ("move_stack: old_esp(0x%x), old_ebp(0x%x), offset(0x%x)\n"
-		       "            initial_esp(0x%x) new_stack(0x%x)\n",
-		       old_esp, old_ebp, offset, initial_esp, new_stack));
-
-	/* Copy the stack */
-	memcpy((void *)new_stack, (void *)old_esp, initial_esp - old_esp);
+	DEBUG(DL_DBG, ("move_stack: old_esp(0x%x), old_ebp(0x%x),\n"
+		       "\tnew_esp(0x%x), new_ebp(0x%x), initial_esp(0x%x)\n",
+		       old_esp, old_ebp, new_esp, new_ebp, initial_esp));
+	
+	/* Copy the old stack to new stack. Although we have switched to cloned
+	 * page directory, the kernel memory map was not changed. So we can just
+	 * copy the data between the initial esp and the old esp to our new stack.
+	 */
+	memcpy((void *)new_esp, (void *)old_esp, initial_esp - old_esp);
 
 	/* Backtrace through the original stack, copying new values into
 	 * the new stack
 	 */
-	for (i = (uint32_t)new_stack; i > (uint32_t)new_stack - size; i -= 4) {
+	for (i = (uint32_t)new_stack; i > ((uint32_t)new_stack - size); i -= 4) {
 		uint32_t tmp = *(uint32_t *)i;
 
 		/* If the value of tmp is inside the range of the old stack, assume
@@ -90,6 +94,8 @@ void init_multitask()
 	/* Relocate the stack so we know where it is */
 	move_stack((void *)0xE0000000, 0x2000);
 
+	DEBUG(DL_DBG, ("init_multitask: move_stack finished.\n"));
+	
 	/* Malloc the initial task and initialize it */
 	current_task = ready_queue = (struct task *)kmalloc(sizeof(struct task));
 	current_task->id = next_pid++;
@@ -97,7 +103,7 @@ void init_multitask()
 	current_task->eip = 0;
 	current_task->page_dir = current_dir;
 	current_task->next = 0;
-	
+
 	enable_interrupt();
 }
 

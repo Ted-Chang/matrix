@@ -13,7 +13,7 @@ uint32_t placement_addr = (uint32_t)&end;
 
 struct heap *kheap = 0;
 
-uint32_t kmalloc_int(uint32_t size, int align, uint32_t *phys)
+uint32_t kmalloc_int(size_t size, int align, uint32_t *phys)
 {
 	if (kheap != 0) {
 		void *addr = alloc(kheap, size, (uint8_t)align);
@@ -42,27 +42,27 @@ uint32_t kmalloc_int(uint32_t size, int align, uint32_t *phys)
 	}
 }
 
-uint32_t kmalloc(uint32_t size)
+uint32_t kmalloc(size_t size)
 {
 	return kmalloc_int(size, 0, 0);
 }
 
-uint32_t kmalloc_a(uint32_t size)
+uint32_t kmalloc_a(size_t size)
 {
 	return kmalloc_int(size, 1, 0);
 }
 
-uint32_t kmalloc_p(uint32_t size, uint32_t *phys)
+uint32_t kmalloc_p(size_t size, uint32_t *phys)
 {
 	return kmalloc_int(size, 0, phys);
 }
 
-uint32_t kmalloc_ap(uint32_t size, uint32_t *phys)
+uint32_t kmalloc_ap(size_t size, uint32_t *phys)
 {
 	return kmalloc_int(size, 1, phys);
 }
 
-static void expand(struct heap *heap, uint32_t new_size)
+static void expand(struct heap *heap, size_t new_size)
 {
 	uint32_t old_size, i;
 	
@@ -91,7 +91,7 @@ static void expand(struct heap *heap, uint32_t new_size)
 	heap->end_addr = heap->start_addr + new_size;
 }
 
-static uint32_t contract(struct heap *heap, uint32_t new_size)
+static uint32_t contract(struct heap *heap, size_t new_size)
 {
 	uint32_t old_size, i;
 
@@ -174,7 +174,7 @@ struct heap *create_heap(uint32_t start, uint32_t end, uint32_t max,
 	return heap;
 }
 
-static uint32_t find_smallest_hole(struct heap *heap, uint32_t size, uint8_t page_align)
+static uint32_t find_smallest_hole(struct heap *heap, size_t size, uint8_t page_align)
 {
 	uint32_t iterator;
 	
@@ -201,13 +201,14 @@ static uint32_t find_smallest_hole(struct heap *heap, uint32_t size, uint8_t pag
 		iterator++;
 	}
 
-	if (iterator == heap->index.size)
+	if (iterator == heap->index.size) {
 		return -1;	// No hole left for us
-	else
+	} else {
 		return iterator;
+	}
 }
 
-void *alloc(struct heap *heap, uint32_t size, uint8_t page_align)
+void *alloc(struct heap *heap, size_t size, uint8_t page_align)
 {
 	uint32_t new_size;
 	int32_t iterator;

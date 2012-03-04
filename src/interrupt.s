@@ -115,9 +115,10 @@ isr_common_stub:
 	sti
 	iret           		; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP
 
+	
 extern irq_handler
 
-; This is our coommon IRQ stub. It saves the processor state, sets
+; This is our common IRQ stub. It saves the processor state, sets
 ; up for kernel mode segments, call the C-level fault handler, and
 ; finally restores the stack frame.
 irq_common_stub:

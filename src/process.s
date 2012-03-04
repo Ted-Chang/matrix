@@ -4,6 +4,7 @@ read_eip:
 	jmp eax			; Return. Can't use RET because return
 				; address popped off the stack
 
+
 [GLOBAL copy_page_physical]
 copy_page_physical:
 	push ebx
