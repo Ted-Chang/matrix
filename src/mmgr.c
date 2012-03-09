@@ -2,7 +2,7 @@
  * mmgr.c
  */
 
-#include "types.h"
+#include <types.h>
 #include "isr.h"	// register interrupt handler
 #include "util.h"	// PANIC
 #include "mmgr.h"
@@ -250,12 +250,13 @@ void page_fault(struct registers regs)
 	id = regs.err_code & 0x10;
 
 	/* Print an error message */
-	kprintf("Page fault(%s%s%s%s) at 0x%x\n", 
+	kprintf("Page fault(%s%s%s%s) at 0x%x - EIP: 0x%x\n", 
 		present ? "present " : "non-present ",
 		rw ? "write " : "read ",
 		us ? "user-mode " : "supervisor-mode ",
 		reserved ? "reserved " : "",
-		faulting_addr);
+		faulting_addr,
+		regs.eip);
 
 	PANIC("Page fault");
 }

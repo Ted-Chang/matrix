@@ -1,0 +1,28 @@
+Debugging tips:
+
+* set a lenear address executive break point
+lb 0x1040ea
+
+* calculate an expression
+? 0x1000+0x10
+NOTE: no space between the expression
+
+* disassemble the instruction at give address
+u /10
+
+
+Debugging process:
+lb 0x104008
+c
+s
+(step into irq_common_stub)
+u /20
+s
+(step into irq_handler)
+u /10
+vb 0x08:0x1015f9
+(step into switch_task)
+lb 0x101d23
+(print the stack when you got a panic)
+print-stack 10
+

@@ -16,9 +16,6 @@ static uint32_t initrd_read(struct vfs_node *node, uint32_t offset,
 {
 	struct initrd_file_header hdr;
 
-	DEBUG(DL_DBG, ("initrd_read: node(0x%x) offset(%d) size(%d)\n",
-		       node, offset, size));
-
 	hdr = file_hdrs[node->inode];
 	
 	if (offset > hdr.length) {
@@ -34,9 +31,6 @@ static uint32_t initrd_read(struct vfs_node *node, uint32_t offset,
 
 static struct dirent *initrd_readdir(struct vfs_node *node, uint32_t index)
 {
-	DEBUG(DL_DBG, ("initrd_readdir: node(0x%x) index(%d)\n",
-		       node, index));
-	
 	if (node == initrd_root && index == 0) {
 		strcpy(dirent.name, "dev");
 		dirent.name[3] = 0;
@@ -58,9 +52,6 @@ static struct vfs_node *initrd_finddir(struct vfs_node *node, char *name)
 {
 	int i;
 
-	DEBUG(DL_DBG, ("initrd_finddir: node(0x%x) name(%s)\n",
-		       node, name));
-	
 	if (node == initrd_root &&
 	    !strcmp(name, "dev"))
 		return initrd_dev;
@@ -120,15 +111,10 @@ struct vfs_node *init_initrd(uint32_t location)
 		kmalloc(sizeof(struct vfs_node) * initrd_hdr->nr_files);
 	nr_root_nodes = initrd_hdr->nr_files;
 
-	DEBUG(DL_DBG, ("nr_root_nodes: %d\n", nr_root_nodes));
-	
 	/* For each file in the root directory */
 	for (i = 0; i < nr_root_nodes; i++) {
 		file_hdrs[i].offset += location;
 
-		DEBUG(DL_DBG, ("name: %s, length: %d, inode: %d\n",
-			       file_hdrs[i].name, file_hdrs[i].length, i));
-		
 		/* Create a new file node */
 		strcpy(root_nodes[i].name, &file_hdrs[i].name);
 		root_nodes[i].mask = root_nodes[i].uid = root_nodes[i].gid = 0;

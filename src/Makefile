@@ -22,6 +22,7 @@ SOURCES=\
 	debug.o \
 	process.o \
 	task.o \
+	exceptn.o \
 
 
 CFLAGS=-m32 -D_X86_ -Iinc -nostdlib -nostdinc -fno-builtin -fno-stack-protector
@@ -31,10 +32,10 @@ ASFLAGS=-felf
 all: $(SOURCES) link
 
 clean:
-	-rm *.o matrix
+	-rm *.o *.map matrix
 
 link:
-	ld -melf_i386 $(LDFLAGS) -o matrix $(SOURCES)
+	ld -melf_i386 -Map matrix.map $(LDFLAGS) -o matrix $(SOURCES)
 
 .s.o:
 	nasm $(ASFLAGS) $<

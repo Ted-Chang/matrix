@@ -81,7 +81,7 @@ void move_stack(void *new_stack, uint32_t size)
 		}
 	}
 
-	/* Make changes to the stack */
+	/* Change to the new stack */
 	asm volatile("mov %0, %%esp" :: "r" (new_esp));
 	asm volatile("mov %0, %%ebp" :: "r" (new_ebp));
 }
@@ -91,18 +91,16 @@ void init_multitask()
 	/* No interrupts at this time */
 	disable_interrupt();
 
-	/* Relocate the stack so we know where it is */
+	/* Relocate the stack so we know where it is, the stack size is 8KB */
 	move_stack((void *)0xE0000000, 0x2000);
 
-	DEBUG(DL_DBG, ("init_multitask: move_stack finished.\n"));
-	
 	/* Malloc the initial task and initialize it */
 	current_task = ready_queue = (struct task *)kmalloc(sizeof(struct task));
 	current_task->id = next_pid++;
 	current_task->esp = current_task->ebp = 0;
 	current_task->eip = 0;
 	current_task->page_dir = current_dir;
-	current_task->next = 0;
+	current_task->next = NULL;
 
 	enable_interrupt();
 }
@@ -111,18 +109,30 @@ void switch_task()
 {
 	uint32_t esp, ebp, eip;
 	
-	/* If we haven't initialized multitask yet, do nothing */
+	/* If we haven't initialized multitasking yet, do nothing */
 	if (!current_task)
 		return;
 
 	asm volatile("mov %%esp, %0" : "=r" (esp));
 	asm volatile("mov %%ebp, %0" : "=r" (ebp));
-	
-	eip = read_eip();
 
+	/* Read the instruction pointer. We do some cunning logic here:
+	 * One of the two things could have happened when this function exits
+	 *   (a) We called the function and it returned the EIP as requested.
+	 *   (b) We have just switched tasks, and because the saved EIP is
+	 *       essentially the instruction after read_eip(), it will seem as
+	 *       if read_eip has just returned.
+	 * In the second case we need to return immediately. To detect it we put
+	 * a dummy value in EAX further down at the end of this function. As C
+	 * returns value in EAX, it will look like the return value is this
+	 * dummy value. (0x12345).
+	 */
+	eip = read_eip();
+	
 	/* If we have just switched tasks, do nothing */
-	if (eip == 0x12345)
+	if (eip == 0x12345) {
 		return;
+	}
 
 	/* Save the current process context */
 	current_task->eip = eip;
@@ -131,29 +141,41 @@ void switch_task()
 
 	/* Get the next ready task to run */
 	current_task = current_task->next;
-	if (!current_task)
-		current_task = ready_queue;
+
+	/* If we get to the end of the task list start again at the beginning */
+	if (!current_task) current_task = ready_queue;
 
 	eip = current_task->eip;
 	esp = current_task->esp;
 	ebp = current_task->ebp;
 
+	/* Make sure the memory manager knows we've changed the page directory */
 	current_dir = current_task->page_dir;
 
-	asm volatile(
-		     "cli; \
-		     mov %0, %%ecx; \
-		     mov %1, %%esp; \
-		     mov %2, %%ebp; \
-		     mov %3, %%cr3; \
-		     mov $0x12345, %%eax; \
-		     sti; \
-		     jmp *%%ecx" \
-		     :: "r"(eip), "r"(esp), "r"(ebp), "r"(current_dir->physical_addr));
+	/* Here we:
+	 * [1] Disable interrupts so we don't get bothered.
+	 * [2] Temporarily puts the new EIP location in ECX.
+	 * [3] Loads the stack and base pointers from the new task struct.
+	 * [4] Changes page directory to the physical address of the new directory.
+	 * [5] Puts a dummy value (0x12345) in EAX so that above we can recognize
+	 *     that we've just switched task.
+	 * [6] Enable interrupts. The STI instruction has a delay - it doesn't take
+	 *     effect until after the next instruction
+	 * [7] Jumps to the location in ECX (remember we put the new EIP in there)
+	 */
+	asm volatile ("cli");
+	asm volatile ("mov %0, %%esp" :: "r"(esp));
+	asm volatile ("mov %0, %%ebp" :: "r"(ebp));
+	asm volatile ("mov %0, %%ecx" :: "r"(eip));
+	asm volatile ("mov %0, %%cr3" :: "r"(current_dir->physical_addr));
+	asm volatile ("mov $0x12345, %eax");
+	asm volatile ("sti");
+	asm volatile ("jmp *%ecx");
 }
 
 int fork()
 {
+	int pid = 0;
 	struct task *parent;
 	struct pd *dir;
 	struct task *new_task;
@@ -193,13 +215,13 @@ int fork()
 		new_task->ebp = ebp;
 		new_task->eip = eip;
 
+		pid =  new_task->id;
+
 		enable_interrupt();
-		
-		return new_task->id;
 	}
 
 	/* We are the child */
-	return 0;
+	return pid;
 }
 
 int getpid()

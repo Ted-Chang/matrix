@@ -8,6 +8,9 @@
 
 isr_t interrupt_handlers[256];
 
+/*
+ * Software interrupt handler, call the exception handlers
+ */
 void isr_handler(struct registers regs)
 {
 	kprintf("received interrupt: %d\n", regs.int_no);
@@ -17,6 +20,9 @@ void isr_handler(struct registers regs)
 	}
 }
 
+/*
+ * Hardware interrupt handler, dispatch the interrupt
+ */
 void irq_handler(struct registers regs)
 {
 	/* Send an EOI (end of interrupt) signal to the PICs.

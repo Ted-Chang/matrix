@@ -1,0 +1,5 @@
+How to build?
+To build matrix, execute GNU make in src directory.
+
+How to run matrix?
+I only tried it with bochs 2.4.6 and boot it with grub installed.

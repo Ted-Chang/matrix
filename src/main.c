@@ -2,7 +2,7 @@
  * main.c
  */
 
-#include "types.h"
+#include <types.h>
 #include "util.h"
 #include "hal.h"
 #include "timer.h"
@@ -13,6 +13,7 @@
 #include "initrd.h"
 #include "task.h"
 #include "debug.h"
+#include "exceptn.h"
 
 extern isr_t interrupt_handlers[];
 
@@ -32,13 +33,17 @@ int main(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	clear_scr();
 
 	initial_esp = initial_stack;
-	
+
 	/* Install the gdt and idt */
 	init_gdt();
 	init_idt();
 	memset(&interrupt_handlers, 0, 256*sizeof(isr_t));
 
 	kprintf("Gdt and idt initialized.\n");
+
+	init_exception_handlers();
+
+	kprintf("Exception handlers installed.\n");
 
 	/* Enable interrupt so our timer can work */
 	enable_interrupt();
@@ -78,9 +83,9 @@ int main(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	kprintf("Welcome to Matrix!\n");
 
 	/* Fork a new process which is a clone of this */
-	//rc = fork();
+	rc = fork();
 
-	//kprintf("fork returned %d\n", rc);
+	kprintf("fork returned %d\n", rc);
 
 	kprintf("current pid: %d\n", getpid());
 	
@@ -102,11 +107,11 @@ int main(struct multiboot *mboot_ptr, uint32_t initial_stack)
 			char buf[256];
 			uint32_t sz;
 			int j;
-			kprintf("\tcontent: \"");
+			kprintf("\tcontent: ");
 			sz = vfs_read(fs_node, 0, 256, buf);
 			for (j = 0; j < sz; j++)
 				kprintf("%c", buf[j]);
-			kprintf("\"\n");
+			kprintf("\n");
 		}
 
 		i++;
