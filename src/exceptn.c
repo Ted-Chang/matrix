@@ -5,103 +5,88 @@
 void divide_by_zero_fault(struct registers regs)
 {
 	PANIC("Divide by zero");
-	for (; ; ) ;
 }
 
 void single_step_trap(struct registers regs)
 {
 	PANIC("Single step");
-	for (; ; ) ;
 }
 
 void nmi_trap(struct registers regs)
 {
 	PANIC("NMI trap");
-	for (; ; ) ;
 }
 
 void breakpoint_trap(struct registers regs)
 {
 	PANIC("Breakpoint trap");
-	for (; ; ) ;
 }
 
 void overflow_trap(struct registers regs)
 {
 	PANIC("Overflow trap");
-	for (; ; ) ;
 }
 
 void bounds_check_fault(struct registers regs)
 {
 	PANIC("Bounds check fault");
-	for (; ; ) ;
 }
 
 void invalid_opcode_fault(struct registers regs)
 {
+	kprintf("Invalid opcode CS:0x%x, EIP:0x%x\n",
+		regs.cs, regs.eip);
 	PANIC("Invalid opcode fault");
-	for (; ; ) ;
 }
 
 void no_device_fault(struct registers regs)
 {
 	PANIC("Device not found");
-	for (; ; ) ;
 }
 
 void double_fault_abort(struct registers regs)
 {
 	PANIC("Double fault");
-	for (; ; ) ;
 }
 
 void invalid_tss_fault(struct registers regs)
 {
 	PANIC("Invalid TSS");
-	for (; ; ) ;
 }
 
 void no_segment_fault(struct registers regs)
 {
 	PANIC("Invalid segment");
-	for (; ; ) ;
 }
 
 void stack_fault(struct registers regs)
 {
 	PANIC("Stack fault");
-	for (; ; ) ;
 }
 
 void general_protection_fault(struct registers regs)
 {
 	PANIC("General protection fault");
-	for (; ; ) ;
 }
 
 void fpu_fault(struct registers regs)
 {
 	PANIC("FPU fault");
-	for (; ; ) ;
 }
 
 void alignment_check_fault(struct registers regs)
 {
 	PANIC("Alignment fault");
-	for (; ; ) ;
 }
 
 void machine_check_abort(struct registers regs)
 {
 	PANIC("Machine check fault");
-	for (; ; ) ;
 }
 
 void simd_fpu_fault(struct registers regs)
 {
 	PANIC("SIMD FPU fault");
-	for (; ; ) ;
 }
 
 void init_exception_handlers()

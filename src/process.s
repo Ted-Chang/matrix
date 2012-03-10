@@ -14,8 +14,8 @@ copy_page_physical:
 
 	cli			; Disable interrupts, so we aren't interrupted
 
-	mov ebx, [esp+12]	; Source address
-	mov ecx, [esp+16]	; Destination address
+	mov ecx, [esp+12]	; Destination address
+	mov ebx, [esp+16]	; Source address
 
 	mov edx, cr0		; Get the control register
 	and edx, 0x7FFFFFFF	; and

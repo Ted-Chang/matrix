@@ -79,6 +79,8 @@ int main(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	/* Initialize the initial ramdisk and set it as the root filesystem */
 	root_node = init_initrd(initrd_location);
 
+	kprintf("Initial ramdisk initialized.\n");
+
 	/* Print the banner */
 	kprintf("Welcome to Matrix!\n");
 

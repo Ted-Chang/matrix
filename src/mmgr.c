@@ -264,15 +264,22 @@ void page_fault(struct registers regs)
 static struct pt *clone_pt(struct pt *src, uint32_t *physical_addr)
 {
 	int i;
-	struct pt *table = (struct pt *)kmalloc_ap(sizeof(struct pt), physical_addr);
+	struct pt *table;
+	
+	/* Make a new page table, which is page aligned */
+	table = (struct pt *)kmalloc_ap(sizeof(struct pt), physical_addr);
+	
+	/* Clear the content of the new page table */
 	memset(table, 0, sizeof(struct pt));
+
+	DEBUG(DL_DBG, ("clone_pt: src(0x%x), table(0x%x)\n", src, table));
 
 	for (i = 0; i < 1024; i++) {
 		/* If the source entry has a frame associated with it */
 		if (src->pages[i].frame) {
 
 			/* Get a new frame */
-			alloc_frame(&table->pages[i], 0, 0);
+			alloc_frame(&(table->pages[i]), FALSE, FALSE);
 
 			/* Clone the flags from source to destination */
 			if (src->pages[i].present) table->pages[i].present = 1;
@@ -282,8 +289,8 @@ static struct pt *clone_pt(struct pt *src, uint32_t *physical_addr)
 			if (src->pages[i].dirty) table->pages[i].dirty = 1;
 
 			/* Physically copy the data accross */
-			copy_page_physical(src->pages[i].frame * 0x1000,
-					   table->pages[i].frame * 0x1000);
+			copy_page_physical(table->pages[i].frame * 0x1000, 
+					   src->pages[i].frame * 0x1000);
 		}
 	}
 
@@ -299,12 +306,21 @@ struct pd *clone_pd(struct pd *src)
 
 	/* Make a new page directory and retrieve its physical address */
 	dir = (struct pd *)kmalloc_ap(sizeof(struct pd), &physical_addr);
+	
+	/* Clear the page directory */
 	memset(dir, 0, sizeof(struct pd));
 
 	offset = (uint32_t)dir->physical_tables - (uint32_t)dir;
 
+	/* Calculate the physical address of the page directory entry */
 	dir->physical_addr = physical_addr + offset;
-	
+
+	DEBUG(DL_DBG, ("clone_pd: src dir(0x%x;0x%x), cloned dir(0x%x;0x%x)\n",
+		       src, src->physical_addr, dir, dir->physical_addr));
+
+	/* For each page table, if the page table is in the kernel directory,
+	 * do not make a new copy.
+	 */
 	for (i = 0; i < 1024; i++) {
 		if (!src->tables[i])
 			continue;
@@ -313,7 +329,7 @@ struct pd *clone_pd(struct pd *src)
 			dir->tables[i] = src->tables[i];
 			dir->physical_tables[i] = src->physical_tables[i];
 		} else {
-			/* Copy the table page */
+			/* Copy the page table */
 			uint32_t physical;
 			dir->tables[i] = clone_pt(src->tables[i], &physical);
 			dir->physical_tables[i] = physical | 0x07;

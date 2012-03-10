@@ -1,4 +1,4 @@
-#include "types.h"
+#include <types.h>
 #include "util.h"
 #include "vector.h"
 #include "kheap.h"
@@ -11,18 +11,18 @@ extern struct pd *kernel_dir;
 
 uint32_t placement_addr = (uint32_t)&end;
 
-struct heap *kheap = 0;
+struct heap *kheap = NULL;
 
 uint32_t kmalloc_int(size_t size, int align, uint32_t *phys)
 {
-	if (kheap != 0) {
+	if (kheap) {	// The heap manager was initialized
 		void *addr = alloc(kheap, size, (uint8_t)align);
 		if (phys) {
 			struct pte *page = get_pte((uint32_t)addr, 0, kernel_dir);
 			*phys = page->frame * 0x1000 + ((uint32_t)addr & 0xFFF);
 		}
 		return (uint32_t)addr;
-	} else {
+	} else {	// The heap manager was not initialized
 		uint32_t tmp;
 
 		/* If the address is not already page-aligned */
