@@ -7,6 +7,7 @@ static void syscall_handler(struct registers *regs);
 
 /* Define your system call here */
 DEFN_SYSCALL1(putstr, 0, const char *);
+/* End of the system call definition */
 
 static void *syscalls[3] = {
 	putstr,
@@ -38,17 +39,19 @@ void syscall_handler(struct registers *regs)
 	 * will use all the parameters it wants, and we can pop them all back
 	 * off afterwards.
 	 */
-	asm volatile("push %1" : "=a" (rc) : "r" (regs->edi));
-	asm volatile("push %0" : "=r" (regs->esi));
-	asm volatile("push %0" : "=r" (regs->edx));
-	asm volatile("push %0" : "=r" (regs->ecx));
-	asm volatile("push %0" : "=r" (regs->ebx));
-	asm volatile("call *%0" : "=r" (location));
-	asm volatile("pop %ebx");
-	asm volatile("pop %ebx");
-	asm volatile("pop %ebx");
-	asm volatile("pop %ebx");
-	asm volatile("pop %ebx");
-
+	asm volatile(" \
+		     push %1; \
+		     push %2; \
+		     push %3; \
+		     push %4; \
+		     push %5; \
+		     call *%6; \
+		     pop %%ebx; \
+		     pop %%ebx; \
+		     pop %%ebx; \
+		     pop %%ebx; \
+		     pop %%ebx; \
+		     " : "=a" (rc) : "r" (regs->edi), "r" (regs->esi), "r" (regs->edx), "r" (regs->ecx), "r" (regs->ebx), "r" (location));
+	
 	regs->eax = rc;
 }

@@ -75,7 +75,7 @@ void init_idt()
 
 	memset(&idt_entries, 0, sizeof(struct idt) * 256);
 
-	/* Remap the irq table */
+	/* Remap the irq table so we will not conflict with the PIC */
 	outportb(0x20, 0x11);
 	outportb(0xA0, 0x11);
 	outportb(0x21, 0x20);
@@ -136,6 +136,9 @@ void init_idt()
 	idt_set_gate(45, (uint32_t)irq13, 0x08, 0x8E);
 	idt_set_gate(46, (uint32_t)irq14, 0x08, 0x8E);
 	idt_set_gate(47, (uint32_t)irq15, 0x08, 0x8E);
+	
+	/* The following interrupt number is for system call */
+	idt_set_gate(128, (uint32_t)isr128, 0x08, 0x8E);
 
 	idt_flush((uint32_t)&idt_ptr);
 }
@@ -198,7 +201,8 @@ static void gdt_set_gate(uint32_t num, uint32_t base, uint32_t limit, uint8_t ac
 
 static void __init_gdt()
 {
-	gdt_ptr.limit = (sizeof(struct gdt) * 5) - 1;
+	/* 5 GDT entry and a TSS entry */
+	gdt_ptr.limit = (sizeof(struct gdt) * 6) - 1;
 	gdt_ptr.base = (uint32_t)&gdt_entries;
 
 	/* The NULL segment */

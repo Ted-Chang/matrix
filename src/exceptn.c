@@ -66,6 +66,8 @@ void stack_fault(struct registers *regs)
 
 void general_protection_fault(struct registers *regs)
 {
+	kprintf("General protection fault CS:0x%x, EIP:0x%x\n",
+		regs->cs, regs->eip);
 	PANIC("General protection fault");
 }
 

@@ -17,12 +17,13 @@ void isr_handler(struct registers regs)
 	 * max than 0x80
 	 */
 	uint8_t int_no = regs.int_no & 0xFF;
-	
-	if (interrupt_handlers[regs.int_no]) {
-		isr_t handler = interrupt_handlers[regs.int_no];
+
+	if (interrupt_handlers[int_no]) {
+		isr_t handler = interrupt_handlers[int_no];
 		handler(&regs);
 	} else {
-		kprintf("unhandled interrupt: %d\n", regs.int_no);
+		kprintf("unhandled interrupt: %d\n", int_no);
+		for (; ; ) ;
 	}
 }
 

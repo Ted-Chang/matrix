@@ -123,6 +123,7 @@ void isr28();
 void isr29();
 void isr30();
 void isr31();
+void isr128();	// Interrupt handler for system call
 
 void irq0();
 void irq1();

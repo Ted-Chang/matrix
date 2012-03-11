@@ -101,6 +101,7 @@ void init_multitask()
 	current_task->eip = 0;
 	current_task->page_dir = current_dir;
 	current_task->next = NULL;
+	current_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
 
 	enable_interrupt();
 }
@@ -151,6 +152,9 @@ void switch_task()
 
 	/* Make sure the memory manager knows we've changed the page directory */
 	current_dir = current_task->page_dir;
+
+	/* Switch the kernel stack in TSS to the task's kernel stack */
+	set_kernel_stack(current_task->kernel_stack + KERNEL_STACK_SIZE);
 
 	//DEBUG(DL_DBG, ("switch_task: switching to task %d\n"
 	//	       "\tesp(0x%x), ebp(0x%x), eip(0x%x), page_dir(0x%x).\n",
@@ -206,6 +210,7 @@ int fork()
 	new_task->eip = 0;
 	new_task->page_dir = dir;
 	new_task->next = 0;
+	new_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
 
 	/* Add the new task to the end of the ready queue */
 	tmp_task = (struct task *)ready_queue;
@@ -249,24 +254,30 @@ int getpid()
 
 void switch_to_user_mode()
 {
+	/* Setup our kernel stack, note that the stack was grow from high address
+	 * to low address
+	 */
+	set_kernel_stack(current_task->kernel_stack + KERNEL_STACK_SIZE);
+	
 	/* Setup a stack structure for switching to user mode.
 	 * The code firstly disables interrupts, as we're working on a critical
 	 * section of code. It then sets the ds, es, fs and gs segment selectors
 	 * to our user mode data selector - 0x23. 
 	 */
-	asm volatile("cli");
-	asm volatile("mov $0x23, %ax");
-	asm volatile("mov %ax, %ds");
-	asm volatile("mov %ax, %es");
-	asm volatile("mov %ax, %fs");
-	asm volatile("mov %ax, %gs");
-	
-	asm volatile("mov %esp, %eax");	// Saves the stack point in EAX
-	asm volatile("pushl $0x23");
-	asm volatile("pushl %eax");
-	asm volatile("pushf");		// Pushes current value of EFLAGS
-	asm volatile("pushl $0x1B");	// Pushes the CS selector value
-	asm volatile("push $1f");	// Pushes the the value of next label onto the stack
-	asm volatile("iret");
-	asm volatile("1:");
+	asm volatile("\
+		     cli; \
+		     mov $0x23, %ax; \
+		     mov %ax, %ds; \
+		     mov %ax, %es; \
+		     mov %ax, %fs; \
+		     mov %ax, %gs; \
+		     \
+		     mov %esp, %eax; \
+		     pushl $0x23; \
+		     pushl %esp; \
+		     pushf; \
+		     pushl $0x1B; \
+		     push $1f; \
+		     iret; \
+		     1: ");
 }
