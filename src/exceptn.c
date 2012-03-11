@@ -2,89 +2,89 @@
 #include "isr.h"
 #include "util.h"
 
-void divide_by_zero_fault(struct registers regs)
+void divide_by_zero_fault(struct registers *regs)
 {
 	PANIC("Divide by zero");
 }
 
-void single_step_trap(struct registers regs)
+void single_step_trap(struct registers *regs)
 {
 	PANIC("Single step");
 }
 
-void nmi_trap(struct registers regs)
+void nmi_trap(struct registers *regs)
 {
 	PANIC("NMI trap");
 }
 
-void breakpoint_trap(struct registers regs)
+void breakpoint_trap(struct registers *regs)
 {
 	PANIC("Breakpoint trap");
 }
 
-void overflow_trap(struct registers regs)
+void overflow_trap(struct registers *regs)
 {
 	PANIC("Overflow trap");
 }
 
-void bounds_check_fault(struct registers regs)
+void bounds_check_fault(struct registers *regs)
 {
 	PANIC("Bounds check fault");
 }
 
-void invalid_opcode_fault(struct registers regs)
+void invalid_opcode_fault(struct registers *regs)
 {
 	kprintf("Invalid opcode CS:0x%x, EIP:0x%x\n",
-		regs.cs, regs.eip);
+		regs->cs, regs->eip);
 	PANIC("Invalid opcode fault");
 }
 
-void no_device_fault(struct registers regs)
+void no_device_fault(struct registers *regs)
 {
 	PANIC("Device not found");
 }
 
-void double_fault_abort(struct registers regs)
+void double_fault_abort(struct registers *regs)
 {
 	PANIC("Double fault");
 }
 
-void invalid_tss_fault(struct registers regs)
+void invalid_tss_fault(struct registers *regs)
 {
 	PANIC("Invalid TSS");
 }
 
-void no_segment_fault(struct registers regs)
+void no_segment_fault(struct registers *regs)
 {
 	PANIC("Invalid segment");
 }
 
-void stack_fault(struct registers regs)
+void stack_fault(struct registers *regs)
 {
 	PANIC("Stack fault");
 }
 
-void general_protection_fault(struct registers regs)
+void general_protection_fault(struct registers *regs)
 {
 	PANIC("General protection fault");
 }
 
-void fpu_fault(struct registers regs)
+void fpu_fault(struct registers *regs)
 {
 	PANIC("FPU fault");
 }
 
-void alignment_check_fault(struct registers regs)
+void alignment_check_fault(struct registers *regs)
 {
 	PANIC("Alignment fault");
 }
 
-void machine_check_abort(struct registers regs)
+void machine_check_abort(struct registers *regs)
 {
 	PANIC("Machine check fault");
 }
 
-void simd_fpu_fault(struct registers regs)
+void simd_fpu_fault(struct registers *regs)
 {
 	PANIC("SIMD FPU fault");
 }

@@ -23,6 +23,7 @@ SOURCES=\
 	process.o \
 	task.o \
 	exceptn.o \
+	syscall.o \
 
 
 CFLAGS=-m32 -D_X86_ -Iinc -nostdlib -nostdinc -fno-builtin -fno-stack-protector

@@ -7,7 +7,7 @@
 
 uint32_t tick = 0;
 
-static void timer_callback(struct registers regs)
+static void timer_callback(struct registers *regs)
 {
 	tick++;
 	switch_task();

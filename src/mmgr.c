@@ -229,7 +229,7 @@ void switch_page_dir(struct pd *dir)
 	asm volatile("mov %0, %%cr0":: "r"(cr0));
 }
 
-void page_fault(struct registers regs)
+void page_fault(struct registers *regs)
 {
 	uint32_t faulting_addr;
 	int present;
@@ -243,11 +243,11 @@ void page_fault(struct registers regs)
 	 */
 	asm volatile("mov %%cr2, %0" : "=r"(faulting_addr));
 
-	present = regs.err_code & 0x1;
-	rw = regs.err_code & 0x2;
-	us = regs.err_code & 0x4;
-	reserved = regs.err_code & 0x8;
-	id = regs.err_code & 0x10;
+	present = regs->err_code & 0x1;
+	rw = regs->err_code & 0x2;
+	us = regs->err_code & 0x4;
+	reserved = regs->err_code & 0x8;
+	id = regs->err_code & 0x10;
 
 	/* Print an error message */
 	kprintf("Page fault(%s%s%s%s) at 0x%x - EIP: 0x%x\n", 
@@ -256,7 +256,7 @@ void page_fault(struct registers regs)
 		us ? "user-mode " : "supervisor-mode ",
 		reserved ? "reserved " : "",
 		faulting_addr,
-		regs.eip);
+		regs->eip);
 
 	PANIC("Page fault");
 }

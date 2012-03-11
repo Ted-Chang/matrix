@@ -13,11 +13,16 @@ isr_t interrupt_handlers[256];
  */
 void isr_handler(struct registers regs)
 {
+	/* Avoid the problem caused by the signed interrupt number if it is
+	 * max than 0x80
+	 */
+	uint8_t int_no = regs.int_no & 0xFF;
+	
 	if (interrupt_handlers[regs.int_no]) {
 		isr_t handler = interrupt_handlers[regs.int_no];
-		handler(regs);
+		handler(&regs);
 	} else {
-		kprintf("received interrupt: %d\n", regs.int_no);
+		kprintf("unhandled interrupt: %d\n", regs.int_no);
 	}
 }
 
@@ -39,7 +44,7 @@ void irq_handler(struct registers regs)
 
 	if (interrupt_handlers[regs.int_no]) {
 		isr_t handler = interrupt_handlers[regs.int_no];
-		handler(regs);
+		handler(&regs);
 	}
 }
 

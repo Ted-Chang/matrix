@@ -70,7 +70,7 @@ void putch(char ch)
 	update_cursor();
 }
 
-void putstr(char *str)
+void putstr(const char *str)
 {
 	int i;
 	if (!str)

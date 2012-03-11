@@ -5,7 +5,7 @@ void putch(char ch);
 
 void clear_scr();
 
-void putstr(char *str);
+void putstr(const char *str);
 
 int kprintf(const char *str, ...);
 

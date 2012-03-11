@@ -246,3 +246,27 @@ int getpid()
 {
 	return current_task->id;
 }
+
+void switch_to_user_mode()
+{
+	/* Setup a stack structure for switching to user mode.
+	 * The code firstly disables interrupts, as we're working on a critical
+	 * section of code. It then sets the ds, es, fs and gs segment selectors
+	 * to our user mode data selector - 0x23. 
+	 */
+	asm volatile("cli");
+	asm volatile("mov $0x23, %ax");
+	asm volatile("mov %ax, %ds");
+	asm volatile("mov %ax, %es");
+	asm volatile("mov %ax, %fs");
+	asm volatile("mov %ax, %gs");
+	
+	asm volatile("mov %esp, %eax");	// Saves the stack point in EAX
+	asm volatile("pushl $0x23");
+	asm volatile("pushl %eax");
+	asm volatile("pushf");		// Pushes current value of EFLAGS
+	asm volatile("pushl $0x1B");	// Pushes the CS selector value
+	asm volatile("push $1f");	// Pushes the the value of next label onto the stack
+	asm volatile("iret");
+	asm volatile("1:");
+}

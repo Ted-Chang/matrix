@@ -60,7 +60,7 @@ void switch_page_dir(struct pd *new);
 
 struct pte *get_pte(uint32_t addr, int make, struct pd *dir);
 
-void page_fault(struct registers regs);
+void page_fault(struct registers *regs);
 
 struct pd *clone_pd(struct pd *src);
 
