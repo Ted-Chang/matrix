@@ -23,4 +23,6 @@ int fork();
 
 int getpid();
 
+void switch_to_user_mode();
+
 #endif	/* __TASK_H__ */

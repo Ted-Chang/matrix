@@ -2,8 +2,9 @@
  * hal.c
  */
 
-#include "types.h"
+#include <types.h>
 #include "hal.h"
+#include "string.h"	// memset
 
 static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags);
 static void write_tss(int32_t num, uint16_t ss0, uint32_t esp0);

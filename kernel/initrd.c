@@ -1,3 +1,6 @@
+#include <types.h>
+#include "string.h"
+#include "mmgr.h"
 #include "initrd.h"
 #include "debug.h"
 
@@ -116,7 +119,7 @@ struct vfs_node *init_initrd(uint32_t location)
 		file_hdrs[i].offset += location;
 
 		/* Create a new file node */
-		strcpy(root_nodes[i].name, &file_hdrs[i].name);
+		strcpy(root_nodes[i].name, (const char *)&file_hdrs[i].name);
 		root_nodes[i].mask = root_nodes[i].uid = root_nodes[i].gid = 0;
 		root_nodes[i].length = file_hdrs[i].length;
 		root_nodes[i].inode = i;

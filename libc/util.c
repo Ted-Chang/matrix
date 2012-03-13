@@ -1,8 +1,9 @@
 #include <types.h>
-#include <stdarg.h>
-#include <string.h>
-#include <stdio.h>
-#include <util.h>
+#include "stdarg.h"
+#include "string.h"
+#include "stdio.h"
+#include "util.h"
+#include "hal.h"	// outportb
 
 static uint16_t cursor_x = 0;
 static uint16_t cursor_y = 0;
@@ -158,19 +159,4 @@ int kprintf(const char *str, ...)
 
 	va_end(args);
 	return 1;
-}
-
-
-void panic(const char *message, const char *file, uint32_t line)
-{
-	asm volatile("cli");	// Disable all interrupts
-	kprintf("PANIC(%s) at %s:%d\n", message, file, line);
-	for (; ; ) ;
-}
-
-void panic_assert(const char *file, uint32_t line, const char *desc)
-{
-	asm volatile("cli");
-	kprintf("ASSERTION FAILED(%s) at %s:%d\n", desc, file, line);
-	for (; ; ) ;
 }

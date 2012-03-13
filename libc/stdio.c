@@ -115,7 +115,7 @@ long strtol(const char *str, char **endstr, int radix)
 			break;
 		if (c >= radix)
 			break;
-		if (any < 0 || acc > cutoff || acc == cutoff && c > cutlim)
+		if ((any < 0) || (acc > cutoff) || ((acc == cutoff) && (c > cutlim)))
 			any = -1;
 		else {
 			any = 1;
@@ -176,7 +176,7 @@ unsigned long strtoul(const char *str, char ** endstr, int radix)
 			break;
 		if (c >= radix)
 			break;
-		if (any < 0 || acc > cutoff || acc == cutoff && c > cutlim)
+		if ((any < 0) || (acc > cutoff) || ((acc == cutoff) && (c > cutlim)))
 			any = -1;
 		else {
 			any = 1;

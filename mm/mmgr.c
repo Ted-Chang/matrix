@@ -3,8 +3,8 @@
  */
 
 #include <types.h>
+#include "string.h"	// memset
 #include "isr.h"	// register interrupt handler
-#include "util.h"	// PANIC
 #include "mmgr.h"
 #include "kheap.h"
 #include "debug.h"
@@ -23,6 +23,8 @@ struct pd *current_dir = 0;
 extern uint32_t placement_addr;
 
 extern struct heap *kheap;
+
+extern void copy_page_physical(uint32_t dst, uint32_t src);
 
 struct pte *get_pte(uint32_t addr, int make, struct pd *dir)
 {
@@ -150,7 +152,6 @@ void init_paging(uint64_t mem_size)
 {
 	/* The size of physical memory. We assume it is 32 MB */
 	int i;
-	uint32_t physical_addr;
 
 	/* Calculate the number of frames, 32 bit integer is enough for now. */
 	nr_frames = (uint32_t)(mem_size / PAGE_SIZE);
@@ -236,7 +237,6 @@ void page_fault(struct registers *regs)
 	int rw;
 	int us;
 	int reserved;
-	int id;
 
 	/* A page fault has occurred. The CR2 register
 	 * contains the faulting address.
@@ -247,7 +247,6 @@ void page_fault(struct registers *regs)
 	rw = regs->err_code & 0x2;
 	us = regs->err_code & 0x4;
 	reserved = regs->err_code & 0x8;
-	id = regs->err_code & 0x10;
 
 	/* Print an error message */
 	kprintf("Page fault(%s%s%s%s) at 0x%x - EIP: 0x%x\n", 

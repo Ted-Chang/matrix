@@ -7,6 +7,8 @@
 
 uint32_t tick = 0;
 
+extern void switch_task();
+
 static void timer_callback(struct registers *regs)
 {
 	tick++;

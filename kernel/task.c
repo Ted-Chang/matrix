@@ -2,8 +2,9 @@
  * task.c
  */
 
-#include "types.h"
+#include <types.h>
 #include "hal.h"
+#include "string.h"
 #include "mmgr.h"
 #include "task.h"
 #include "debug.h"

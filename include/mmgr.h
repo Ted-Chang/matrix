@@ -64,4 +64,12 @@ void page_fault(struct registers *regs);
 
 struct pd *clone_pd(struct pd *src);
 
+void alloc_frame(struct pte *pte, int is_kernel, int is_writable);
+
+void free_frame(struct pte *pte);
+
+uint32_t kmalloc(size_t size);
+
+uint32_t kmalloc_a(size_t size);
+
 #endif	/* __MMGR_H__ */

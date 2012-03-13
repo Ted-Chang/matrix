@@ -3,12 +3,14 @@
  */
 
 #include <types.h>
+#include "multiboot.h"
+#include "string.h"
 #include "util.h"
 #include "hal.h"
-#include "timer.h"
 #include "isr.h"
 #include "kheap.h"
-#include "multiboot.h"
+#include "mmgr.h"
+#include "timer.h"
 #include "fs.h"
 #include "initrd.h"
 #include "task.h"
@@ -27,7 +29,6 @@ int main(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	int i, rc;
 	uint32_t initrd_location;
 	uint32_t initrd_end;
-	struct dirent *node;
 	uint64_t mem_end_page;
 
 	/* Clear the screen */

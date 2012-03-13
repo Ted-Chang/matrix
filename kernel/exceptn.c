@@ -1,6 +1,6 @@
 #include <types.h>
 #include "isr.h"
-#include "util.h"
+#include "debug.h"
 
 void divide_by_zero_fault(struct registers *regs)
 {

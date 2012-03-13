@@ -70,7 +70,7 @@ static void expand(struct heap *heap, size_t new_size)
 	ASSERT(new_size > (heap->end_addr - heap->start_addr));
 
 	/* Get the nearest following page boundary */
-	if (new_size & 0xFFFFF000 != 0) {
+	if ((new_size & 0xFFFFF000) != 0) {
 		new_size &= 0xFFFFF000;
 		new_size += 0x1000;
 	}
@@ -152,7 +152,7 @@ struct heap *create_heap(uint32_t start, uint32_t end, uint32_t max,
 	start += sizeof(type_t) * HEAP_INDEX_SIZE;
 	
 	/* Make sure the start address is page-aligned */
-	if (start & 0xFFFFF000 != 0) {
+	if ((start & 0xFFFFF000) != 0) {
 		start &= 0xFFFFF000;
 		start += 0x1000;
 	}
@@ -188,7 +188,7 @@ static uint32_t find_smallest_hole(struct heap *heap, size_t size, uint8_t page_
 			int32_t offset = 0;
 			int32_t hole_size;
 			
-			if ((location + sizeof(struct header)) & 0xFFFFF000 != 0)
+			if ((((location + sizeof(struct header))) & 0xFFFFF000) != 0)
 				offset = 0x1000;
 			hole_size = (int32_t)header->size - offset;
 			
@@ -252,9 +252,13 @@ void *alloc(struct heap *heap, size_t size, uint8_t page_align)
 			footer->hdr = header;
 			insert_vector(&heap->index, (void *)header);
 		} else {
-			struct header *header = lookup_vector(&heap->index, idx);
+			/* The last header need adjusting */
+			struct header *header;
+			/* Rewrite the footer */
 			struct footer *footer;
-			header->size += new_length - old_length;
+			header = lookup_vector(&heap->index, idx);
+			header->size += (new_length - old_length);
+			footer = (struct footer *)((uint32_t)header + header->size - sizeof(struct footer));
 			footer->hdr = header;
 			footer->magic = HEAP_MAGIC;
 		}
@@ -289,6 +293,8 @@ void *alloc(struct heap *heap, size_t size, uint8_t page_align)
 		hole_header->magic = HEAP_MAGIC;
 		hole_header->is_hole = 1;
 		hole_footer = (struct footer *)(new_location - sizeof(struct footer));
+		hole_footer->magic = HEAP_MAGIC;
+		hole_footer->hdr = hole_header;
 		orig_hole_pos = new_location;
 		orig_hole_size = orig_hole_size - hole_header->size;
 	} else {
