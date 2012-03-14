@@ -5,13 +5,13 @@
 #include "task.h"
 #include "debug.h"
 
-uint32_t tick = 0;
+uint32_t _tick = 0;
 
 extern void switch_task();
 
 static void timer_callback(struct registers *regs)
 {
-	tick++;
+	_tick++;
 	switch_task();
 }
 

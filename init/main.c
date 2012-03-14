@@ -18,13 +18,13 @@
 #include "exceptn.h"
 #include "syscall.h"
 
-extern isr_t interrupt_handlers[];
+extern isr_t _interrupt_handlers[];
 
-extern uint32_t placement_addr;
+extern uint32_t _placement_addr;
 
-uint32_t initial_esp;
+uint32_t _initial_esp;
 
-int main(struct multiboot *mboot_ptr, uint32_t initial_stack)
+int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 {
 	int i, rc;
 	uint32_t initrd_location;
@@ -34,12 +34,12 @@ int main(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	/* Clear the screen */
 	clear_scr();
 
-	initial_esp = initial_stack;
+	_initial_esp = initial_stack;
 
 	/* Install the gdt and idt */
 	init_gdt();
 	init_idt();
-	memset(&interrupt_handlers, 0, 256*sizeof(isr_t));
+	memset(&_interrupt_handlers, 0, 256*sizeof(isr_t));
 
 	kprintf("Gdt and idt initialized.\n");
 
@@ -62,7 +62,7 @@ int main(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	initrd_end = *(uint32_t *)(mboot_ptr->mods_addr + 4);
 
 	/* Don't trample our module with placement address */
-	placement_addr = initrd_end;
+	_placement_addr = initrd_end;
 
 	/* Upper memory start from 1MB and in kilo bytes */
 	mem_end_page = (mboot_ptr->mem_upper + mboot_ptr->mem_lower) * 1024;

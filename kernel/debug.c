@@ -2,7 +2,7 @@
 #include "hal.h"
 #include "debug.h"
 
-uint32_t debug_level = DL_DBG;
+uint32_t _debug_level = DL_DBG;
 
 void panic(const char *message, const char *file, uint32_t line)
 {

@@ -7,8 +7,8 @@
 #include <stdio.h>
 
 
-char tbuf[32];
-char bchars[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+char _tbuf[32];
+char _bchars[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
 /*
  * Convert a numeric value to a unsigned string
@@ -26,13 +26,13 @@ void itoa(unsigned i, unsigned base, char *buf)
 	}
 	
 	while (i != 0) {
-		tbuf[pos] = bchars[i % base];
+		_tbuf[pos] = _bchars[i % base];
 		pos++;
 		i /= base;
 	}
 	top = pos--;
 	for (opos = 0; opos < top; pos--, opos++) {
-		buf[opos] = tbuf[pos];
+		buf[opos] = _tbuf[pos];
 	}
 	buf[opos] = 0;
 }

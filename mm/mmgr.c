@@ -13,16 +13,16 @@
 #define OFFSET_FROM_BIT(a)	(a%(8*4))
 
 /* Global memory page frame set */
-uint32_t *frames;
+uint32_t *_frames;
 
-uint32_t nr_frames;
+uint32_t _nr_frames;
 
-struct pd *kernel_dir = 0;
-struct pd *current_dir = 0;
+struct pd *_kernel_dir = 0;
+struct pd *_current_dir = 0;
 
-extern uint32_t placement_addr;
+extern uint32_t _placement_addr;
 
-extern struct heap *kheap;
+extern struct heap *_kheap;
 
 extern void copy_page_physical(uint32_t dst, uint32_t src);
 
@@ -62,7 +62,7 @@ static void set_frame(uint32_t frame_addr)
 	uint32_t idx = INDEX_FROM_BIT(frame);
 	uint32_t off = OFFSET_FROM_BIT(frame);
 
-	frames[idx] |= (0x1 << off);
+	_frames[idx] |= (0x1 << off);
 }
 
 /*
@@ -74,7 +74,7 @@ static void clear_frame(uint32_t frame_addr)
 	uint32_t idx = INDEX_FROM_BIT(frame);
 	uint32_t off = OFFSET_FROM_BIT(frame);
 
-	frames[idx] &= ~(0x1 << off);
+	_frames[idx] &= ~(0x1 << off);
 }
 
 /*
@@ -86,7 +86,7 @@ static uint32_t test_frame(uint32_t frame_addr)
 	uint32_t idx = INDEX_FROM_BIT(frame);
 	uint32_t off = OFFSET_FROM_BIT(frame);
 
-	return (frames[idx] & (0x1 << off));
+	return (_frames[idx] & (0x1 << off));
 }
 
 /*
@@ -96,11 +96,11 @@ static uint32_t first_frame()
 {
 	uint32_t i, j;
 
-	for (i = 0; i < INDEX_FROM_BIT(nr_frames); i++) {
-		if (frames[i] != 0xFFFFFFFF) {
+	for (i = 0; i < INDEX_FROM_BIT(_nr_frames); i++) {
+		if (_frames[i] != 0xFFFFFFFF) {
 			for (j = 0; j < 32; j++) {
 				uint32_t to_test = 0x1 << j;
-				if (!(frames[i] & to_test)) {
+				if (!(_frames[i] & to_test)) {
 					return i*4*8+j;
 				}
 			}
@@ -154,21 +154,21 @@ void init_paging(uint64_t mem_size)
 	int i;
 
 	/* Calculate the number of frames, 32 bit integer is enough for now. */
-	nr_frames = (uint32_t)(mem_size / PAGE_SIZE);
-	frames = (uint32_t *)kmalloc(INDEX_FROM_BIT(nr_frames));
-	memset(frames, 0, INDEX_FROM_BIT(nr_frames));
+	_nr_frames = (uint32_t)(mem_size / PAGE_SIZE);
+	_frames = (uint32_t *)kmalloc(INDEX_FROM_BIT(_nr_frames));
+	memset(_frames, 0, INDEX_FROM_BIT(_nr_frames));
 
 	/* Lets make a page directory for our kernel */
-	kernel_dir = (struct pd *)kmalloc_a(sizeof(struct pd));
-	memset(kernel_dir, 0, sizeof(struct pd));
+	_kernel_dir = (struct pd *)kmalloc_a(sizeof(struct pd));
+	memset(_kernel_dir, 0, sizeof(struct pd));
 
-	/* At this time paging was not enabled, so we use kernel_dir->physical_tables
+	/* At this time paging was not enabled, so we use _kernel_dir->physical_tables
 	 * as the page directory's physical address
 	 */
-	kernel_dir->physical_addr = (uint32_t)kernel_dir->physical_tables;
+	_kernel_dir->physical_addr = (uint32_t)_kernel_dir->physical_tables;
 
-	DEBUG(DL_DBG, ("init_paging: kernel_dir(0x%x), physical address(0x%x)\n",
-		       kernel_dir, kernel_dir->physical_addr));
+	DEBUG(DL_DBG, ("init_paging: _kernel_dir(0x%x), physical address(0x%x)\n",
+		       _kernel_dir, _kernel_dir->physical_addr));
 
 	/* Map some pages in the kernel heap area.
 	 * Here we call get_pte but not alloc_frame. This causes page_table's
@@ -178,16 +178,16 @@ void init_paging(uint64_t mem_size)
 	 */
 	i = 0;
 	for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i+=0x1000)
-		get_pte(i, TRUE, kernel_dir);
+		get_pte(i, TRUE, _kernel_dir);
 
 	/* We need to identity map (physical addr == virtual addr) from
 	 * 0x0 to the end of memory used by our initial ramdisk, so we
 	 * can access them transparently, as if paging wasn't enabled.
 	 */
 	i = 0;
-	while (i < (placement_addr+0x1000)) {
+	while (i < (_placement_addr+0x1000)) {
 		/* Kernel code is readable but not writable from user-mode */
-		alloc_frame(get_pte(i, TRUE, kernel_dir), FALSE, FALSE);
+		alloc_frame(get_pte(i, TRUE, _kernel_dir), FALSE, FALSE);
 		i += 0x1000;
 	}
 
@@ -195,31 +195,31 @@ void init_paging(uint64_t mem_size)
 	 * address 0xC0000000 and size is 0x100000
 	 */
 	for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i += 0x1000)
-		alloc_frame(get_pte(i, TRUE, kernel_dir), FALSE, FALSE);
+		alloc_frame(get_pte(i, TRUE, _kernel_dir), FALSE, FALSE);
 
 	/* Before we enable paging, we must register our page fault handler */
 	register_interrupt_handler(14, page_fault);
 
 	/* Enable paging now */
-	switch_page_dir(kernel_dir);
+	switch_page_dir(_kernel_dir);
 
 	/* Initialize the kernel heap */
-	kheap = create_heap(KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE,
+	_kheap = create_heap(KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE,
 			    0xCFFFF000, FALSE, FALSE);
 
 	/* Clone the kernel page directory and switch to it */
-	current_dir = clone_pd(kernel_dir);
+	_current_dir = clone_pd(_kernel_dir);
 
-	DEBUG(DL_DBG, ("init_paging: current_dir(0x%x), physical address(0x%x).\n",
-		       current_dir, current_dir->physical_addr));
+	DEBUG(DL_DBG, ("init_paging: _current_dir(0x%x), physical address(0x%x).\n",
+		       _current_dir, _current_dir->physical_addr));
 
-	switch_page_dir(current_dir);
+	switch_page_dir(_current_dir);
 }
 
 void switch_page_dir(struct pd *dir)
 {
 	uint32_t cr0;
-	current_dir = dir;
+	_current_dir = dir;
 
 	DEBUG(DL_DBG, ("switch_page_dir: switch to page directory(0x%x)\n",
 		       dir->physical_addr));
@@ -323,7 +323,7 @@ struct pd *clone_pd(struct pd *src)
 	for (i = 0; i < 1024; i++) {
 		if (!src->tables[i])
 			continue;
-		if (kernel_dir->tables[i] == src->tables[i]) {
+		if (_kernel_dir->tables[i] == src->tables[i]) {
 			/* It's in the kernel, so just use the same pointer */
 			dir->tables[i] = src->tables[i];
 			dir->physical_tables[i] = src->physical_tables[i];

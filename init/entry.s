@@ -35,7 +35,7 @@ mboot:
 	dd start		; Kernel entry point (initial EIP).
 
 [GLOBAL start]			; Kernel entry point.
-[EXTERN main]			; This is the entry point of our C code
+[EXTERN kmain]			; This is the entry point of our C code
 
 start:
 	push esp		; We need to know exactly where the current stack starts
@@ -43,5 +43,5 @@ start:
 
 	;; Execute our kernel
 	cli
-	call main
+	call kmain
 	jmp $

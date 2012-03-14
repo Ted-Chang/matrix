@@ -1,5 +1,8 @@
 How to build?
-To build matrix, execute GNU make in src directory.
+To build matrix, execute GNU make in the current directory.
 
-How to run matrix?
+How to test matrix?
 I only tried it with bochs 2.4.6 and boot it with grub installed.
+
+What architecture does matrix support now?
+At this moment matrix only support the x86 architecture.

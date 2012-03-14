@@ -7,18 +7,18 @@
 
 extern uint32_t end;	// end is defined in linker scripts
 
-extern struct pd *kernel_dir;
+extern struct pd *_kernel_dir;
 
-uint32_t placement_addr = (uint32_t)&end;
+uint32_t _placement_addr = (uint32_t)&end;
 
-struct heap *kheap = NULL;
+struct heap *_kheap = NULL;
 
 uint32_t kmalloc_int(size_t size, int align, uint32_t *phys)
 {
-	if (kheap) {	// The heap manager was initialized
-		void *addr = alloc(kheap, size, (uint8_t)align);
+	if (_kheap) {	// The heap manager was initialized
+		void *addr = alloc(_kheap, size, (uint8_t)align);
 		if (phys) {
-			struct pte *page = get_pte((uint32_t)addr, 0, kernel_dir);
+			struct pte *page = get_pte((uint32_t)addr, 0, _kernel_dir);
 			*phys = page->frame * 0x1000 + ((uint32_t)addr & 0xFFF);
 		}
 		return (uint32_t)addr;
@@ -26,18 +26,18 @@ uint32_t kmalloc_int(size_t size, int align, uint32_t *phys)
 		uint32_t tmp;
 
 		/* If the address is not already page-aligned */
-		if ((align == 1) && (placement_addr & 0xFFFFF000)) {
+		if ((align == 1) && (_placement_addr & 0xFFFFF000)) {
 			/* Align the placement address */
-			placement_addr &= 0xFFFFF000;
-			placement_addr += 0x1000;
+			_placement_addr &= 0xFFFFF000;
+			_placement_addr += 0x1000;
 		}
 
 		if (phys) {
-			*phys = placement_addr;
+			*phys = _placement_addr;
 		}
 
-		tmp = placement_addr;
-		placement_addr += size;
+		tmp = _placement_addr;
+		_placement_addr += size;
 		return tmp;
 	}
 }
@@ -83,7 +83,7 @@ static void expand(struct heap *heap, size_t new_size)
 	i = old_size;
 
 	while (i < new_size) {
-		alloc_frame(get_pte(heap->start_addr + i, 1, kernel_dir),
+		alloc_frame(get_pte(heap->start_addr + i, 1, _kernel_dir),
 			    heap->supervisor ? 1 : 0, heap->readonly ? 0 : 1);
 		i += 0x1000;	/* Page size */
 	}
@@ -111,7 +111,7 @@ static uint32_t contract(struct heap *heap, size_t new_size)
 	i = old_size - 0x1000;
 
 	while (new_size < i) {
-		free_frame(get_pte(heap->start_addr + i, 0, kernel_dir));
+		free_frame(get_pte(heap->start_addr + i, 0, _kernel_dir));
 		i -= 0x1000;
 	}
 
@@ -419,5 +419,5 @@ void free(struct heap *heap, void *p)
 
 void kfree(void *p)
 {
-	free(kheap, p);
+	free(_kheap, p);
 }

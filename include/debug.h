@@ -9,10 +9,10 @@
 #define DL_DBG		0x00000001
 
 #define DEBUG(level, params) do { \
-		if (debug_level >= (level)) { \
-			kprintf("[DEBUG] ");  \
-			kprintf params;	      \
-		}			      \
+		if (_debug_level >= (level)) { \
+			kprintf("[DEBUG] ");   \
+			kprintf params;	       \
+		}			       \
 	} while (0)
 
 
@@ -21,7 +21,7 @@
 #define ASSERT(b)	((b) ? (void)0: panic_assert(__FILE__, __LINE__, #b))
 
 
-extern uint32_t debug_level;
+extern uint32_t _debug_level;
 
 void panic(const char *message, const char *file, uint32_t line);
 

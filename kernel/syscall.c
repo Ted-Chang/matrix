@@ -9,11 +9,11 @@ static void syscall_handler(struct registers *regs);
 DEFN_SYSCALL1(putstr, 0, const char *);
 /* End of the system call definition */
 
-static void *syscalls[3] = {
+static void *_syscalls[3] = {
 	putstr,
 };
 
-uint32_t nr_syscalls = 1;
+uint32_t _nr_syscalls = 1;
 
 void init_syscalls()
 {
@@ -29,10 +29,10 @@ void syscall_handler(struct registers *regs)
 	/* Firstly, check if the requested syscall number is valid.
 	 * The syscall number is found in EAX.
 	 */
-	if (regs->eax >= nr_syscalls)
+	if (regs->eax >= _nr_syscalls)
 		return;
 
-	location = syscalls[regs->eax];
+	location = _syscalls[regs->eax];
 
 	/* We don't know how many parameters the function wants, so we just
 	 * push them all onto the stack in the correct order. The function
