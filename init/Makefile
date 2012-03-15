@@ -2,7 +2,7 @@
 
 include ../Makefile.inc
 
-OBJ := ../obj
+OBJ := ../bin/obji386
 
 TARGETOBJ := $(OBJ)/entry.o \
 	$(OBJ)/main.o

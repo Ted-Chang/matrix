@@ -6,9 +6,19 @@
 #include "hal.h"
 #include "string.h"	// memset
 
+struct idt idt_entries[X86_MAX_INTERRUPTS];
+struct idt_ptr idt_ptr;
+struct tss tss_entry;
+struct gdt gdt_entries[MAX_GDT_DESCRIPTORS];
+struct gdt_ptr gdt_ptr;
+
 static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags);
 static void write_tss(int32_t num, uint16_t ss0, uint32_t esp0);
 static void gdt_set_gate(uint32_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t granu);
+
+void idt_flush(uint32_t);
+void tss_flush();
+void gdt_flush(uint32_t);
 
 void outportb(uint16_t port, uint8_t value)
 {
@@ -45,10 +55,12 @@ void disable_interrupt()
 	asm volatile("cli");
 }
 
-struct idt idt_entries[X86_MAX_INTERRUPTS];
-struct idt_ptr idt_ptr;
-
-void idt_flush(uint32_t);
+/*
+ * Notify the HAL interrupt handler was done
+ */
+void interrupt_done(uint32_t int_no)
+{
+}
 
 static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags)
 {
@@ -62,8 +74,8 @@ static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags
 
 	idt_entries[num].sel = sel;
 	idt_entries[num].reserved = 0;
-	/*
-	 * We have to uncomment the OR below when we get to using user-mode.
+	
+	/* We have to uncomment the OR below when we get to using user-mode.
 	 * It sets the interrupt gate's privilege level to 3.
 	 */
 	idt_entries[num].flags = flags | 0x60;
@@ -87,7 +99,8 @@ void init_idt()
 	outportb(0xA1, 0x01);
 	outportb(0x21, 0x0);
 	outportb(0xA1, 0x0);
-	
+
+	/* Set the default interrupt service routine */
 	idt_set_gate(0, (uint32_t)isr0, 0x08, 0x8E);
 	idt_set_gate(1, (uint32_t)isr1, 0x08, 0x8E);
 	idt_set_gate(2, (uint32_t)isr2, 0x08, 0x8E);
@@ -144,11 +157,6 @@ void init_idt()
 	idt_flush((uint32_t)&idt_ptr);
 }
 
-
-struct tss tss_entry;
-
-void tss_flush();
-
 static void write_tss(int32_t num, uint16_t ss0, uint32_t esp0)
 {
 	uint32_t base, limit;
@@ -180,12 +188,6 @@ static void write_tss(int32_t num, uint16_t ss0, uint32_t esp0)
 		tss_entry.gs =
 		0x13;
 }
-
-
-struct gdt gdt_entries[MAX_GDT_DESCRIPTORS];
-struct gdt_ptr gdt_ptr;
-
-void gdt_flush(uint32_t);
 
 static void gdt_set_gate(uint32_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t granu)
 {

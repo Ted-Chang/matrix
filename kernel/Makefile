@@ -2,7 +2,7 @@
 
 include ../Makefile.inc
 
-OBJ := ../obj
+OBJ := ../bin/obji386
 
 TARGETOBJ := $(OBJ)/debug.o \
 	$(OBJ)/exceptn.o \

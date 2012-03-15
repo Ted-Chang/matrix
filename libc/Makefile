@@ -1,7 +1,7 @@
 # Makefile for libc module
 include ../Makefile.inc
 
-OBJ := ../obj
+OBJ := ../bin/obji386
 
 TARGETOBJ := $(OBJ)/stdio.o $(OBJ)/string.o $(OBJ)/util.o
 

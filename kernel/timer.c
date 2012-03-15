@@ -11,7 +11,10 @@ extern void switch_task();
 
 static void timer_callback(struct registers *regs)
 {
+	/* Increase the tick count */
 	_tick++;
+
+	/* Do task switch */
 	switch_task();
 }
 

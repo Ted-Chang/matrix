@@ -2,7 +2,7 @@
 
 include ../Makefile.inc
 
-OBJ := ../obj
+OBJ := ../bin/obji386
 
 TARGETOBJ := $(OBJ)/hal.o $(OBJ)/dscptr.o $(OBJ)/interrupt.o $(OBJ)/isr.o
 

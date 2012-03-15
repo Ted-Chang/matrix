@@ -91,6 +91,10 @@ void simd_fpu_fault(struct registers *regs)
 	PANIC("SIMD FPU fault");
 }
 
+/*
+ * Initialize the exception handlers. Exception handlers don't need to
+ * call interrupt_done now as we didn't go that far.
+ */
 void init_exception_handlers()
 {
 	/* Install the exception handlers */

@@ -25,7 +25,7 @@ void syscall_handler(struct registers *regs)
 {
 	int rc;
 	void *location;
-	
+
 	/* Firstly, check if the requested syscall number is valid.
 	 * The syscall number is found in EAX.
 	 */

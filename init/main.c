@@ -30,6 +30,7 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	uint32_t initrd_location;
 	uint32_t initrd_end;
 	uint64_t mem_end_page;
+	struct dirent *node;
 
 	/* Clear the screen */
 	clear_scr();
@@ -90,46 +91,46 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	/* Print the banner */
 	kprintf("Welcome to Matrix!\n");
 
-	switch_to_user_mode();
+	/*Fork a new process which is a clone of this*/
+	rc = fork();
 
-	syscall_putstr("Hello, user mode!\n");
+	kprintf("fork returned %d\n", rc);
 
-	/* Fork a new process which is a clone of this */
-	/* rc = fork(); */
-
-	/* kprintf("fork returned %d\n", rc); */
-
-	/* kprintf("current pid: %d\n", getpid()); */
+	kprintf("current pid: %d\n", getpid());
 	
-	/* disable_interrupt(); */
+	disable_interrupt();
 	
-	/* i = 0; */
-	/* node = 0; */
+	i = 0;
+	node = 0;
 	
-	/* while ((node = vfs_readdir(root_node, i)) != 0) { */
+	while ((node = vfs_readdir(root_node, i)) != 0) {
 
-	/* 	struct vfs_node *fs_node; */
+		struct vfs_node *fs_node;
 		
-	/* 	kprintf("Found file: %s\n", node->name); */
+		kprintf("Found file: %s\n", node->name);
 
-	/* 	fs_node = vfs_finddir(root_node, node->name); */
-	/* 	if ((fs_node->flags & 0x7) == VFS_DIRECTORY) { */
-	/* 		kprintf("\t(directory)\n"); */
-	/* 	} else { */
-	/* 		char buf[256]; */
-	/* 		uint32_t sz; */
-	/* 		int j; */
-	/* 		kprintf("\tcontent: "); */
-	/* 		sz = vfs_read(fs_node, 0, 256, buf); */
-	/* 		for (j = 0; j < sz; j++) */
-	/* 			kprintf("%c", buf[j]); */
-	/* 		kprintf("\n"); */
-	/* 	} */
+		fs_node = vfs_finddir(root_node, node->name);
+		if ((fs_node->flags & 0x7) == VFS_DIRECTORY) {
+			kprintf("\t(directory)\n");
+		} else {
+			char buf[256];
+			uint32_t sz;
+			int j;
+			kprintf("\tcontent: ");
+			sz = vfs_read(fs_node, 0, 256, (uint8_t *)buf);
+			for (j = 0; j < sz; j++)
+				kprintf("%c", buf[j]);
+			kprintf("\n");
+		}
 
-	/* 	i++; */
-	/* } */
+		i++;
+	}
 
-	/* enable_interrupt(); */
+	enable_interrupt();
+
+	//switch_to_user_mode();
+
+	//syscall_putstr("Hello, user mode!\n");
 	
 	return 0;
 }

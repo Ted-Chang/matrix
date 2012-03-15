@@ -24,7 +24,7 @@ MODULES := hal libc mm kernel init
 TARGET := bin/matrix
 
 # Define object file directory
-OBJ := obj
+OBJ := bin/obji386
 
 # Definition of LDFLAGS
 LDFLAGS := -melf_i386 -TLink.ld
@@ -36,7 +36,7 @@ all: $(TARGET)
 	@echo "Making default target."
 
 $(TARGET): hal_module libc_module mm_module kernel_module init_module
-	$(LD) $(LDFLAGS) -Map matrix.map -o $(TARGET) $(OBJ)/*.o
+	$(LD) $(LDFLAGS) -Map bin/matrix.map -o $(TARGET) $(OBJ)/*.o
 
 hal_module:
 	@cd hal && $(MAKE) $(MAKEFLAGS)
@@ -54,7 +54,7 @@ init_module:
 	@cd init && $(MAKE) $(MAKEFLAGS)
 
 clean:
-	for d in $(MODULES); do (cd $$d; $(MAKE) clean); done; $(RM) $(TARGET) matrix.map
+	for d in $(MODULES); do (cd $$d; $(MAKE) clean); done; $(RM) $(TARGET) bin/matrix.map
 
 help:
 	@echo "Available make targets:"

@@ -54,8 +54,10 @@ void move_stack(void *new_stack, uint32_t size)
 	new_esp = old_esp + offset;
 	new_ebp = old_ebp + offset;
 
-	DEBUG(DL_DBG, ("move_stack: old_esp(0x%x), old_ebp(0x%x),\n"
-		       "\tnew_esp(0x%x), new_ebp(0x%x), _initial_esp(0x%x)\n",
+	DEBUG(DL_DBG, ("move_stack: move stack to new address.\n"
+		       "- old_esp(0x%x), old_ebp(0x%x)\n"
+		       "- new_esp(0x%x), new_ebp(0x%x)\n"
+		       "- _initial_esp(0x%x)\n",
 		       old_esp, old_ebp, new_esp, new_ebp, _initial_esp));
 	
 	/* Copy the old stack to new stack. Although we have switched to cloned
@@ -110,7 +112,7 @@ void init_multitask()
 void switch_task()
 {
 	uint32_t esp, ebp, eip;
-	
+
 	/* If we haven't initialized multitasking yet, do nothing */
 	if (!_current_task)
 		return;
@@ -156,10 +158,6 @@ void switch_task()
 
 	/* Switch the kernel stack in TSS to the task's kernel stack */
 	set_kernel_stack(_current_task->kernel_stack + KERNEL_STACK_SIZE);
-
-	//DEBUG(DL_DBG, ("switch_task: switching to task %d\n"
-	//	       "\tesp(0x%x), ebp(0x%x), eip(0x%x), page_dir(0x%x).\n",
-	//	       _current_task->id, esp, ebp, eip, _current_dir));
 
 	/* Here we:
 	 * [1] Disable interrupts so we don't get bothered.
@@ -234,8 +232,8 @@ int fork()
 
 		pid = new_task->id;
 
-		DEBUG(DL_DBG, ("fork: new_task - id %d\n"
-			       "\tesp(0x%x), ebp(0x%x), eip(0x%x), page_dir(0x%x)\n",
+		DEBUG(DL_DBG, ("fork: new task forked, pid %d\n"
+			       "- esp(0x%x), ebp(0x%x), eip(0x%x), page_dir(0x%x)\n",
 			       new_task->id, new_task->esp, new_task->ebp, new_task->eip,
 			       new_task->page_dir));
 		
