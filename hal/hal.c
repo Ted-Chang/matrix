@@ -60,6 +60,10 @@ void disable_interrupt()
  */
 void interrupt_done(uint32_t int_no)
 {
+	if (int_no >= 40)
+		outportb(PIC2_CMD, PIC_EOI);
+	
+	outportb(PIC1_CMD, PIC_EOI);
 }
 
 static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags)
@@ -81,6 +85,27 @@ static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags
 	idt_entries[num].flags = flags | 0x60;
 }
 
+static void pic_remap(int offset1, int offset2)
+{
+	/* Starts the initialization sequence (in cascade mode) */
+	outportb(PIC1_CMD, ICW1_INIT|ICW1_ICW4);
+	outportb(PIC2_CMD, ICW1_INIT|ICW1_ICW4);
+	
+	outportb(PIC1_DATA, offset1);	// ICW2: Master PIC vector offset
+	outportb(PIC2_DATA, offset2);	// ICW2: Slave PIC vector offset
+
+	/* ICW3: tell master PIC that there is a slave PIC at IRQ2 (0000 0100) */
+	outportb(PIC1_DATA, 0x04);
+	/* ICW3: tell slave PIC its cascade identity (0000 0010) */
+	outportb(PIC2_DATA, 0x02);
+	
+	outportb(PIC1_DATA, ICW4_8086);
+	outportb(PIC2_DATA, ICW4_8086);
+	
+	outportb(0x21, 0x0);
+	outportb(0xA1, 0x0);
+}
+
 void init_idt()
 {
 	idt_ptr.limit = sizeof(struct idt) * 256 - 1;
@@ -89,17 +114,8 @@ void init_idt()
 	memset(&idt_entries, 0, sizeof(struct idt) * 256);
 
 	/* Remap the irq table so we will not conflict with the PIC */
-	outportb(0x20, 0x11);
-	outportb(0xA0, 0x11);
-	outportb(0x21, 0x20);
-	outportb(0xA1, 0x28);
-	outportb(0x21, 0x04);
-	outportb(0xA1, 0x02);
-	outportb(0x21, 0x01);
-	outportb(0xA1, 0x01);
-	outportb(0x21, 0x0);
-	outportb(0xA1, 0x0);
-
+	pic_remap(0x20, 0x28);
+	
 	/* Set the default interrupt service routine */
 	idt_set_gate(0, (uint32_t)isr0, 0x08, 0x8E);
 	idt_set_gate(1, (uint32_t)isr1, 0x08, 0x8E);

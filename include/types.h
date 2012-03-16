@@ -25,4 +25,7 @@ typedef char int8_t;
 typedef int bool_t;
 typedef char boolean_t;
 
+typedef unsigned long u_long;
+typedef unsigned char u_char;
+
 #endif	/* __TYPES_H__ */

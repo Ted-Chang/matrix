@@ -33,16 +33,8 @@ void isr_handler(struct registers regs)
  */
 void irq_handler(struct registers regs)
 {
-	/* Send an EOI (end of interrupt) signal to the PICs.
-	 * If this interrupt involved the slave.
-	 */
-	if (regs.int_no >= 40) {
-		/* Send reset siginal to slave */
-		outportb(0xA0, 0x20);
-	}
-
-	/* Send reset signal to master. (As well as slave, if necessary) */
-	outportb(0x20, 0x20);
+	/* Notify the PIC that we have done so we can accept >= priority IRQs now */
+	interrupt_done(regs.int_no);
 
 	if (_interrupt_handlers[regs.int_no]) {
 		isr_t handler = _interrupt_handlers[regs.int_no];

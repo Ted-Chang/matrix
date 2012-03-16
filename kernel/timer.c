@@ -5,6 +5,7 @@
 #include "task.h"
 #include "debug.h"
 
+int _current_frequency = 0;
 uint32_t _tick = 0;
 
 extern void switch_task();
@@ -20,9 +21,12 @@ static void timer_callback(struct registers *regs)
 
 void init_timer(uint32_t frequency)
 {
-	uint32_t divisor;
 	uint8_t low;
 	uint8_t high;
+	uint32_t divisor;
+
+	/* Save the frequency */
+	_current_frequency = frequency;
 	
 	/* Register our timer callback first */
 	register_interrupt_handler(IRQ0, &timer_callback);

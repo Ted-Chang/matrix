@@ -88,6 +88,10 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 
 	kprintf("System call initialized.\n");
 
+	init_keyboard();
+
+	kprintf("Keyboard initialized.\n");
+
 	/* Print the banner */
 	kprintf("Welcome to Matrix!\n");
 
