@@ -17,10 +17,10 @@
 #include "debug.h"
 #include "exceptn.h"
 #include "syscall.h"
-
-extern isr_t _interrupt_handlers[];
+#include "keyboard.h"
 
 extern uint32_t _placement_addr;
+extern struct irq_hook *_interrupt_handlers[];
 
 uint32_t _initial_esp;
 
@@ -40,7 +40,7 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	/* Install the gdt and idt */
 	init_gdt();
 	init_idt();
-	memset(&_interrupt_handlers, 0, 256*sizeof(isr_t));
+	memset(&_interrupt_handlers[0], 0, sizeof(struct irq_hook *)*256);
 
 	kprintf("Gdt and idt initialized.\n");
 

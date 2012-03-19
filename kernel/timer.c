@@ -7,6 +7,7 @@
 
 int _current_frequency = 0;
 uint32_t _tick = 0;
+struct irq_hook _timer_hook;
 
 extern void switch_task();
 
@@ -29,7 +30,7 @@ void init_timer(uint32_t frequency)
 	_current_frequency = frequency;
 	
 	/* Register our timer callback first */
-	register_interrupt_handler(IRQ0, &timer_callback);
+	register_interrupt_handler(IRQ0, &_timer_hook, &timer_callback);
 
 	/* The value we send to the PIT is the value to divide. it's input
 	 * clock (1193180 Hz) by, to get our required frequency. Important

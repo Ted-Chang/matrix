@@ -37,8 +37,4 @@ struct registers {
 	uint32_t ss;
 };
 
-typedef void (*isr_t)(struct registers *);
-
-void register_interrupt_handler(uint8_t n, isr_t handler);
-
 #endif	/* __ISR_H__ */

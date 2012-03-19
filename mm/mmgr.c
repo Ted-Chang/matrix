@@ -168,8 +168,8 @@ void init_paging(uint64_t mem_size)
 	_kernel_dir->physical_addr = (uint32_t)_kernel_dir->physical_tables;
 
 	DEBUG(DL_DBG, ("init_paging: kernel page directory allocated.\n"
-		       "- _kernel_dir(0x%x)\n"
-		       "- _kernel_dir->physical_addr(0x%x)\n",
+		       "* _kernel_dir(0x%x)\n"
+		       "* _kernel_dir->physical_addr(0x%x)\n",
 		       _kernel_dir, _kernel_dir->physical_addr));
 
 	/* Map some pages in the kernel heap area.
@@ -213,8 +213,8 @@ void init_paging(uint64_t mem_size)
 	_current_dir = clone_pd(_kernel_dir);
 
 	DEBUG(DL_DBG, ("init_paging: kernel page directory cloned.\n"
-		       "- _current_dir(0x%x)\n"
-		       "- _current_dir->physical(0x%x).\n",
+		       "* _current_dir(0x%x)\n"
+		       "* _current_dir->physical(0x%x).\n",
 		       _current_dir, _current_dir->physical_addr));
 
 	switch_page_dir(_current_dir);

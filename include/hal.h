@@ -1,6 +1,7 @@
 #ifndef __HAL_H__
 #define __HAL_H__
 
+#include <isr.h>
 
 #define PIC1		0x20		// IO base address for master PIC
 #define PIC2		0xA0		// IO base address for slave PIC
@@ -96,6 +97,18 @@ struct tss {
 				// redirection bit maps
 } __attribute__((packed));
 
+typedef void (*isr_t)(struct registers *);
+
+/*
+ * IRQ hook chain for precess the interrupt
+ */
+struct irq_hook {
+	struct irq_hook *next;
+	isr_t handler;
+	int irq;
+};
+
+
 void outportb(uint16_t port, uint8_t value);
 
 uint8_t inportb(uint16_t port);
@@ -106,11 +119,17 @@ void enable_interrupt();
 
 void disable_interrupt();
 
+void interrupt_done(uint32_t int_no);
+
 void init_gdt();
 
 void init_idt();
 
 void set_kernel_stack(uint32_t stack);
+
+void register_interrupt_handler(uint8_t irq, struct irq_hook *hook, isr_t handler);
+
+void unregister_interrupt_handler(struct irq_hook *hook);
 
 
 /* Declaration of the interrupt service routines */

@@ -6,11 +6,11 @@
 #include "hal.h"
 #include "string.h"	// memset
 
-struct idt idt_entries[X86_MAX_INTERRUPTS];
-struct idt_ptr idt_ptr;
-struct tss tss_entry;
-struct gdt gdt_entries[MAX_GDT_DESCRIPTORS];
-struct gdt_ptr gdt_ptr;
+struct idt _idt_entries[X86_MAX_INTERRUPTS];
+struct idt_ptr _idt_ptr;
+struct tss _tss_entry;
+struct gdt _gdt_entries[MAX_GDT_DESCRIPTORS];
+struct gdt_ptr _gdt_ptr;
 
 static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags);
 static void write_tss(int32_t num, uint16_t ss0, uint32_t esp0);
@@ -73,16 +73,16 @@ static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags
 	if (!base)
 		return;
 
-	idt_entries[num].base_low = base & 0xFFFF;
-	idt_entries[num].base_high = (base >> 16) & 0xFFFF;
+	_idt_entries[num].base_low = base & 0xFFFF;
+	_idt_entries[num].base_high = (base >> 16) & 0xFFFF;
 
-	idt_entries[num].sel = sel;
-	idt_entries[num].reserved = 0;
+	_idt_entries[num].sel = sel;
+	_idt_entries[num].reserved = 0;
 	
 	/* We have to uncomment the OR below when we get to using user-mode.
 	 * It sets the interrupt gate's privilege level to 3.
 	 */
-	idt_entries[num].flags = flags | 0x60;
+	_idt_entries[num].flags = flags | 0x60;
 }
 
 static void pic_remap(int offset1, int offset2)
@@ -108,10 +108,10 @@ static void pic_remap(int offset1, int offset2)
 
 void init_idt()
 {
-	idt_ptr.limit = sizeof(struct idt) * 256 - 1;
-	idt_ptr.base = (uint32_t)&idt_entries;
+	_idt_ptr.limit = sizeof(struct idt) * 256 - 1;
+	_idt_ptr.base = (uint32_t)&_idt_entries;
 
-	memset(&idt_entries, 0, sizeof(struct idt) * 256);
+	memset(&_idt_entries, 0, sizeof(struct idt) * 256);
 
 	/* Remap the irq table so we will not conflict with the PIC */
 	pic_remap(0x20, 0x28);
@@ -170,7 +170,7 @@ void init_idt()
 	/* The following interrupt number is for system call */
 	idt_set_gate(128, (uint32_t)isr128, 0x08, 0x8E);
 
-	idt_flush((uint32_t)&idt_ptr);
+	idt_flush((uint32_t)&_idt_ptr);
 }
 
 static void write_tss(int32_t num, uint16_t ss0, uint32_t esp0)
@@ -178,17 +178,17 @@ static void write_tss(int32_t num, uint16_t ss0, uint32_t esp0)
 	uint32_t base, limit;
 
 	/* Firstly, let's compute the base and limit of our entry into the GDT */
-	base = (uint32_t)&tss_entry;
+	base = (uint32_t)&_tss_entry;
 	limit = base + sizeof(struct tss);
 
 	/* Now, add our TSS descriptor's address to the GDT */
 	gdt_set_gate(num, base, limit, 0xE9, 0x00);
 
 	/* Ensure the descriptor is initially zero */
-	memset(&tss_entry, 0, sizeof(struct tss));
+	memset(&_tss_entry, 0, sizeof(struct tss));
 
-	tss_entry.ss0 = ss0;	// Set the kernel stack segment
-	tss_entry.esp0 = esp0;	// Set the kernel stack pointer
+	_tss_entry.ss0 = ss0;	// Set the kernel stack segment
+	_tss_entry.esp0 = esp0;	// Set the kernel stack pointer
 
 	/* Here we set the cs, ss, ds, es, fs and gs entries in the TSS. These specify
 	 * what segments should be laoded when the processor switches to kernel mode.
@@ -197,32 +197,32 @@ static void write_tss(int32_t num, uint16_t ss0, uint32_t esp0)
 	 * of these bits sets the RPL (requested privilege level) to 3, meaning that TSS
 	 * can be used to switch to kernel mode from ring 3.
 	 */
-	tss_entry.cs = 0x0b;
-	tss_entry.ss = tss_entry.ds =
-		tss_entry.es =
-		tss_entry.fs =
-		tss_entry.gs =
+	_tss_entry.cs = 0x0b;
+	_tss_entry.ss = _tss_entry.ds =
+		_tss_entry.es =
+		_tss_entry.fs =
+		_tss_entry.gs =
 		0x13;
 }
 
 static void gdt_set_gate(uint32_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t granu)
 {
-	gdt_entries[num].base_low = (base & 0xFFFF);
-	gdt_entries[num].base_middle = (base >> 16) & 0xFF;
-	gdt_entries[num].base_high = (base >> 24) & 0xFF;
+	_gdt_entries[num].base_low = (base & 0xFFFF);
+	_gdt_entries[num].base_middle = (base >> 16) & 0xFF;
+	_gdt_entries[num].base_high = (base >> 24) & 0xFF;
 
-	gdt_entries[num].limit_low = (limit & 0xFFFF);
-	gdt_entries[num].granularity = (limit >> 16) & 0x0F;
+	_gdt_entries[num].limit_low = (limit & 0xFFFF);
+	_gdt_entries[num].granularity = (limit >> 16) & 0x0F;
 
-	gdt_entries[num].granularity |= granu & 0xF0;
-	gdt_entries[num].access = access;
+	_gdt_entries[num].granularity |= granu & 0xF0;
+	_gdt_entries[num].access = access;
 }
 
 static void __init_gdt()
 {
 	/* 5 GDT entry and a TSS entry */
-	gdt_ptr.limit = (sizeof(struct gdt) * 6) - 1;
-	gdt_ptr.base = (uint32_t)&gdt_entries;
+	_gdt_ptr.limit = (sizeof(struct gdt) * 6) - 1;
+	_gdt_ptr.base = (uint32_t)&_gdt_entries;
 
 	/* The NULL segment */
 	gdt_set_gate(0, 0, 0, 0, 0);
@@ -234,7 +234,7 @@ static void __init_gdt()
 
 	write_tss(5, 0x10, 0);
 
-	gdt_flush((uint32_t)&gdt_ptr);
+	gdt_flush((uint32_t)&_gdt_ptr);
 
 	/* flush the TSS */
 	tss_flush();
@@ -247,5 +247,5 @@ void init_gdt()
 
 void set_kernel_stack(uint32_t stack)
 {
-	tss_entry.esp0 = stack;
+	_tss_entry.esp0 = stack;
 }

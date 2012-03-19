@@ -55,9 +55,9 @@ void move_stack(void *new_stack, uint32_t size)
 	new_ebp = old_ebp + offset;
 
 	DEBUG(DL_DBG, ("move_stack: move stack to new address.\n"
-		       "- old_esp(0x%x), old_ebp(0x%x)\n"
-		       "- new_esp(0x%x), new_ebp(0x%x)\n"
-		       "- _initial_esp(0x%x)\n",
+		       "* old_esp(0x%x), old_ebp(0x%x)\n"
+		       "* new_esp(0x%x), new_ebp(0x%x)\n"
+		       "* _initial_esp(0x%x)\n",
 		       old_esp, old_ebp, new_esp, new_ebp, _initial_esp));
 	
 	/* Copy the old stack to new stack. Although we have switched to cloned
