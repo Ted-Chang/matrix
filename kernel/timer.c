@@ -7,7 +7,7 @@
 
 int _current_frequency = 0;
 uint32_t _tick = 0;
-struct irq_hook _timer_hook;
+static struct irq_hook _timer_hook;
 
 extern void switch_task();
 

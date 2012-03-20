@@ -1,4 +1,5 @@
 #include <types.h>
+#include "hal.h"
 #include "syscall.h"
 #include "isr.h"	// register_interrupt_handler
 #include "util.h"	// putstr
@@ -14,11 +15,12 @@ static void *_syscalls[3] = {
 };
 
 uint32_t _nr_syscalls = 1;
+static struct irq_hook _syscall_hook;
 
 void init_syscalls()
 {
 	/* Register our syscall handler */
-	register_interrupt_handler(0x80, syscall_handler);
+	register_interrupt_handler(0x80, &_syscall_hook, syscall_handler);
 }
 
 void syscall_handler(struct registers *regs)

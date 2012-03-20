@@ -4,6 +4,7 @@
 
 #include <types.h>
 #include "string.h"	// memset
+#include "hal.h"
 #include "isr.h"	// register interrupt handler
 #include "mmgr.h"
 #include "kheap.h"
@@ -19,6 +20,7 @@ uint32_t _nr_frames;
 
 struct pd *_kernel_dir = 0;
 struct pd *_current_dir = 0;
+static struct irq_hook _pf_hook;
 
 extern uint32_t _placement_addr;
 
@@ -200,7 +202,7 @@ void init_paging(uint64_t mem_size)
 		alloc_frame(get_pte(i, TRUE, _kernel_dir), FALSE, FALSE);
 
 	/* Before we enable paging, we must register our page fault handler */
-	register_interrupt_handler(14, page_fault);
+	register_interrupt_handler(14, &_pf_hook, page_fault);
 
 	/* Enable paging now */
 	switch_page_dir(_kernel_dir);

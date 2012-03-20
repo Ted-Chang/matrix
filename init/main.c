@@ -132,9 +132,9 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 
 	enable_interrupt();
 
-	//switch_to_user_mode();
+	switch_to_user_mode();
 
-	//syscall_putstr("Hello, user mode!\n");
+	syscall_putstr("Hello, user mode!\n");
 	
 	return 0;
 }
