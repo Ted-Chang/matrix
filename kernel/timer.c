@@ -78,6 +78,6 @@ void cancel_timer(struct timer *t)
 	 * of the active timer list.
 	 */
 	tmrs_clrtimer(&_active_timers, t);
-	_next_timeout = (_active_timers == NULL) ? TIMER_NEVER :
-		_active_timers->exp_time;
+	_next_timeout = (_active_timers == NULL) ?
+		TIMER_NEVER : _active_timers->exp_time;
 }

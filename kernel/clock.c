@@ -8,11 +8,23 @@
 
 #define TIMER_FREQ	1193182L	/* clock frequency for timer in PC and AT */
 
+extern struct timer *_active_timers;
+
 int _current_frequency = 0;
 uint32_t _lost_ticks = 0;
 clock_t _real_time;
 clock_t _next_timeout;
 static struct irq_hook _clock_hook;
+
+void do_clocktick()
+{
+	/* Check if a clock timer is expired and call its callback function */
+	if (_next_timeout <= _real_time) {
+		tmrs_exptimers(&_active_timers, _real_time);
+		_next_timeout = _active_timers == NULL ?
+			TIMER_NEVER : _active_timers->exp_time;
+	}
+}
 
 static void clock_callback(struct registers *regs)
 {
@@ -26,7 +38,7 @@ static void clock_callback(struct registers *regs)
 	/* Check if do_clocktick() must be called. Done for alarms and scheduling.
 	 */
 	if ((_next_timeout <= _real_time)) {
-		;
+		do_clocktick();	// TODO: Make sure about it
 	}
 }
 
