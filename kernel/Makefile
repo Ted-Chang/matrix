@@ -11,7 +11,9 @@ TARGETOBJ := $(OBJ)/debug.o \
 	$(OBJ)/timer.o \
 	$(OBJ)/initrd.o \
 	$(OBJ)/syscall.o \
-	$(OBJ)/fs.o
+	$(OBJ)/fs.o \
+	$(OBJ)/clock.o \
+
 
 .PHONY: clean help
 

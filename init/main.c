@@ -3,6 +3,7 @@
  */
 
 #include <types.h>
+#include <time.h>
 #include "multiboot.h"
 #include "string.h"
 #include "util.h"
@@ -52,7 +53,7 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	enable_interrupt();
 
 	/* Initialize our timer */
-	init_timer(50);
+	init_clock(50);
 
 	kprintf("Timer initialized.\n");
 
