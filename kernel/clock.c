@@ -1,5 +1,6 @@
 #include <types.h>
 #include <time.h>
+#include "const.h"
 #include "isr.h"
 #include "hal.h"
 #include "timer.h"

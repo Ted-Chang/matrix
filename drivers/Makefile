@@ -4,7 +4,7 @@ include ../Makefile.inc
 
 OBJ := ../bin/obji386
 
-TARGETOBJ := $(OBJ)/keyboard.o $(OBJ)/floppy.o
+TARGETOBJ := $(OBJ)/keyboard.o $(OBJ)/floppy.o $(OBJ)/cmos.o
 
 .PHONY: clean
 

@@ -3,6 +3,7 @@
 #include "hal.h"
 #include "isr.h"
 #include "floppy.h"
+#include "util.h"
 
 /* I/O Ports used by floppy disk */
 #define DOR		0x3F2
