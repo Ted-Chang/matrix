@@ -14,10 +14,11 @@ struct timer {
 	void *timer_ctx;
 };
 
-void init_clock(uint32_t frequency);
+void init_clock();
 void stop_clock();
 clock_t get_uptime();
 u_long read_clock();
+void init_timer(struct timer *t);
 void set_timer(struct timer *t, clock_t exp_time, timer_func_t callback);
 void cancel_timer(struct timer *t);
 

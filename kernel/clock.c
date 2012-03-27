@@ -10,11 +10,12 @@
 #define TIMER_FREQ	1193182L	/* clock frequency for timer in PC and AT */
 
 extern struct timer *_active_timers;
+extern void tmrs_exptimers(struct timer **list, clock_t now);
 
 int _current_frequency = 0;
 uint32_t _lost_ticks = 0;
-clock_t _real_time;
-clock_t _next_timeout;
+clock_t _real_time = 0;
+clock_t _next_timeout = 0;
 static struct irq_hook _clock_hook;
 
 void do_clocktick()
@@ -39,18 +40,18 @@ static void clock_callback(struct registers *regs)
 	/* Check if do_clocktick() must be called. Done for alarms and scheduling.
 	 */
 	if ((_next_timeout <= _real_time)) {
-		do_clocktick();	// TODO: Make sure about it
+		do_clocktick();
 	}
 }
 
-void init_clock(uint32_t frequency)
+void init_clock()
 {
 	uint8_t low;
 	uint8_t high;
 	uint32_t divisor;
 
 	/* Save the frequency */
-	_current_frequency = frequency;
+	_current_frequency = HZ;
 	
 	/* Register our timer callback first */
 	register_interrupt_handler(IRQ0, &_clock_hook, &clock_callback);
@@ -59,7 +60,7 @@ void init_clock(uint32_t frequency)
 	 * clock (1193182 Hz) by, to get our required frequency. Important
 	 * note that the divisor must be small enough to fit into 16-bits.
 	 */
-	divisor = TIMER_FREQ / frequency;
+	divisor = TIMER_FREQ / HZ;
 
 	/* Send the command byte */
 	outportb(0x43, 0x36);
@@ -96,4 +97,6 @@ u_long read_clock()
 	outportb(0x43, 0x00);
 	count = inportb(0x40);
 	count |= (inportb(0x40) << 8);
+
+	return count;
 }

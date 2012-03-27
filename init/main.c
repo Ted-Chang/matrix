@@ -19,6 +19,7 @@
 #include "exceptn.h"
 #include "syscall.h"
 #include "keyboard.h"
+#include "floppy.h"
 
 extern uint32_t _placement_addr;
 extern struct irq_hook *_interrupt_handlers[];
@@ -54,7 +55,7 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	enable_interrupt();
 
 	/* Initialize our timer */
-	init_clock(50);
+	init_clock();
 
 	kprintf("Timer initialized.\n");
 
@@ -92,7 +93,11 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 
 	init_keyboard();
 
-	kprintf("Keyboard initialized.\n");
+	kprintf("Keyboard driver initialized.\n");
+
+	init_floppy();
+
+	kprintf("Floppy driver initialized.\n");
 
 	/* Print the banner */
 	kprintf("Welcome to Matrix!\n");

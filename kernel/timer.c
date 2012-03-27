@@ -65,6 +65,12 @@ void tmrs_exptimers(struct timer **list, clock_t now)
 	}
 }
 
+void init_timer(struct timer *t)
+{
+	t->exp_time = TIMER_NEVER;
+	t->next = NULL;
+}
+
 void set_timer(struct timer *t, clock_t exp_time, timer_func_t callback)
 {
 	tmrs_settimer(&_active_timers, t, exp_time, callback);
