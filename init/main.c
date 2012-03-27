@@ -26,6 +26,22 @@ extern struct irq_hook *_interrupt_handlers[];
 
 uint32_t _initial_esp;
 
+struct timer tmr;
+
+void tmr_callback(struct timer *tp)
+{
+	struct tm date_time;
+
+	get_cmostime(&date_time);
+	
+	kprintf("year:%d, month:%d, day:%d, hour:%d, minute:%d, second:%d\n",
+		date_time.tm_year, date_time.tm_mon, date_time.tm_mday,
+		date_time.tm_hour, date_time.tm_min, date_time.tm_sec);
+
+	/* Reschedule the timer again */
+	set_timer(&tmr, 1000, tmr_callback);
+}
+
 int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 {
 	int i, rc;
@@ -33,7 +49,6 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	uint32_t initrd_end;
 	uint64_t mem_end_page;
 	struct dirent *node;
-	struct tm date_time;
 
 	/* Clear the screen */
 	clear_scr();
@@ -137,13 +152,11 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 		i++;
 	}
 
-	get_cmostime(&date_time);
-	
-	kprintf("year:%d, month:%d, day:%d, hour:%d, minute:%d, second:%d\n",
-		date_time.tm_year, date_time.tm_mon, date_time.tm_mday,
-		date_time.tm_hour, date_time.tm_min, date_time.tm_sec);
-
 	enable_interrupt();
+
+	//init_timer(&tmr);
+
+	//set_timer(&tmr, 1000, tmr_callback);
 
 	//switch_to_user_mode();
 

@@ -1,5 +1,6 @@
 #include <types.h>
 #include <time.h>
+#include "matrix.h"
 #include "const.h"
 #include "isr.h"
 #include "hal.h"
@@ -20,6 +21,9 @@ static struct irq_hook _clock_hook;
 
 void do_clocktick()
 {
+	/* Call switch task to switch to another task if we need to */
+	switch_task();
+	
 	/* Check if a clock timer is expired and call its callback function */
 	if (_next_timeout <= _real_time) {
 		tmrs_exptimers(&_active_timers, _real_time);
@@ -36,10 +40,19 @@ static void clock_callback(struct registers *regs)
 	ticks = _lost_ticks + 1;
 	_lost_ticks = 0;
 	_real_time += ticks;
+
+	/* Update user and system accounting times. Charge the current process for
+	 * user time. If the current process is not billable, that is, if a non-user
+	 * process is running, charge the billable process for system time as well.
+	 * Thus the unbillable process' user time is the billable user's system time.
+	 */
+	_current_task->usr_time += ticks;
+	if (FLAG_ON(_current_task->priv.flags, PREEMPTIBLE))
+		_current_task->ticks_left -= ticks;
 	
 	/* Check if do_clocktick() must be called. Done for alarms and scheduling.
 	 */
-	if ((_next_timeout <= _real_time)) {
+	if ((_next_timeout <= _real_time) || (_current_task->ticks_left <= 0)) {
 		do_clocktick();
 	}
 }

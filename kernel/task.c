@@ -3,15 +3,16 @@
  */
 
 #include <types.h>
+#include "matrix.h"
 #include "hal.h"
 #include "string.h"
 #include "mmgr.h"
 #include "task.h"
 #include "debug.h"
 
-volatile struct task *_current_task = 0;
+volatile struct task *_current_task = NULL;
 
-volatile struct task *_ready_queue = 0;
+volatile struct task *_ready_queue = NULL;
 
 uint32_t _next_pid = 1;
 
@@ -105,6 +106,11 @@ void init_multitask()
 	_current_task->page_dir = _current_dir;
 	_current_task->next = NULL;
 	_current_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
+	_current_task->quantum = 10;			// Default quantum: 10 ticks
+	_current_task->ticks_left = _current_task->quantum;
+	_current_task->priv.flags = PREEMPTIBLE;	// The task is preemptible
+	_current_task->usr_time = 0;
+	_current_task->sys_time = 0;
 
 	enable_interrupt();
 }
@@ -116,6 +122,14 @@ void switch_task()
 	/* If we haven't initialized multitasking yet, do nothing */
 	if (!_current_task)
 		return;
+
+	/* We will not switch task if the process didn't use up a full quantum. */
+	if (!((_current_task->ticks_left <= 0) &&
+	      (FLAG_ON(_current_task->priv.flags, PREEMPTIBLE))))
+		return;
+
+	/* Give the current task a new quantum as it will be switched */
+	_current_task->ticks_left = _current_task->quantum;
 
 	asm volatile("mov %%esp, %0" : "=r" (esp));
 	asm volatile("mov %%ebp, %0" : "=r" (ebp));
@@ -210,6 +224,11 @@ int fork()
 	new_task->page_dir = dir;
 	new_task->next = 0;
 	new_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
+	new_task->quantum = 10;
+	new_task->ticks_left = new_task->quantum;
+	new_task->priv.flags = PREEMPTIBLE;
+	new_task->usr_time = 0;
+	new_task->sys_time = 0;
 
 	/* Add the new task to the end of the ready queue */
 	tmp_task = (struct task *)_ready_queue;

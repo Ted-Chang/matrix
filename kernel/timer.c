@@ -5,30 +5,6 @@
 extern clock_t _next_timeout;
 struct timer *_active_timers;
 
-clock_t tmrs_settimer(struct timer **list, struct timer *t, clock_t exp_time,
-		      timer_func_t callback)
-{
-	struct timer **at;
-	clock_t old_head = 0;
-
-	if (*list)
-		old_head = (*list)->exp_time;
-	
-	t->exp_time = exp_time;
-	t->timer_func = callback;
-
-	/* Add the timer to the active timer list */
-	for (at = list; *at != NULL; at = &((*at)->next)) {
-		if (exp_time < (*at)->exp_time)
-			break;
-	}
-
-	t->next = *at;
-	*at = t;
-
-	return old_head;
-}
-
 clock_t tmrs_clrtimer(struct timer **list, struct timer *t)
 {
 	struct timer **at;
@@ -48,6 +24,38 @@ clock_t tmrs_clrtimer(struct timer **list, struct timer *t)
 	}
 
 	return prev_time;
+}
+
+/**
+ * Activate a timer to run the callback function at exp_time. If the timer
+ * is already in use it is first removed from the timers queue. Then it is
+ * put in the list of active timers with the first to expire in front. The
+ * caller is responsible for scheduling a new alarm for the timer if needed.
+ */
+clock_t tmrs_settimer(struct timer **list, struct timer *t, clock_t exp_time,
+		      timer_func_t callback)
+{
+	struct timer **at;
+	clock_t old_head = 0;
+
+	if (*list)
+		old_head = (*list)->exp_time;
+
+	/* Set the timer's variables */
+	tmrs_clrtimer(list, t);
+	t->exp_time = exp_time;
+	t->timer_func = callback;
+
+	/* Add the timer to the active timer list, the next timer due is in front */
+	for (at = list; *at != NULL; at = &((*at)->next)) {
+		if (exp_time < (*at)->exp_time)
+			break;
+	}
+
+	t->next = *at;
+	*at = t;
+
+	return old_head;
 }
 
 void tmrs_exptimers(struct timer **list, clock_t now)
