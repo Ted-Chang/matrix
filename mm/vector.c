@@ -1,5 +1,4 @@
 #include <types.h>
-#include <size_t.h>
 #include "string.h"	// memset
 #include "util.h"
 #include "vector.h"

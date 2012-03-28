@@ -1,7 +1,7 @@
 #ifndef __STRING_H__
 #define __STRING_H__
 
-#include <size_t.h>
+#include <stddef.h>
 
 int strcmp(const char *str1, const char *str2);
 

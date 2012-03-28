@@ -1,8 +1,8 @@
 #ifndef __KHEAP_H__
 #define __KHEAP_H__
 
-#include <size_t.h>
-#include <vector.h>
+#include <stddef.h>
+#include "vector.h"
 
 #define KHEAP_START		0xC0000000
 #define KHEAP_INITIAL_SIZE	0x100000

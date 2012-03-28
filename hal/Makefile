@@ -4,7 +4,11 @@ include ../Makefile.inc
 
 OBJ := ../bin/obji386
 
-TARGETOBJ := $(OBJ)/hal.o $(OBJ)/dscptr.o $(OBJ)/interrupt.o $(OBJ)/isr.o
+TARGETOBJ := $(OBJ)/hal.o \
+	$(OBJ)/dscptr.o \
+	$(OBJ)/interrupt.o \
+	$(OBJ)/isr.o \
+	$(OBJ)/spinlock.o \
 
 .PHONY: clean help
 

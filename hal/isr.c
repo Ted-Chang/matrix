@@ -3,6 +3,7 @@
  */
 
 #include <types.h>
+#include <stddef.h>
 #include "isr.h"
 #include "hal.h"
 #include "util.h"

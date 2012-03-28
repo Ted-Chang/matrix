@@ -1,6 +1,10 @@
 #ifndef __MATRIX_H__
 #define __MATRIX_H__
 
+#ifndef INLINE
+#define INLINE	inline
+#endif
+
 #define FLAG_ON(_x, _f)		((_x) & (_f))
 
 #define SET_FLAG(_x, _f)	((_x) |= (_f))

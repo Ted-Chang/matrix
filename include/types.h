@@ -1,10 +1,6 @@
 #ifndef __TYPES_H__
 #define __TYPES_H__
 
-#ifndef NULL
-#define NULL	0
-#endif
-
 #ifndef TRUE
 #define TRUE	1
 #endif
