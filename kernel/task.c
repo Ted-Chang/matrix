@@ -4,15 +4,14 @@
 
 #include <types.h>
 #include "matrix.h"
+#include "global.h"
 #include "hal.h"
 #include "string.h"
 #include "mmgr.h"
+#include "kheap.h"
 #include "task.h"
 #include "debug.h"
-
-volatile struct task *_current_task = NULL;
-
-volatile struct task *_ready_queue = NULL;
+#include "sched.h"
 
 uint32_t _next_pid = 1;
 
@@ -90,46 +89,61 @@ void move_stack(void *new_stack, uint32_t size)
 	asm volatile("mov %0, %%ebp" :: "r" (new_ebp));
 }
 
+/**
+ * Construct a task
+ */
+static void task_ctor(void *obj, struct pd *dir)
+{
+	struct task *t = (struct task *)obj;
+	t->next = NULL;
+	t->page_dir = dir;
+	t->id = _next_pid++;
+	t->priority = USER_Q;		// Default priority
+	t->max_priority = TASK_Q;	// Max priority for the task
+	t->quantum = 10;
+	t->ticks_left = t->quantum;
+	t->priv.flags = PREEMPTIBLE;
+	t->usr_time = 0;
+	t->sys_time = 0;
+
+	/* Initialize the architecture specific fields */
+	t->arch.esp = 0;
+	t->arch.ebp = 0;
+	t->arch.eip = 0;
+	t->arch.kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
+}
+
+/**
+ * Destruct a task
+ */
+static void task_dtor(void *obj)
+{
+	struct task *t = (struct task *)obj;
+	kfree((void *)t->arch.kernel_stack);
+	// TODO: cleanup the page directory owned by this task
+}
+
 void init_multitask()
 {
-	/* No interrupts at this time */
-	disable_interrupt();
+	struct task *t;
 
 	/* Relocate the stack so we know where it is, the stack size is 8KB */
 	move_stack((void *)0xE0000000, 0x2000);
 
 	/* Malloc the initial task and initialize it */
-	_current_task = _ready_queue = (struct task *)kmalloc(sizeof(struct task));
-	_current_task->id = _next_pid++;
-	_current_task->esp = _current_task->ebp = 0;
-	_current_task->eip = 0;
-	_current_task->page_dir = _current_dir;
-	_current_task->next = NULL;
-	_current_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
-	_current_task->quantum = 10;			// Default quantum: 10 ticks
-	_current_task->ticks_left = _current_task->quantum;
-	_current_task->priv.flags = PREEMPTIBLE;	// The task is preemptible
-	_current_task->usr_time = 0;
-	_current_task->sys_time = 0;
+	t = (struct task *)kmalloc(sizeof(struct task));
+	task_ctor(t, _current_dir);
+	
+	/* Enqueue the new task */
+	sched_enqueue(t);
 
-	enable_interrupt();
+	/* Update the current task pointer */
+	_curr_task = t;
 }
 
-void switch_task()
+void switch_context()
 {
 	uint32_t esp, ebp, eip;
-
-	/* If we haven't initialized multitasking yet, do nothing */
-	if (!_current_task)
-		return;
-
-	/* We will not switch task if the process didn't use up a full quantum. */
-	if (!((_current_task->ticks_left <= 0) &&
-	      (FLAG_ON(_current_task->priv.flags, PREEMPTIBLE))))
-		return;
-
-	/* Give the current task a new quantum as it will be switched */
-	_current_task->ticks_left = _current_task->quantum;
 
 	asm volatile("mov %%esp, %0" : "=r" (esp));
 	asm volatile("mov %%ebp, %0" : "=r" (ebp));
@@ -153,25 +167,19 @@ void switch_task()
 	}
 
 	/* Save the current process context */
-	_current_task->eip = eip;
-	_current_task->esp = esp;
-	_current_task->ebp = ebp;
+	_curr_task->arch.eip = eip;
+	_curr_task->arch.esp = esp;
+	_curr_task->arch.ebp = ebp;
 
-	/* Get the next ready task to run */
-	_current_task = _current_task->next;
-
-	/* If we get to the end of the task list start again at the beginning */
-	if (!_current_task) _current_task = _ready_queue;
-
-	eip = _current_task->eip;
-	esp = _current_task->esp;
-	ebp = _current_task->ebp;
+	eip = _next_task->arch.eip;
+	esp = _next_task->arch.esp;
+	ebp = _next_task->arch.ebp;
 
 	/* Make sure the memory manager knows we've changed the page directory */
-	_current_dir = _current_task->page_dir;
+	_current_dir = _next_task->page_dir;
 
 	/* Switch the kernel stack in TSS to the task's kernel stack */
-	set_kernel_stack(_current_task->kernel_stack + KERNEL_STACK_SIZE);
+	set_kernel_stack(_next_task->arch.kernel_stack + KERNEL_STACK_SIZE);
 
 	/* Here we:
 	 * [1] Disable interrupts so we don't get bothered.
@@ -200,9 +208,8 @@ int fork()
 {
 	int pid = 0;
 	struct task *parent;
-	struct pd *dir;
 	struct task *new_task;
-	struct task *tmp_task;
+	struct pd *dir;
 	uint32_t eip;
 	uint32_t esp;
 	uint32_t ebp;
@@ -210,51 +217,37 @@ int fork()
 	disable_interrupt();
 
 	/* Take a pointer to this process' task struct for later reference */
-	parent = (struct task *)_current_task;
+	parent = (struct task *)_curr_task;
 	
 	/* Clone the parent(current)'s page directory */
 	dir = clone_pd(_current_dir);
 
 	/* Create a new task */
 	new_task = (struct task *)kmalloc(sizeof(struct task));
+	task_ctor(new_task, dir);
 
-	new_task->id = _next_pid++;
-	new_task->esp = new_task->ebp = 0;
-	new_task->eip = 0;
-	new_task->page_dir = dir;
-	new_task->next = 0;
-	new_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
-	new_task->quantum = 10;
-	new_task->ticks_left = new_task->quantum;
-	new_task->priv.flags = PREEMPTIBLE;
-	new_task->usr_time = 0;
-	new_task->sys_time = 0;
-
-	/* Add the new task to the end of the ready queue */
-	tmp_task = (struct task *)_ready_queue;
-	while (tmp_task->next)
-		tmp_task = tmp_task->next;
-	tmp_task->next = new_task;
-
+	/* Enqueue the forked new task */
+	sched_enqueue(new_task);
+	
 	eip = read_eip();
 
 	/* We could be the parent or the child here */
-	if (_current_task == parent) {
+	if (_curr_task == parent) {
 
 		/* We are the parent, so setup the esp/ebp/eip for our child */
 		asm volatile("mov %%esp, %0" : "=r" (esp));
 		asm volatile("mov %%ebp, %0" : "=r" (ebp));
 
-		new_task->esp = esp;
-		new_task->ebp = ebp;
-		new_task->eip = eip;
+		new_task->arch.esp = esp;
+		new_task->arch.ebp = ebp;
+		new_task->arch.eip = eip;
 
 		pid = new_task->id;
 
 		DEBUG(DL_DBG, ("fork: new task forked, pid %d\n"
 			       "- esp(0x%x), ebp(0x%x), eip(0x%x), page_dir(0x%x)\n",
-			       new_task->id, new_task->esp, new_task->ebp, new_task->eip,
-			       new_task->page_dir));
+			       new_task->id, new_task->arch.esp, new_task->arch.ebp,
+			       new_task->arch.eip, new_task->page_dir));
 		
 		enable_interrupt();
 	} else {
@@ -267,7 +260,7 @@ int fork()
 
 int getpid()
 {
-	return _current_task->id;
+	return _curr_task->id;
 }
 
 void switch_to_user_mode()
@@ -275,7 +268,7 @@ void switch_to_user_mode()
 	/* Setup our kernel stack, note that the stack was grow from high address
 	 * to low address
 	 */
-	set_kernel_stack(_current_task->kernel_stack + KERNEL_STACK_SIZE);
+	set_kernel_stack(_curr_task->arch.kernel_stack + KERNEL_STACK_SIZE);
 	
 	/* Setup a stack structure for switching to user mode.
 	 * The code firstly disables interrupts, as we're working on a critical

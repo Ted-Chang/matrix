@@ -3,13 +3,15 @@
 #include <time.h>
 #include "matrix.h"
 #include "const.h"
+#include "global.h"
 #include "isr.h"
 #include "hal.h"
 #include "timer.h"
 #include "task.h"
+#include "sched.h"
 #include "debug.h"
 
-#define TIMER_FREQ	1193182L	/* clock frequency for timer in PC and AT */
+#define TIMER_FREQ	1193182L	// clock frequency for timer in PC and AT
 
 extern struct timer *_active_timers;
 extern void tmrs_exptimers(struct timer **list, clock_t now);
@@ -22,11 +24,20 @@ static struct irq_hook _clock_hook;
 
 void do_clocktick()
 {
-	/* Call switch task to switch to another task if we need to */
-	switch_task();
-	
+	/* We will not switch task if the task didn't use up a full quantum. */
+	if ((_prev_task->ticks_left <= 0) &&
+	    (FLAG_ON(_prev_task->priv.flags, PREEMPTIBLE))) {
+
+		sched_dequeue(_prev_task);
+		sched_enqueue(_prev_task);
+		
+		/* Task scheduling was done, then do context switch */
+		switch_context();
+	}
+
 	/* Check if a clock timer is expired and call its callback function */
 	if (_next_timeout <= _real_time) {
+
 		tmrs_exptimers(&_active_timers, _real_time);
 		_next_timeout = _active_timers == NULL ?
 			TIMER_NEVER : _active_timers->exp_time;
@@ -42,18 +53,23 @@ static void clock_callback(struct registers *regs)
 	_lost_ticks = 0;
 	_real_time += ticks;
 
+	/* If multitask was not initialized, just return */
+	if (!_curr_task) return;
+
 	/* Update user and system accounting times. Charge the current process for
 	 * user time. If the current process is not billable, that is, if a non-user
 	 * process is running, charge the billable process for system time as well.
 	 * Thus the unbillable process' user time is the billable user's system time.
 	 */
-	_current_task->usr_time += ticks;
-	if (FLAG_ON(_current_task->priv.flags, PREEMPTIBLE))
-		_current_task->ticks_left -= ticks;
+	_curr_task->usr_time += ticks;
+	if (FLAG_ON(_curr_task->priv.flags, PREEMPTIBLE)) {
+		_curr_task->ticks_left -= ticks;	// Consume the quantum
+	}
 	
 	/* Check if do_clocktick() must be called. Done for alarms and scheduling.
 	 */
-	if ((_next_timeout <= _real_time) || (_current_task->ticks_left <= 0)) {
+	if ((_next_timeout <= _real_time) || (_curr_task->ticks_left <= 0)) {
+		_prev_task = _curr_task;		// Store running task
 		do_clocktick();
 	}
 }
