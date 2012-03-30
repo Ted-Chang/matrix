@@ -1,5 +1,5 @@
 #include "fs.h"
-#include "debug.h"
+#include "matrix/debug.h"
 
 struct vfs_node *root_node = 0;
 

@@ -2,7 +2,7 @@
 #include "string.h"
 #include "mmgr.h"
 #include "initrd.h"
-#include "debug.h"
+#include "matrix/debug.h"
 
 struct initrd_header *initrd_hdr;
 struct initrd_file_header *file_hdrs;

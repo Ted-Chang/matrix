@@ -3,7 +3,7 @@
 #include "vector.h"
 #include "kheap.h"
 #include "mmgr.h"
-#include "debug.h"
+#include "matrix/debug.h"
 
 extern uint32_t end;	// end is defined in linker scripts
 

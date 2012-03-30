@@ -2,7 +2,7 @@
 #define __LIRQ_H__
 
 #include <types.h>
-#include "matrix.h"
+#include "matrix/matrix.h"
 
 static INLINE boolean_t local_irq_enable()
 {

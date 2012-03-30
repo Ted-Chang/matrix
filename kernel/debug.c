@@ -1,6 +1,6 @@
 #include <types.h>
 #include "hal.h"
-#include "debug.h"
+#include "matrix/debug.h"
 
 uint32_t _debug_level = DL_DBG;
 

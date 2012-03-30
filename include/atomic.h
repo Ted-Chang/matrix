@@ -2,7 +2,7 @@
 #define __ATOMIC_H__
 
 #include <types.h>
-#include "matrix.h"
+#include "matrix/matrix.h"
 
 /* Atomic variable type (32 bit) */
 typedef volatile int32_t atomic_t;

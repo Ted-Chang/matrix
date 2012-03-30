@@ -15,7 +15,7 @@
 #include "fs.h"
 #include "initrd.h"
 #include "task.h"
-#include "debug.h"
+#include "matrix/debug.h"
 #include "exceptn.h"
 #include "syscall.h"
 #include "keyboard.h"

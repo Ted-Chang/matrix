@@ -1,11 +1,11 @@
 #include <types.h>
 #include <stddef.h>
-#include "matrix.h"
+#include "matrix/matrix.h"
 #include "hal.h"
 #include "isr.h"
 #include "floppy.h"
 #include "util.h"
-#include "debug.h"
+#include "matrix/debug.h"
 
 
 #define FDC_PRI		0x3F0		// Base port of the primary controller

@@ -1,6 +1,6 @@
 #include <types.h>
 #include <time.h>
-#include "matrix.h"
+#include "matrix/matrix.h"
 #include "cmos.h"
 #include "hal.h"
 

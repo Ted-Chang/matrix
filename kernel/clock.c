@@ -1,15 +1,15 @@
 #include <types.h>
 #include <stddef.h>
 #include <time.h>
-#include "matrix.h"
-#include "const.h"
-#include "global.h"
+#include "matrix/matrix.h"
+#include "matrix/const.h"
+#include "matrix/global.h"
 #include "isr.h"
 #include "hal.h"
 #include "timer.h"
 #include "task.h"
 #include "sched.h"
-#include "debug.h"
+#include "matrix/debug.h"
 
 #define TIMER_FREQ	1193182L	// clock frequency for timer in PC and AT
 

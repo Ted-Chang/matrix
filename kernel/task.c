@@ -3,14 +3,14 @@
  */
 
 #include <types.h>
-#include "matrix.h"
-#include "global.h"
+#include "matrix/matrix.h"
+#include "matrix/global.h"
 #include "hal.h"
 #include "string.h"
 #include "mmgr.h"
 #include "kheap.h"
 #include "task.h"
-#include "debug.h"
+#include "matrix/debug.h"
 #include "sched.h"
 
 uint32_t _next_pid = 1;

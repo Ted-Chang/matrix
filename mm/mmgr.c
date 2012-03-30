@@ -8,7 +8,7 @@
 #include "isr.h"	// register interrupt handler
 #include "mmgr.h"
 #include "kheap.h"
-#include "debug.h"
+#include "matrix/debug.h"
 
 #define INDEX_FROM_BIT(a)	(a/(8*4))
 #define OFFSET_FROM_BIT(a)	(a%(8*4))
