@@ -171,15 +171,16 @@ void switch_context()
 	_curr_task->arch.esp = esp;
 	_curr_task->arch.ebp = ebp;
 
-	eip = _next_task->arch.eip;
-	esp = _next_task->arch.esp;
-	ebp = _next_task->arch.ebp;
+	_curr_task = _next_task;
+	eip = _curr_task->arch.eip;
+	esp = _curr_task->arch.esp;
+	ebp = _curr_task->arch.ebp;
 
 	/* Make sure the memory manager knows we've changed the page directory */
-	_current_dir = _next_task->page_dir;
+	_current_dir = _curr_task->page_dir;
 
 	/* Switch the kernel stack in TSS to the task's kernel stack */
-	set_kernel_stack(_next_task->arch.kernel_stack + KERNEL_STACK_SIZE);
+	set_kernel_stack(_curr_task->arch.kernel_stack + KERNEL_STACK_SIZE);
 
 	/* Here we:
 	 * [1] Disable interrupts so we don't get bothered.
