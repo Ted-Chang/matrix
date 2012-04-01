@@ -1,9 +1,18 @@
 #include <types.h>
 #include "util.h"
 #include "vector.h"
-#include "kheap.h"
-#include "mmgr.h"
+#include "mm/kheap.h"
+#include "mm/mmgr.h"
 #include "matrix/debug.h"
+
+struct heap {
+	struct vector index;
+	uint32_t start_addr;	// start of our allocated space
+	uint32_t end_addr;	// end of our allocated space
+	uint32_t max_addr;	// maximum address the heap can expand to
+	uint8_t supervisor; 
+	uint8_t readonly;
+};
 
 extern uint32_t end;	// end is defined in linker scripts
 

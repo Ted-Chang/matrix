@@ -6,8 +6,8 @@
 #include "string.h"	// memset
 #include "hal.h"
 #include "isr.h"	// register interrupt handler
-#include "mmgr.h"
-#include "kheap.h"
+#include "mm/mmgr.h"
+#include "mm/kheap.h"
 #include "matrix/debug.h"
 
 #define INDEX_FROM_BIT(a)	(a/(8*4))

@@ -33,6 +33,12 @@ static void pick_task()
 	}
 }
 
+void sched_init()
+{
+	memset(&_ready_head[0], 0, sizeof(struct task *) * NR_SCHED_QUEUES);
+	memset(&_ready_tail[0], 0, sizeof(struct task *) * NR_SCHED_QUEUES);
+}
+
 /**
  * Add `tp' to one of the queues of runnable tasks. This function is responsible
  * for inserting a task into one of the scheduling queues.

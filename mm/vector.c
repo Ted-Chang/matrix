@@ -2,7 +2,7 @@
 #include "string.h"	// memset
 #include "util.h"
 #include "vector.h"
-#include "mmgr.h"
+#include "mm/mmgr.h"
 #include "matrix/debug.h"
 
 int8_t default_compare(type_t x, type_t y)

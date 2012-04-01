@@ -3,12 +3,13 @@
  */
 
 #include <types.h>
+#include "string.h"
 #include "matrix/matrix.h"
 #include "matrix/global.h"
+#include "matrix/const.h"
 #include "hal.h"
-#include "string.h"
-#include "mmgr.h"
-#include "kheap.h"
+#include "mm/mmgr.h"
+#include "mm/kheap.h"
 #include "task.h"
 #include "matrix/debug.h"
 #include "sched.h"
@@ -21,6 +22,8 @@ extern struct pd *_current_dir;
 extern uint32_t _initial_esp;
 
 extern uint32_t read_eip();
+
+extern void sched_init();
 
 void move_stack(void *new_stack, uint32_t size)
 {
@@ -100,7 +103,7 @@ static void task_ctor(void *obj, struct pd *dir)
 	t->id = _next_pid++;
 	t->priority = USER_Q;		// Default priority
 	t->max_priority = TASK_Q;	// Max priority for the task
-	t->quantum = 10;
+	t->quantum = TASK_QUANTUM;
 	t->ticks_left = t->quantum;
 	t->priv.flags = PREEMPTIBLE;
 	t->usr_time = 0;
@@ -127,6 +130,9 @@ void init_multitask()
 {
 	struct task *t;
 
+	/* Initialize the scheduler */
+	sched_init();
+	
 	/* Relocate the stack so we know where it is, the stack size is 8KB */
 	move_stack((void *)0xE0000000, 0x2000);
 

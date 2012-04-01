@@ -9,8 +9,8 @@
 #include "util.h"
 #include "hal.h"
 #include "isr.h"
-#include "kheap.h"
-#include "mmgr.h"
+#include "mm/kheap.h"
+#include "mm/mmgr.h"
 #include "timer.h"
 #include "fs.h"
 #include "initrd.h"
@@ -26,22 +26,6 @@ extern struct irq_hook *_interrupt_handlers[];
 
 uint32_t _initial_esp;
 
-struct timer tmr;
-
-void tmr_callback(struct timer *tp)
-{
-	struct tm date_time;
-
-	get_cmostime(&date_time);
-	
-	kprintf("year:%d, month:%d, day:%d, hour:%d, minute:%d, second:%d\n",
-		date_time.tm_year, date_time.tm_mon, date_time.tm_mday,
-		date_time.tm_hour, date_time.tm_min, date_time.tm_sec);
-
-	/* Reschedule the timer again */
-	set_timer(&tmr, 1000, tmr_callback);
-}
-
 int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 {
 	int i, rc;
@@ -49,6 +33,8 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	uint32_t initrd_end;
 	uint64_t mem_end_page;
 	struct dirent *node;
+
+	ASSERT(mboot_ptr->mods_count > 0);
 
 	/* Clear the screen */
 	clear_scr();
@@ -72,9 +58,7 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	/* Initialize our timer */
 	init_clock();
 
-	kprintf("Timer initialized.\n");
-
-	ASSERT(mboot_ptr->mods_count > 0);
+	kprintf("System PIT initialized.\n");
 
 	/* Find the location of our initial ramdisk */
 	initrd_location = *((uint32_t *)mboot_ptr->mods_addr);
@@ -100,7 +84,8 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	/* Initialize the initial ramdisk and set it as the root filesystem */
 	root_node = init_initrd(initrd_location);
 
-	kprintf("Initial ramdisk initialized.\n");
+	kprintf("Initial ramdisk initialized, location(0x%x), end(0x%x).\n",
+		initrd_location, initrd_end);
 
 	init_syscalls();
 
@@ -154,13 +139,11 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 
 	enable_interrupt();
 
-	//init_timer(&tmr);
-
-	//set_timer(&tmr, 1000, tmr_callback);
-
 	//switch_to_user_mode();
 
 	//syscall_putstr("Hello, user mode!\n");
+
+	/* Run the idle task */
 	
 	return 0;
 }
