@@ -27,4 +27,8 @@ void panic(const char *message, const char *file, uint32_t line);
 
 void panic_assert(const char *file, uint32_t line, const char *desc);
 
+#ifdef _DEBUG_SCHED
+void check_runqueues(char *when);
+#endif	/* _DEBUG_SCHED */
+
 #endif	/* __DEBUG_H__ */

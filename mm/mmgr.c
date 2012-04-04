@@ -211,7 +211,9 @@ void init_paging(uint64_t mem_size)
 	_kheap = create_heap(KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE,
 			    0xCFFFF000, FALSE, FALSE);
 
-	/* Clone the kernel page directory and switch to it */
+	/* Clone the kernel page directory and switch to it, this make the kernel
+	 * page directory clean.
+	 */
 	_current_dir = clone_pd(_kernel_dir);
 
 	DEBUG(DL_DBG, ("init_paging: kernel page directory cloned.\n"

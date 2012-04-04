@@ -4,8 +4,10 @@
 
 #include <types.h>
 #include <time.h>
+#include <string.h>
+#include "matrix/matrix.h"
+#include "matrix/debug.h"
 #include "multiboot.h"
-#include "string.h"
 #include "util.h"
 #include "hal.h"
 #include "isr.h"
@@ -15,24 +17,29 @@
 #include "fs.h"
 #include "initrd.h"
 #include "task.h"
-#include "matrix/debug.h"
 #include "exceptn.h"
 #include "syscall.h"
 #include "keyboard.h"
 #include "floppy.h"
+#include "system.h"
 
 extern uint32_t _placement_addr;
 extern struct irq_hook *_interrupt_handlers[];
 
 uint32_t _initial_esp;
 
+void announce();
+
+/**
+ * The entry point of the matrix kernel.
+ */
 int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 {
-	int i, rc;
+	int i, rc, parent_pid;
 	uint32_t initrd_location;
 	uint32_t initrd_end;
 	uint64_t mem_end_page;
-	struct dirent *node;
+	task_func_t tp;
 
 	ASSERT(mboot_ptr->mods_count > 0);
 
@@ -46,7 +53,7 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	init_idt();
 	memset(&_interrupt_handlers[0], 0, sizeof(struct irq_hook *)*256);
 
-	kprintf("Gdt and idt initialized.\n");
+	kprintf("Gdt and idt installed.\n");
 
 	init_exception_handlers();
 
@@ -73,8 +80,7 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	/* Enable paging now */
 	init_paging(mem_end_page);
 
-	kprintf("Memory paging initialized, physical memory: %d bytes.\n",
-		mem_end_page);
+	kprintf("Memory paging enabled, physical memory: %d bytes.\n", mem_end_page);
 
 	/* Start multitasking now */
 	init_multitask();
@@ -84,7 +90,7 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	/* Initialize the initial ramdisk and set it as the root filesystem */
 	root_node = init_initrd(initrd_location);
 
-	kprintf("Initial ramdisk initialized, location(0x%x), end(0x%x).\n",
+	kprintf("Initial ramdisk mounted, location(0x%x), end(0x%x).\n",
 		initrd_location, initrd_end);
 
 	init_syscalls();
@@ -100,50 +106,53 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	kprintf("Floppy driver initialized.\n");
 
 	/* Print the banner */
-	kprintf("Welcome to Matrix!\n");
+	announce();
 
-	/*Fork a new process which is a clone of this*/
-	rc = fork();
+	parent_pid = getpid();
 
-	kprintf("fork returned %d\n", rc);
-
-	kprintf("current pid: %d\n", getpid());
-	
-	disable_interrupt();
-	
-	i = 0;
-	node = 0;
-	
-	while ((node = vfs_readdir(root_node, i)) != 0) {
-
-		struct vfs_node *fs_node;
-		
-		kprintf("Found file: %s\n", node->name);
-
-		fs_node = vfs_finddir(root_node, node->name);
-		if ((fs_node->flags & 0x7) == VFS_DIRECTORY) {
-			kprintf("\t(directory)\n");
-		} else {
-			char buf[256];
-			uint32_t sz;
-			int j;
-			kprintf("\tcontent: ");
-			sz = vfs_read(fs_node, 0, 256, (uint8_t *)buf);
-			for (j = 0; j < sz; j++)
-				kprintf("%c", buf[j]);
-			kprintf("\n");
+	/* Run all boot tasks */
+	for (i = 0; i < NR_BOOT_TASKS; i++) {
+		tp = images[i];
+		rc = fork();
+		/* Fork a new task and execute the specified boot task if it
+		 * was the child task
+		 */
+		if (getpid() != parent_pid) {
+			tp();
 		}
-
-		i++;
 	}
 
-	enable_interrupt();
+	/* while ((node = vfs_readdir(root_node, i)) != 0) { */
 
-	//switch_to_user_mode();
+	/* 	struct vfs_node *fs_node; */
+		
+	/* 	kprintf("Found file: %s\n", node->name); */
 
-	//syscall_putstr("Hello, user mode!\n");
+	/* 	fs_node = vfs_finddir(root_node, node->name); */
+	/* 	if ((fs_node->flags & 0x7) == VFS_DIRECTORY) { */
+	/* 		kprintf("\t(directory)\n"); */
+	/* 	} else { */
+	/* 		char buf[256]; */
+	/* 		uint32_t sz; */
+	/* 		int j; */
+	/* 		kprintf("\tcontent: "); */
+	/* 		sz = vfs_read(fs_node, 0, 256, (uint8_t *)buf); */
+	/* 		for (j = 0; j < sz; j++) */
+	/* 			kprintf("%c", buf[j]); */
+	/* 		kprintf("\n"); */
+	/* 	} */
 
-	/* Run the idle task */
-	
-	return 0;
+	/* 	i++; */
+	/* } */
+
+	return rc;
+}
+
+void announce()
+{
+	/* Display the Matrix startup banner */
+	kprintf("\nMatrix %d.%d "
+		"Copyright(c) 2012, Ted Chang, Beijing, China.\n"
+		"Build date and time: %s, %s\n",
+		MATRIX_VERSION, MATRIX_RELEASE, __TIME__, __DATE__);
 }

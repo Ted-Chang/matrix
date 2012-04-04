@@ -19,11 +19,31 @@ int strcmp(const char *str1, const char *str2)
 	return res;
 }
 
+int strncmp(const char *str1, const char *str2, size_t num)
+{
+	int res = 0;
+	while (num-- && !(res = *(unsigned char *)str1 - *(unsigned char *)str2) && *str2)
+		++str1, ++str2;
+	if (res < 0)
+		res = -1;
+	if (res > 0)
+		res = 1;
+	
+	return res;
+}
+
 char * strcpy(char *dst, const char *src)
 {
 	char *cp = dst;
 	while (*(cp++) = *(src++));
 	return (dst);
+}
+
+char * strncpy(char *dst, const char *src, size_t num)
+{
+	char *cp = dst;
+	while (num-- && (*(cp++) = *(src++)));
+	return dst;
 }
 
 size_t strlen(const char *str)

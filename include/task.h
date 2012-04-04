@@ -2,7 +2,9 @@
 #define __TASK_H__
 
 #include <time.h>
+#include "matrix/const.h"
 #include "priv.h"
+
 
 /* Our kernel stack size is 4096 bytes */
 #define KERNEL_STACK_SIZE 4096
@@ -29,6 +31,7 @@ struct task {
 	int8_t max_priority;	// Max priority of the task
 	int8_t ticks_left;	// Number of scheduling ticks left
 	int8_t quantum;		// Quantum in ticks
+	char name[T_NAME_LEN];	// Name of the task, include `\0'
 };
 
 /* Scheduling priority for our tasks. Value must start at zero (highest

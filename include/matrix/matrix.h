@@ -1,6 +1,9 @@
 #ifndef __MATRIX_H__
 #define __MATRIX_H__
 
+#define MATRIX_RELEASE		0
+#define MATRIX_VERSION		1
+
 #ifndef INLINE
 #define INLINE	inline
 #endif

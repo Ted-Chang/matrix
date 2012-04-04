@@ -1,7 +1,9 @@
 #include <types.h>
 #include <stddef.h>
+#include <string.h>
 #include "task.h"
 #include "sched.h"
+#include "matrix/debug.h"
 
 /* The schedule queue for our kernel */
 struct task *_ready_head[NR_SCHED_QUEUES];
@@ -14,6 +16,9 @@ struct task *_curr_task = NULL;				// Current running task
 
 static void sched(struct task *tp, int *queue, boolean_t *front);
 
+/**
+ * pick_task only update the _next_task pointer.
+ */
 static void pick_task()
 {
 	/* Decide who to run now. A new task is selected by setting `_next_task'.
@@ -28,9 +33,11 @@ static void pick_task()
 	for (i = 0; i < NR_SCHED_QUEUES; i++) {
 		if ((tp = _ready_head[i]) != NULL) {
 			_next_task = tp;
-			return;
+			break;
 		}
 	}
+
+	DEBUG(DL_DBG, ("task %d picked.\n", _next_task->id));
 }
 
 void sched_init()
@@ -41,31 +48,44 @@ void sched_init()
 
 /**
  * Add `tp' to one of the queues of runnable tasks. This function is responsible
- * for inserting a task into one of the scheduling queues.
+ * for inserting a task into one of the scheduling queues. `tp' must not in the
+ * scheduling queues before enqueue.
  */
 void sched_enqueue(struct task *tp)
 {
-	int i;
+	int q;
 	boolean_t front;
 
+	disable_interrupt();
+
+#ifdef _DEBUG_SCHED
+	check_runqueues("sched_enqueue:begin");
+#endif
+	
 	/* Determine where to insert the task */
-	sched(tp, &i, &front);
+	sched(tp, &q, &front);
 	
 	/* Now add the task to the queue. */
-	if (_ready_head[i] == NULL) {			// Add to empty queue
-		_ready_head[i] = _ready_tail[i] = tp;
+	if (_ready_head[q] == NULL) {			// Add to empty queue
+		_ready_head[q] = _ready_tail[q] = tp;
 		tp->next = NULL;
 	} else if (front) {				// Add to head of queue
-		tp->next = _ready_head[i];
-		_ready_head[i] = tp;
+		tp->next = _ready_head[q];
+		_ready_head[q] = tp;
 	} else {					// Add to tail of queue
-		_ready_tail[i]->next = tp;
-		_ready_tail[i] = tp;
+		_ready_tail[q]->next = tp;
+		_ready_tail[q] = tp;
 		tp->next = NULL;
 	}
 
 	/* Now select the next task to run */
 	pick_task();
+	
+#ifdef _DEBUG_SCHED
+	check_runqueues("sched_enqueue:end");
+#endif
+
+	enable_interrupt();
 }
 
 /**
@@ -75,28 +95,40 @@ void sched_enqueue(struct task *tp)
  */
 void sched_dequeue(struct task *tp)
 {
-	int i;
+	int q;
 	struct task **xpp;
 	struct task *prev_ptr;
 
-	i = tp->priority;
+	disable_interrupt();
+	
+	q = tp->priority;
 
+#ifdef _DEBUG_SCHED
+	check_runqueues("sched_dequeue:begin");
+#endif
+	
 	/* Now make sure that the task is not in its ready queue. Remove the task
 	 * if it was found.
 	 */
 	prev_ptr = NULL;
-	for (xpp = &_ready_head[i]; *xpp != NULL; xpp = &((*xpp)->next)) {
+	for (xpp = &_ready_head[q]; *xpp != NULL; xpp = &((*xpp)->next)) {
 		
 		if (*xpp == tp) {			// Found task to remove
 			*xpp = (*xpp)->next;		// Replace with the next in chain
-			if (tp == _ready_tail[i])	// Queue tail removed
-				_ready_tail[i] = prev_ptr; // Set new tail
+			if (tp == _ready_tail[q])	// Queue tail removed
+				_ready_tail[q] = prev_ptr; // Set new tail
 			if ((tp == _curr_task) || (tp == _next_task)) // Active task removed
 				pick_task();		// Pick a new task to run
 			break;				// Break out the for loop
 		}
 		prev_ptr = *xpp;
 	}
+
+#ifdef _DEBUG_SCHED
+	check_runqueues("sched_dequeue:end");
+#endif
+
+	disable_interrupt();
 }
 
 /**
@@ -114,10 +146,10 @@ static void sched(struct task *tp, int *queue, boolean_t *front)
 	 */
 	if (!time_left) {				// Quantum consumed ?
 		tp->ticks_left = tp->quantum;		// Give new quantum
-		if (_prev_task == tp)
-			penalty++;			// Priority boost
-		else
-			penalty--;			// Give slow way back
+		//if (_prev_task == tp)
+		//	penalty++;			// Priority boost
+		//else
+		//	penalty--;			// Give slow way back
 		_prev_task = tp;			// Store ptr for next
 	}
 

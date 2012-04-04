@@ -108,6 +108,7 @@ static void task_ctor(void *obj, struct pd *dir)
 	t->priv.flags = PREEMPTIBLE;
 	t->usr_time = 0;
 	t->sys_time = 0;
+	t->name[0] = '\0';
 
 	/* Initialize the architecture specific fields */
 	t->arch.esp = 0;
@@ -280,7 +281,9 @@ void switch_to_user_mode()
 	/* Setup a stack structure for switching to user mode.
 	 * The code firstly disables interrupts, as we're working on a critical
 	 * section of code. It then sets the ds, es, fs and gs segment selectors
-	 * to our user mode data selector - 0x23. 
+	 * to our user mode data selector - 0x23. Note that sti will not work when
+	 * we enter user mode as it is a privileged instruction, we will set the
+	 * interrupt flag to enable interrupt.
 	 */
 	asm volatile("\
 		     cli; \
@@ -294,6 +297,11 @@ void switch_to_user_mode()
 		     pushl $0x23; \
 		     pushl %esp; \
 		     pushf; \
+		     \
+		     pop %eax; \
+		     orl $0x200, %eax; \
+		     push %eax; \
+		     \
 		     pushl $0x1B; \
 		     push $1f; \
 		     iret; \
