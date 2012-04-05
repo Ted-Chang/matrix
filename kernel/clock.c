@@ -7,8 +7,8 @@
 #include "isr.h"
 #include "hal.h"
 #include "timer.h"
-#include "task.h"
-#include "sched.h"
+#include "proc/task.h"
+#include "proc/sched.h"
 #include "matrix/debug.h"
 
 #define TIMER_FREQ	1193182L	// clock frequency for timer in PC and AT

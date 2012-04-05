@@ -16,7 +16,7 @@
 #include "timer.h"
 #include "fs.h"
 #include "initrd.h"
-#include "task.h"
+#include "proc/task.h"
 #include "exceptn.h"
 #include "syscall.h"
 #include "keyboard.h"
@@ -27,6 +27,8 @@ extern uint32_t _placement_addr;
 extern struct irq_hook *_interrupt_handlers[];
 
 uint32_t _initial_esp;
+
+extern void init_task();
 
 void announce();
 
@@ -122,28 +124,7 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 		}
 	}
 
-	/* while ((node = vfs_readdir(root_node, i)) != 0) { */
-
-	/* 	struct vfs_node *fs_node; */
-		
-	/* 	kprintf("Found file: %s\n", node->name); */
-
-	/* 	fs_node = vfs_finddir(root_node, node->name); */
-	/* 	if ((fs_node->flags & 0x7) == VFS_DIRECTORY) { */
-	/* 		kprintf("\t(directory)\n"); */
-	/* 	} else { */
-	/* 		char buf[256]; */
-	/* 		uint32_t sz; */
-	/* 		int j; */
-	/* 		kprintf("\tcontent: "); */
-	/* 		sz = vfs_read(fs_node, 0, 256, (uint8_t *)buf); */
-	/* 		for (j = 0; j < sz; j++) */
-	/* 			kprintf("%c", buf[j]); */
-	/* 		kprintf("\n"); */
-	/* 	} */
-
-	/* 	i++; */
-	/* } */
+	init_task();
 
 	return rc;
 }

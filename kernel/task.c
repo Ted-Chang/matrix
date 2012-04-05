@@ -10,11 +10,11 @@
 #include "hal.h"
 #include "mm/mmgr.h"
 #include "mm/kheap.h"
-#include "task.h"
+#include "proc/task.h"
 #include "matrix/debug.h"
-#include "sched.h"
+#include "proc/sched.h"
 
-uint32_t _next_pid = 1;
+task_id_t _next_pid = 1;
 
 extern struct pd *_kernel_dir;
 extern struct pd *_current_dir;
@@ -104,7 +104,7 @@ static void task_ctor(void *obj, struct pd *dir)
 	t->priority = USER_Q;		// Default priority
 	t->max_priority = TASK_Q;	// Max priority for the task
 	t->quantum = TASK_QUANTUM;
-	t->ticks_left = t->quantum;
+	t->ticks_left = 0;		// Initial ticks is 0
 	t->priv.flags = PREEMPTIBLE;
 	t->usr_time = 0;
 	t->sys_time = 0;
@@ -127,6 +127,9 @@ static void task_dtor(void *obj)
 	// TODO: cleanup the page directory owned by this task
 }
 
+/**
+ * Start our kernel at top half
+ */
 void init_multitask()
 {
 	struct task *t;
@@ -214,7 +217,7 @@ void switch_context()
 
 int fork()
 {
-	int pid = 0;
+	task_id_t pid = 0;
 	struct task *parent;
 	struct task *new_task;
 	struct pd *dir;

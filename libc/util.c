@@ -5,9 +5,9 @@
 #include "util.h"
 #include "hal.h"	// outportb
 
-static volatile uint16_t _cursor_x = 0;
-static volatile uint16_t _cursor_y = 0;
-static volatile uint16_t *_video_mem = (uint16_t *)0xB8000;
+static uint16_t _cursor_x = 0;
+static uint16_t _cursor_y = 0;
+static uint16_t *_video_mem = (uint16_t *)0xB8000;
 
 static void update_cursor()
 {

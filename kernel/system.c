@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <time.h>
 #include "util.h"
-#include "task.h"
+#include "proc/task.h"
 #include "syscall.h"
 #include "system.h"
 
@@ -41,6 +41,21 @@ void sys_task()
 		count = 20000;
 		syscall_putstr("sys.");
 		
+		/* Wait for a little while */
+		while (count--);
+	}
+}
+
+void init_task()
+{
+	switch_to_user_mode();
+
+	while (TRUE) {
+		uint32_t count;
+
+		count = 20000;
+		syscall_putstr("init.");
+
 		/* Wait for a little while */
 		while (count--);
 	}

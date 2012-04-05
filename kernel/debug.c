@@ -3,7 +3,7 @@
 #include "hal.h"
 #include "matrix/debug.h"
 #include "matrix/global.h"
-#include "task.h"
+#include "proc/task.h"
 
 uint32_t _debug_level = DL_DBG;
 

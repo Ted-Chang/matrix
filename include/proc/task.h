@@ -18,12 +18,14 @@ struct arch_task {
 };
 typedef struct arch_task arch_task_t;
 
+typedef int task_id_t;
+
 /* Definition of the task structure */
 struct task {
 	struct task *next;	// Next task
 	struct priv priv;	// System privileges structure
 	struct pd *page_dir;	// Page directory
-	int id;			// Process ID
+	task_id_t id;		// Task ID
 	struct arch_task arch;	// Architecture task implementation
 	clock_t usr_time;	// User time in ticks
 	clock_t sys_time;	// System time in ticks

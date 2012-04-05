@@ -1,8 +1,8 @@
 #include <types.h>
 #include <stddef.h>
 #include <string.h>
-#include "task.h"
-#include "sched.h"
+#include "proc/task.h"
+#include "proc/sched.h"
 #include "matrix/debug.h"
 
 /* The schedule queue for our kernel */
@@ -24,14 +24,14 @@ static void pick_task()
 	/* Decide who to run now. A new task is selected by setting `_next_task'.
 	 */
 	struct task *tp;
-	int i;
+	int q;
 
 	/* Check each of the scheduling queues for ready tasks. The number of
 	 * queues is defined in task.h. The lowest queue contains IDLE, which
 	 * is always ready.
 	 */
-	for (i = 0; i < NR_SCHED_QUEUES; i++) {
-		if ((tp = _ready_head[i]) != NULL) {
+	for (q = 0; q < NR_SCHED_QUEUES; q++) {
+		if ((tp = _ready_head[q]) != NULL) {
 			_next_task = tp;
 			break;
 		}
@@ -134,7 +134,8 @@ void sched_dequeue(struct task *tp)
 /**
  * This function determines the scheduling policy. It is called whenever a task
  * must be added to one of the scheduling queues to decide where to insert it.
- * As a side-effect the process' priority may be updated.
+ * As a side-effect the process' priority may be updated. This function will
+ * update the _prev_task pointer.
  */
 static void sched(struct task *tp, int *queue, boolean_t *front)
 {
@@ -153,7 +154,9 @@ static void sched(struct task *tp, int *queue, boolean_t *front)
 		_prev_task = tp;			// Store ptr for next
 	}
 
-	/* Determine the new priority of this task. */
+	/* Determine the new priority of this task. The bounds are determined
+	 * by IDLE's queue and the maximum priority of this task.
+	 */
 	if (penalty != 0) {
 		tp->priority += penalty;		// Update with penalty
 		if (tp->priority < tp->max_priority)	// Check upper bound
