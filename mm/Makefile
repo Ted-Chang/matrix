@@ -6,7 +6,9 @@ OBJ := ../bin/obji386
 
 TARGETOBJ := $(OBJ)/vector.o \
 	$(OBJ)/mmgr.o \
-	$(OBJ)/kheap.o
+	$(OBJ)/kheap.o \
+	$(OBJ)/fixed_heap.o \
+
 
 .PHONY: clean help
 

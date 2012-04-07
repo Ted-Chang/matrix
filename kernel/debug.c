@@ -25,7 +25,7 @@ void panic_assert(const char *file, uint32_t line, const char *desc)
 
 void check_runqueues(char *when)
 {
-	int q, l;
+	int q;
 	struct task *tp;
 
 	for (q = 0; q < NR_SCHED_QUEUES; q++) {

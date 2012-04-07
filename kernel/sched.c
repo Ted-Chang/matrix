@@ -1,6 +1,7 @@
 #include <types.h>
 #include <stddef.h>
 #include <string.h>
+#include "hal.h"
 #include "proc/task.h"
 #include "proc/sched.h"
 #include "matrix/debug.h"

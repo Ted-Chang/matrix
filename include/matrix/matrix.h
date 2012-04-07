@@ -14,4 +14,6 @@
 
 #define CLEAR_FLAG(_x, _f)	((_x) &= ~(_f))
 
+#define ROUND_UP(_x, _n)	(((_x) + (_n) - 1u) & ~((_n) - 1u))
+
 #endif	/* __MATRIX_H__ */

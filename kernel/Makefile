@@ -11,10 +11,11 @@ TARGETOBJ := $(OBJ)/debug.o \
 	$(OBJ)/timer.o \
 	$(OBJ)/initrd.o \
 	$(OBJ)/syscall.o \
-	$(OBJ)/fs.o \
 	$(OBJ)/clock.o \
 	$(OBJ)/sched.o \
 	$(OBJ)/system.o \
+	$(OBJ)/kd.o \
+	$(OBJ)/cpu.o \
 
 
 .PHONY: clean help
@@ -22,7 +23,7 @@ TARGETOBJ := $(OBJ)/debug.o \
 all: $(TARGETOBJ)
 
 $(OBJ)/%.o: %.c
-	$(CC) -D_DEBUG_SCHED -m32 -I../include $(CFLAGS_global) -c -o $@ $<
+	$(CC) -D_DEBUG_SCHED -D_X86_ -m32 -I../include $(CFLAGS_global) -c -o $@ $<
 
 $(OBJ)/process.o:
 	nasm $(ASFLAGS) -o $(OBJ)/process.o process.s

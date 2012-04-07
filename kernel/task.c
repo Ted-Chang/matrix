@@ -114,7 +114,7 @@ static void task_ctor(void *obj, struct pd *dir)
 	t->arch.esp = 0;
 	t->arch.ebp = 0;
 	t->arch.eip = 0;
-	t->arch.kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
+	t->arch.kernel_stack = kmalloc_a(KSTK_SIZE);
 }
 
 /**
@@ -190,7 +190,7 @@ void switch_context()
 	_current_dir = _curr_task->page_dir;
 
 	/* Switch the kernel stack in TSS to the task's kernel stack */
-	set_kernel_stack(_curr_task->arch.kernel_stack + KERNEL_STACK_SIZE);
+	set_kernel_stack(_curr_task->arch.kernel_stack + KSTK_SIZE);
 
 	/* Here we:
 	 * [1] Disable interrupts so we don't get bothered.
@@ -279,7 +279,7 @@ void switch_to_user_mode()
 	/* Setup our kernel stack, note that the stack was grow from high address
 	 * to low address
 	 */
-	set_kernel_stack(_curr_task->arch.kernel_stack + KERNEL_STACK_SIZE);
+	set_kernel_stack(_curr_task->arch.kernel_stack + KSTK_SIZE);
 	
 	/* Setup a stack structure for switching to user mode.
 	 * The code firstly disables interrupts, as we're working on a critical

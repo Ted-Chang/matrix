@@ -6,10 +6,10 @@
 #include "hal.h"
 #include "string.h"	// memset
 
-struct idt _idt_entries[X86_MAX_INTERRUPTS];
+struct idt _idt_entries[NR_IDT_ENTRIES];
 struct idt_ptr _idt_ptr;
 struct tss _tss_entry;
-struct gdt _gdt_entries[MAX_GDT_DESCRIPTORS];
+struct gdt _gdt_entries[NR_GDT_ENTRIES];
 struct gdt_ptr _gdt_ptr;
 
 static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags);
@@ -68,7 +68,7 @@ void interrupt_done(uint32_t int_no)
 
 static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags)
 {
-	if (num >= X86_MAX_INTERRUPTS)
+	if (num >= NR_IDT_ENTRIES)
 		return;
 	if (!base)
 		return;

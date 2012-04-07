@@ -25,7 +25,7 @@
 #define ICW4_SFNM	0x10		// Special fully nested (not)
 
 
-#define MAX_GDT_DESCRIPTORS	5
+#define NR_GDT_ENTRIES	5
 
 /*
  * The definition of GDT entry.
@@ -44,7 +44,7 @@ struct gdt_ptr {
 	uint32_t base;
 } __attribute__((packed));
 
-#define X86_MAX_INTERRUPTS	256
+#define NR_IDT_ENTRIES	256
 
 /*
  * The definition of IDT entry

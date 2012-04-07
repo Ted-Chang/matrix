@@ -20,7 +20,7 @@ void spinlock_acquire(struct spinlock *lock)
 {
 	boolean_t state;
 
-	state = local_irq_disable();
+	state = disable_interrupt();
 
 	spinlock_lock_internal(lock);
 	lock->state = state;
@@ -45,7 +45,7 @@ void spinlock_release(struct spinlock *lock)
 
 	leave_cs_barrier();
 	lock->value = 1;
-	local_irq_restore(state);
+	enable_interrupt();
 }
 
 /**

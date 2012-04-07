@@ -10,7 +10,7 @@
 #include "multiboot.h"
 #include "util.h"
 #include "hal.h"
-#include "isr.h"
+#include "cpu.h"
 #include "mm/kheap.h"
 #include "mm/mmgr.h"
 #include "timer.h"
@@ -24,7 +24,6 @@
 #include "system.h"
 
 extern uint32_t _placement_addr;
-extern struct irq_hook *_interrupt_handlers[];
 
 uint32_t _initial_esp;
 
@@ -50,17 +49,10 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 
 	_initial_esp = initial_stack;
 
-	/* Install the gdt and idt */
-	init_gdt();
-	init_idt();
-	memset(&_interrupt_handlers[0], 0, sizeof(struct irq_hook *)*256);
-
-	kprintf("Gdt and idt installed.\n");
-
-	init_exception_handlers();
-
-	kprintf("Exception handlers installed.\n");
-
+	/* Preinitialize the CPUs in the system */
+	preinit_cpu();
+	preinit_per_cpu(&_boot_cpu);
+	
 	/* Enable interrupt so our timer can work */
 	enable_interrupt();
 

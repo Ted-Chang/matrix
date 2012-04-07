@@ -9,6 +9,8 @@ TARGETOBJ := $(OBJ)/hal.o \
 	$(OBJ)/interrupt.o \
 	$(OBJ)/isr.o \
 	$(OBJ)/spinlock.o \
+	$(OBJ)/lapic.o \
+
 
 .PHONY: clean help
 
