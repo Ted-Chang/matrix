@@ -33,20 +33,54 @@
 #define X86_CR4_VMXE		(1<<13)	// VMX-Enable Bit
 #define X86_CR4_SMXE		(1<<14)	// SMX-Enable Bit
 
+/* Flags in the debug status register (DR6) */
+#define X86_DR6_B0		(1<<0)	// Breakpoint 0 condition detected
+#define X86_DR6_B1		(1<<1)	// Breakpoint 1 condition detected
+#define X86_DR6_B2		(1<<2)	// Breakpoint 2 condition detected
+#define X86_DR6_B3		(1<<3)	// Breakpoint 3 condition detected
+#define X86_DR6_BD		(1<<13)	// Debug register access
+#define X86_DR6_BS		(1<<14)	// Single-stepped
+#define X86_DR6_BT		(1<<15)	// Task Switch
+
+/* Flags in the debug control register (DR7) */
+#define X86_DR7_G0		(1<<1)	// Global breakpoint 0 enable
+#define X86_DR7_G1		(1<<3)	// Global breakpoint 1 enable
+#define X86_DR7_G2		(1<<5)	// Global breakpoint 2 enable
+#define X86_DR7_G3		(1<<7)	// Global breakpoint 3 enable
+
+/* Definitions for bits in the EFLAGS/RFLAGS register */
+#define X86_FLAGS_CF		(1<<0)	// Carry Flag
+#define X86_FLAGS_ALWAYS1	(1<<1)	// Flag that must always be 1
+#define X86_FLAGS_PF		(1<<2)	// Parity Flag
+#define X86_FLAGS_AF		(1<<4)	// Auxilary Carry Flag
+#define X86_FLAGS_ZF		(1<<6)	// Zero Flag
+#define X86_FLAGS_SF		(1<<7)	// Sign Flag
+#define X86_FLAGS_TF		(1<<8)	// Trap Flag
+#define X86_FLAGS_IF		(1<<9)	// Interrupt enable Flag
+#define X86_FLAGS_DF		(1<<10)	// Direction Flag
+#define X86_FLAGS_OF		(1<<11)	// Overflow Flag
+#define X86_FLAGS_NT		(1<<14)	// Nested Task Flag
+#define X86_FLAGS_RF		(1<<16)	// Resume Flag
+#define X86_FLAGS_VM		(1<<17)	// Virtual-8086 Mode
+#define X86_FLAGS_AC		(1<<18)	// Alignment Check
+#define X86_FLAGS_VIF		(1<<19)	// Virtual Interrupt Flag
+#define X86_FLAGS_VIP		(1<<20)	// Virtual Interrupt Pending Flag
+#define X86_FLAGS_ID		(1<<21)	// ID Flag
+
 /* Model Specific Register */
-#define X86_MSR_TSC		0x10
-#define X86_MSR_APIC_BASE	0x1B
-#define X86_MSR_MTRR_BASE0	0x200
-#define X86_MSR_MTRR_MASK0	0x201
-#define X86_MSR_CR_PAT		0x277
-#define X86_MSR_MTRR_DEF_TYPE	0x2FF
-#define X86_MSR_EFER		0xC0000080
-#define X86_MSR_STAR		0xC0000081
-#define X86_MSR_LSTAR		0xC0000082
-#define X86_MSR_FMASK		0xC0000084
-#define X86_MSR_FS_BASE		0xC0000100
-#define X86_MSR_GS_BASE		0xC0000101
-#define X86_MSR_K_GS_BASE	0xC0000102
+#define X86_MSR_TSC		0x10	// Time Stamp Counter (TSC)
+#define X86_MSR_APIC_BASE	0x1B	// LAPIC base address
+#define X86_MSR_MTRR_BASE0	0x200	// Base of the variable length MTRR base registers
+#define X86_MSR_MTRR_MASK0	0x201	// Base of the variable length MTRR mask registers
+#define X86_MSR_CR_PAT		0x277	// PAT
+#define X86_MSR_MTRR_DEF_TYPE	0x2FF	// Default MTRR type
+#define X86_MSR_EFER		0xC0000080 // Extended Feature Enable register
+#define X86_MSR_STAR		0xC0000081 // System Call Target Address
+#define X86_MSR_LSTAR		0xC0000082 // 64-bit System Call Target Address
+#define X86_MSR_FMASK		0xC0000084 // System Call Flag Mask
+#define X86_MSR_FS_BASE		0xC0000100 // FS segment base register
+#define X86_MSR_GS_BASE		0xC0000101 // GS segment base register
+#define X86_MSR_K_GS_BASE	0xC0000102 // GS base to switch to with SWAPGS
 
 /* EFER MSR flags */
 #define X86_EFER_SCE		(1<<0)	// System Call Enable
@@ -186,17 +220,11 @@ struct cpu;
 /* Architecture specific CPU structure */
 struct arch_cpu {
 	struct cpu *parent;
-	/* Timer conversion factors */
-	uint64_t cycles_per_us;		// CPU cycles per us
 
 	/* Per CPU structures */
 	struct gdt gdt[NR_GDT_ENTRIES];	// Array of GDT descriptors
-	struct tss tss;
+	struct tss tss;			// Task State Segment
 	void *double_fault_stack;	// Pointer to the stack for double faults
-
-	/* CPU information */
-	uint64_t cpu_freq;		// CPU frequency in Hz
-	uint64_t lapic_freq;		// LAPIC timer frequency in Hz
 
 	uint8_t max_phys_bits;		// Maximum physical address bits
 	uint8_t max_virt_bits;		// Maximum virtual address bits
@@ -204,7 +232,6 @@ struct arch_cpu {
 
 /* CPU ID */
 typedef uint32_t cpu_id_t;
-
 struct cpu {
 	struct list header;	// Link to running CPUs list
 	
@@ -220,6 +247,19 @@ struct cpu {
 typedef struct cpu cpu_t;
 
 extern struct cpu _boot_cpu;
+
+/* Read CR0 register */
+static INLINE uint32_t x86_read_cr0()
+{
+	uint32_t r;
+	asm volatile("mov %%cr0, %0" : "=r"(r));
+	return r;
+}
+
+static INLINE void x86_write_cr0(uint32_t val)
+{
+	asm volatile("mov %0, %%cr4" :: "r"(val));
+}
 
 /* Read CR4 register */
 static INLINE uint32_t x86_read_cr4()
@@ -256,8 +296,20 @@ static INLINE void x86_cpuid(uint32_t level, uint32_t *a, uint32_t *b, uint32_t 
 	asm volatile("cpuid" : "=a"(*a), "=b"(*b), "=c"(*c), "=d"(*d) : "0"(level));
 }
 
+static INLINE void cpu_halt()
+{
+	while (TRUE)
+		asm volatile("cli;hlt");
+}
+
+static INLINE void cpu_idle()
+{
+	asm volatile("sti;hlt;cli");
+}
+
 void preinit_cpu();
 void preinit_per_cpu(struct cpu *c);
+void init_per_cpu();
 void init_cpu();
 
 #endif	/* __CPU_H__ */

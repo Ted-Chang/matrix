@@ -5,20 +5,21 @@
 #include <types.h>
 #include "hal.h"
 #include "string.h"	// memset
+#include "cpu.h"	// For CPU stuff
 
+/* Interrupt Descriptor Table entries and its pointer, they
+ * are global resource for all CPUs in the system
+ */
 struct idt _idt_entries[NR_IDT_ENTRIES];
 struct idt_ptr _idt_ptr;
-struct tss _tss_entry;
-struct gdt _gdt_entries[NR_GDT_ENTRIES];
-struct gdt_ptr _gdt_ptr;
 
+/* Set the specified IDT gate */
 static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags);
-static void write_tss(int32_t num, uint16_t ss0, uint32_t esp0);
-static void gdt_set_gate(uint32_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t granu);
 
-void idt_flush(uint32_t);
-void tss_flush();
-void gdt_flush(uint32_t);
+/* Functions defined in the asm code */
+extern void idt_flush(uint32_t);
+extern void tss_flush();
+extern void gdt_flush(uint32_t);
 
 void outportb(uint16_t port, uint8_t value)
 {
@@ -85,6 +86,18 @@ static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags
 	_idt_entries[num].flags = flags | 0x60;
 }
 
+static void gdt_set_gate(struct gdt *g, uint32_t base, uint32_t limit,
+			 uint8_t access, uint8_t granu)
+{
+	g->base_low = (base & 0xFFFF);
+	g->base_middle = (base >> 16) & 0xFF;
+	g->base_high = (base >> 24) & 0xFF;
+	g->limit_low = (limit & 0xFFFF);
+	g->granularity = (limit >> 16) & 0x0F;
+	g->granularity |= granu & 0xF0;
+	g->access = access;
+}
+
 static void pic_remap(int offset1, int offset2)
 {
 	/* Starts the initialization sequence (in cascade mode) */
@@ -104,6 +117,18 @@ static void pic_remap(int offset1, int offset2)
 	
 	outportb(0x21, 0x0);
 	outportb(0xA1, 0x0);
+}
+
+static void write_tss(struct gdt *g, struct tss *t)
+{
+	uint32_t base, limit;
+
+	/* Firstly, let's compute the base and limit of our entry into the GDT */
+	base = (uint32_t)t;
+	limit = base + sizeof(struct tss);
+
+	/* Now, add our TSS descriptor's address to the GDT */
+	gdt_set_gate(g, base, limit, 0xE9, 0x00);
 }
 
 void init_idt()
@@ -173,79 +198,74 @@ void init_idt()
 	idt_flush((uint32_t)&_idt_ptr);
 }
 
-static void write_tss(int32_t num, uint16_t ss0, uint32_t esp0)
+/**
+ * Per CPU GDT initialize
+ */
+void init_gdt(struct cpu *c)
 {
-	uint32_t base, limit;
+	struct gdt_ptr ptr;
+	struct gdt *d = c->arch.gdt;
 
-	/* Firstly, let's compute the base and limit of our entry into the GDT */
-	base = (uint32_t)&_tss_entry;
-	limit = base + sizeof(struct tss);
-
-	/* Now, add our TSS descriptor's address to the GDT */
-	gdt_set_gate(num, base, limit, 0xE9, 0x00);
-
-	/* Ensure the descriptor is initially zero */
-	memset(&_tss_entry, 0, sizeof(struct tss));
-
-	_tss_entry.ss0 = ss0;	// Set the kernel stack segment
-	_tss_entry.esp0 = esp0;	// Set the kernel stack pointer
-
-	/* Here we set the cs, ss, ds, es, fs and gs entries in the TSS. These specify
-	 * what segments should be laoded when the processor switches to kernel mode.
-	 * Therefore they are just our normal kernel code/data segments - 0x08 and 0x10
-	 * respectively, but with the last two bits set, making 0x0b and 0x13. The setting
-	 * of these bits sets the RPL (requested privilege level) to 3, meaning that TSS
-	 * can be used to switch to kernel mode from ring 3.
-	 */
-	_tss_entry.cs = 0x0b;
-	_tss_entry.ss = _tss_entry.ds =
-		_tss_entry.es =
-		_tss_entry.fs =
-		_tss_entry.gs =
-		0x13;
-}
-
-static void gdt_set_gate(uint32_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t granu)
-{
-	_gdt_entries[num].base_low = (base & 0xFFFF);
-	_gdt_entries[num].base_middle = (base >> 16) & 0xFF;
-	_gdt_entries[num].base_high = (base >> 24) & 0xFF;
-
-	_gdt_entries[num].limit_low = (limit & 0xFFFF);
-	_gdt_entries[num].granularity = (limit >> 16) & 0x0F;
-
-	_gdt_entries[num].granularity |= granu & 0xF0;
-	_gdt_entries[num].access = access;
-}
-
-static void __init_gdt()
-{
 	/* 5 GDT entry and a TSS entry */
-	_gdt_ptr.limit = (sizeof(struct gdt) * 6) - 1;
-	_gdt_ptr.base = (uint32_t)&_gdt_entries;
+	ptr.limit = (sizeof(c->arch.gdt)) - 1;
+	ptr.base = (uint32_t)&c->arch.gdt;
 
 	/* The NULL segment */
-	gdt_set_gate(0, 0, 0, 0, 0);
+	gdt_set_gate(&d[0], 0, 0, 0, 0);
 	
-	gdt_set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF);	// Kernel code segment
-	gdt_set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF);	// Kernel data segment
-	gdt_set_gate(3, 0, 0xFFFFFFFF, 0xFA, 0xCF);	// Usermode code segment
-	gdt_set_gate(4, 0, 0xFFFFFFFF, 0xF2, 0xCF);	// Usermode data segment
+	gdt_set_gate(&d[1], 0, 0xFFFFFFFF, 0x9A, 0xCF);	// Kernel code segment
+	gdt_set_gate(&d[2], 0, 0xFFFFFFFF, 0x92, 0xCF);	// Kernel data segment
+	gdt_set_gate(&d[3], 0, 0xFFFFFFFF, 0xFA, 0xCF);	// User code segment
+	gdt_set_gate(&d[4], 0, 0xFFFFFFFF, 0xF2, 0xCF);	// User data segment
 
-	write_tss(5, 0x10, 0);
+	write_tss(&d[5], &c->arch.tss);
 
-	gdt_flush((uint32_t)&_gdt_ptr);
+	gdt_flush((uint32_t)&ptr);
 
-	/* flush the TSS */
+	/* Although once the thread system is up the GS base is pointed at
+	 * the architecture thread data, we need _curr_cpu to work before that.
+	 * Our CPU data has a pointer at the start which we can use, so point
+	 * the GS base at that to begin with.
+	 */
+	c->arch.parent = c;
+
+	x86_write_msr(X86_MSR_GS_BASE, (uint64_t)&c->arch);
+	x86_write_msr(X86_MSR_K_GS_BASE, 0);
+}
+
+/**
+ * Per CPU TSS initialize
+ */
+void init_tss(struct cpu *c)
+{
+	/* Setup the content of TSS for the specified CPU. Point the first IST
+	 * entry at the double fault stack.
+	 */
+	memset(&c->arch.tss, 0, sizeof(struct tss));
+
+	/* 0x10 is the offset of kernel data segment in GDT */
+	c->arch.tss.ss0 = 0x10;
+	
+	/* 0 is the value the stack-pointer shall get at a system call */
+	c->arch.tss.esp0 = 0;
+	
+	c->arch.tss.cs = 0x0B;
+	c->arch.tss.ss = c->arch.tss.ds =
+		c->arch.tss.es =
+		c->arch.tss.fs =
+		c->arch.tss.gs =
+		0x13;
+	
+	/* 104 is the size of TSS */
+	c->arch.tss.iomap_base = 104;
+	
 	tss_flush();
 }
 
-void init_gdt()
-{
-	__init_gdt();
-}
-
+/**
+ * Set the kernel stack of the specified CPU
+ */
 void set_kernel_stack(uint32_t stack)
 {
-	_tss_entry.esp0 = stack;
+	//c->arch.tss.esp0 = stack;
 }

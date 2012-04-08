@@ -10,6 +10,16 @@ typedef volatile int32_t atomic_t;
 /* Atomic variable type (64 bit) */
 typedef volatile int64_t atomic64_t;
 
+static INLINE int32_t atomic_get(const atomic_t *var)
+{
+	return *var;
+}
+
+static INLINE void atomic_set(atomic_t *var, int32_t val)
+{
+	*var = val;
+}
+
 static INLINE int32_t atomic_add(atomic_t *var, int32_t val)
 {
 	asm volatile("lock xaddl %0, %1" : "+r"(val), "+m"(*var) :: "memory");
@@ -31,6 +41,9 @@ static INLINE int32_t atomic_dec(atomic_t *var)
 	return atomic_sub(var, 1);
 }
 
+/**
+ * Atomic test and set
+ */
 static INLINE int atomic_tas(atomic_t *var, int32_t test, int32_t val)
 {
 	int res;

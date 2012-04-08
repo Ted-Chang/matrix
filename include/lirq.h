@@ -4,7 +4,7 @@
 #include <types.h>
 #include "matrix/matrix.h"
 
-static INLINE boolean_t local_irq_enable()
+static INLINE boolean_t irq_enable()
 {
 	u_long flags;
 
@@ -12,7 +12,7 @@ static INLINE boolean_t local_irq_enable()
 	return (flags & (1 << 9)) ? TRUE : FALSE;
 }
 
-static INLINE boolean_t local_irq_disable()
+static INLINE boolean_t irq_disable()
 {
 	u_long flags;
 
@@ -20,7 +20,7 @@ static INLINE boolean_t local_irq_disable()
 	return (flags & (1 << 9)) ? TRUE : FALSE;
 }
 
-static INLINE void local_irq_restore(boolean_t state)
+static INLINE void irq_restore(boolean_t state)
 {
 	if (state) {
 		asm volatile("sti");
@@ -29,7 +29,7 @@ static INLINE void local_irq_restore(boolean_t state)
 	}
 }
 
-static INLINE boolean_t local_irq_state()
+static INLINE boolean_t irq_state()
 {
 	u_long flags;
 

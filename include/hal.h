@@ -1,7 +1,7 @@
 #ifndef __HAL_H__
 #define __HAL_H__
 
-#include <isr.h>
+#include "isr.h"
 
 #define PIC1		0x20		// IO base address for master PIC
 #define PIC2		0xA0		// IO base address for slave PIC
@@ -25,18 +25,19 @@
 #define ICW4_SFNM	0x10		// Special fully nested (not)
 
 
-#define NR_GDT_ENTRIES	5
+/* Number of GDT entries (include an entry for TSS) for a single CPU */
+#define NR_GDT_ENTRIES	6
 
 /*
  * The definition of GDT entry.
  */
 struct gdt {
-	uint16_t limit_low;
-	uint16_t base_low;
+	uint16_t limit_low;		// Low part of limit
+	uint16_t base_low;		// Low part of base
 	uint8_t base_middle;
 	uint8_t access;
 	uint8_t granularity;
-	uint8_t base_high;
+	uint8_t base_high;		// High part of base
 } __attribute__((packed));
 
 struct gdt_ptr {
@@ -66,7 +67,8 @@ struct idt_ptr {
  * The definition of TSS entry
  */
 struct tss {
-	uint32_t prev_tss;	// The previous TSS
+	uint32_t prev_tss;	// The previous TSS, if you use hardware task switching
+				// this would form a linked list
 	uint32_t esp0;		// The stack pointer to load when we change to kernel
 	uint32_t ss0;		// The stack segment to load when we change to kernel
 	uint32_t esp1;		// Reserved...
@@ -114,10 +116,6 @@ void outportb(uint16_t port, uint8_t value);
 uint8_t inportb(uint16_t port);
 
 uint16_t inportw(uint16_t port);
-
-void enable_interrupt();
-
-void disable_interrupt();
 
 void interrupt_done(uint32_t int_no);
 

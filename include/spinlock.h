@@ -2,6 +2,7 @@
 #define __SPINLOCK_H__
 
 #include "atomic.h"
+#include "matrix/matrix.h"
 
 struct spinlock {
 	atomic_t value;

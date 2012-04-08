@@ -40,83 +40,85 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	uint32_t initrd_location;
 	uint32_t initrd_end;
 	uint64_t mem_end_page;
-	task_func_t tp;
+	//task_func_t tp;
 
 	ASSERT(mboot_ptr->mods_count > 0);
 
 	/* Clear the screen */
 	clear_scr();
 
-	_initial_esp = initial_stack;
-
 	/* Preinitialize the CPUs in the system */
 	preinit_cpu();
 	preinit_per_cpu(&_boot_cpu);
+
+	kprintf("CPU preinit success!\n");
+	
+	//_initial_esp = initial_stack;
 	
 	/* Enable interrupt so our timer can work */
-	enable_interrupt();
+	/* enable_interrupt(); */
 
-	/* Initialize our timer */
-	init_clock();
+	/* /\* Initialize our timer *\/ */
+	/* init_clock(); */
 
-	kprintf("System PIT initialized.\n");
+	/* kprintf("System PIT initialized.\n"); */
 
-	/* Find the location of our initial ramdisk */
-	initrd_location = *((uint32_t *)mboot_ptr->mods_addr);
-	initrd_end = *(uint32_t *)(mboot_ptr->mods_addr + 4);
+	/* /\* Find the location of our initial ramdisk *\/ */
+	/* initrd_location = *((uint32_t *)mboot_ptr->mods_addr); */
+	/* initrd_end = *(uint32_t *)(mboot_ptr->mods_addr + 4); */
 
-	/* Don't trample our module with placement address */
-	_placement_addr = initrd_end;
+	/* /\* Don't trample our module with placement address *\/ */
+	/* _placement_addr = initrd_end; */
 
-	/* Upper memory start from 1MB and in kilo bytes */
-	mem_end_page = (mboot_ptr->mem_upper + mboot_ptr->mem_lower) * 1024;
+	/* /\* Upper memory start from 1MB and in kilo bytes *\/ */
+	/* mem_end_page = (mboot_ptr->mem_upper + mboot_ptr->mem_lower) * 1024; */
 	
-	/* Enable paging now */
-	init_paging(mem_end_page);
+	/* /\* Enable paging now *\/ */
+	/* init_paging(mem_end_page); */
 
-	kprintf("Memory paging enabled, physical memory: %d bytes.\n", mem_end_page);
+	/* kprintf("Memory paging enabled, physical memory: %d bytes.\n", mem_end_page); */
 
-	/* Start multitasking now */
-	init_multitask();
+	/* /\* Start multitasking now *\/ */
+	/* init_multitask(); */
 
-	kprintf("Multitask initialized.\n");
+	/* kprintf("Multitask initialized.\n"); */
 
-	/* Initialize the initial ramdisk and set it as the root filesystem */
-	root_node = init_initrd(initrd_location);
+	/* /\* Initialize the initial ramdisk and set it as the root filesystem *\/ */
+	/* root_node = init_initrd(initrd_location); */
 
-	kprintf("Initial ramdisk mounted, location(0x%x), end(0x%x).\n",
-		initrd_location, initrd_end);
+	/* kprintf("Initial ramdisk mounted, location(0x%x), end(0x%x).\n", */
+	/* 	initrd_location, initrd_end); */
 
-	init_syscalls();
+	/* init_syscalls(); */
 
-	kprintf("System call initialized.\n");
+	/* kprintf("System call initialized.\n"); */
 
-	init_keyboard();
+	/* init_keyboard(); */
 
-	kprintf("Keyboard driver initialized.\n");
+	/* kprintf("Keyboard driver initialized.\n"); */
 
-	init_floppy();
+	/* init_floppy(); */
 
-	kprintf("Floppy driver initialized.\n");
+	/* kprintf("Floppy driver initialized.\n"); */
 
-	/* Print the banner */
-	announce();
+	/* /\* Print the banner *\/ */
+	/* announce(); */
 
-	parent_pid = getpid();
+	/* parent_pid = getpid(); */
 
-	/* Run all boot tasks */
-	for (i = 0; i < NR_BOOT_TASKS; i++) {
-		tp = images[i];
-		rc = fork();
-		/* Fork a new task and execute the specified boot task if it
-		 * was the child task
-		 */
-		if (getpid() != parent_pid) {
-			tp();
-		}
-	}
+	/* /\* Run all boot tasks *\/ */
+	/* for (i = 0; i < NR_BOOT_TASKS; i++) { */
+	/* 	tp = images[i]; */
+	/* 	rc = fork(); */
+	/* 	/\* Fork a new task and execute the specified boot task if it */
+	/* 	 * was the child task */
+	/* 	 *\/ */
+	/* 	if (getpid() != parent_pid) { */
+	/* 		tp(); */
+	/* 	} */
+	/* } */
 
-	init_task();
+	/* init_task(); */
 
 	return rc;
 }
