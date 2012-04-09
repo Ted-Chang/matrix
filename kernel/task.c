@@ -8,6 +8,7 @@
 #include "matrix/global.h"
 #include "matrix/const.h"
 #include "hal.h"
+#include "lirq.h"
 #include "mm/mmgr.h"
 #include "mm/kheap.h"
 #include "proc/task.h"
@@ -225,7 +226,7 @@ int fork()
 	uint32_t esp;
 	uint32_t ebp;
 	
-	disable_interrupt();
+	irq_disable();
 
 	/* Take a pointer to this process' task struct for later reference */
 	parent = (struct task *)_curr_task;
@@ -260,7 +261,7 @@ int fork()
 			       new_task->id, new_task->arch.esp, new_task->arch.ebp,
 			       new_task->arch.eip, new_task->page_dir));
 		
-		enable_interrupt();
+		irq_enable();
 	} else {
 		/* We are the child */
 		DEBUG(DL_DBG, ("fork: now in child process.\n"));

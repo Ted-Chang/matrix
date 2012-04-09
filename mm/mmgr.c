@@ -3,9 +3,12 @@
  */
 
 #include <types.h>
-#include "string.h"	// memset
+#include <stddef.h>
+#include <string.h>	// memset
+#include "list.h"
 #include "hal.h"
 #include "isr.h"	// register interrupt handler
+#include "mm/page.h"	// PAGE_SIZE
 #include "mm/mmgr.h"
 #include "mm/kheap.h"
 #include "matrix/debug.h"
@@ -150,7 +153,7 @@ void free_frame(struct pte *pte)
 	}
 }
 
-void init_paging(uint64_t mem_size)
+void init_kheap(uint64_t mem_size)
 {
 	/* The size of physical memory. We assume it is 32 MB */
 	int i;

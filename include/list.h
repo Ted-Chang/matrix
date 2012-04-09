@@ -12,13 +12,13 @@ struct list {
 typedef struct list list_t;
 
 
-#define list_entry(entry, type, member) \
+#define LIST_ENTRY(entry, type, member) \
 	(type *)((char *)entry - offsetof(type, member))
 
-#define list_empty(list) \
+#define LIST_EMPTY(list) \
 	(((list)->prev == (list)) && ((list)->next == (list)))
 
-#define list_init(list) \
+#define LIST_INIT(list) \
 	(((list)->prev) = ((list)->next) = list)
 
 static INLINE void __list_add(struct list *new, struct list *prev,

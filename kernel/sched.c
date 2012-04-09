@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "hal.h"
+#include "lirq.h"
 #include "proc/task.h"
 #include "proc/sched.h"
 #include "matrix/debug.h"
@@ -57,7 +58,7 @@ void sched_enqueue(struct task *tp)
 	int q;
 	boolean_t front;
 
-	disable_interrupt();
+	irq_disable();
 
 #ifdef _DEBUG_SCHED
 	check_runqueues("sched_enqueue:begin");
@@ -86,7 +87,7 @@ void sched_enqueue(struct task *tp)
 	check_runqueues("sched_enqueue:end");
 #endif
 
-	enable_interrupt();
+	irq_enable();
 }
 
 /**
@@ -100,7 +101,7 @@ void sched_dequeue(struct task *tp)
 	struct task **xpp;
 	struct task *prev_ptr;
 
-	disable_interrupt();
+	irq_disable();
 	
 	q = tp->priority;
 
@@ -129,7 +130,7 @@ void sched_dequeue(struct task *tp)
 	check_runqueues("sched_dequeue:end");
 #endif
 
-	disable_interrupt();
+	irq_disable();
 }
 
 /**

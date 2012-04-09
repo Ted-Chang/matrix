@@ -13,6 +13,8 @@
 #include "cpu.h"
 #include "mm/kheap.h"
 #include "mm/mmgr.h"
+#include "mm/page.h"
+#include "mm/mmu.h"
 #include "timer.h"
 #include "fs.h"
 #include "initrd.h"
@@ -44,6 +46,15 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 
 	ASSERT(mboot_ptr->mods_count > 0);
 
+	_initial_esp = initial_stack;
+	/* Find the location of our initial ramdisk */
+	initrd_location = *((uint32_t *)mboot_ptr->mods_addr);
+	initrd_end = *(uint32_t *)(mboot_ptr->mods_addr + 4);
+	/* Don't trample our module with placement address */
+	_placement_addr = initrd_end;
+	/* Upper memory start from 1MB and in kilo bytes */
+	mem_end_page = (mboot_ptr->mem_upper + mboot_ptr->mem_lower) * 1024;
+
 	/* Clear the screen */
 	clear_scr();
 
@@ -51,9 +62,30 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	preinit_cpu();
 	preinit_per_cpu(&_boot_cpu);
 
-	kprintf("CPU preinit success!\n");
-	
-	//_initial_esp = initial_stack;
+	kprintf("CPU preinitialization complete!\n");
+
+	/* Initialize kernel memory management subsystem */
+	init_page();
+	init_mmu();
+	init_mmu_per_cpu();
+	init_kheap(mem_end_page);
+
+	kprintf("Kernel memory management subsystem initialization complete.\n");
+
+	struct cpu *c = CURR_CPU;
+	kprintf("main: cpu(0x%x)\n", c);
+	//dump_cpu(c);
+
+	/* Perform more per-CPU initialization that can be done after the
+	 * memory management subsystem was up.
+	 */
+	//init_per_cpu();
+
+	/* Get the system clock */
+	//init_clock();
+
+	/* Properly initialize the CPU subsystem, and detect other CPUs */
+	//init_cpu();
 	
 	/* Enable interrupt so our timer can work */
 	/* enable_interrupt(); */
@@ -62,22 +94,7 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	/* init_clock(); */
 
 	/* kprintf("System PIT initialized.\n"); */
-
-	/* /\* Find the location of our initial ramdisk *\/ */
-	/* initrd_location = *((uint32_t *)mboot_ptr->mods_addr); */
-	/* initrd_end = *(uint32_t *)(mboot_ptr->mods_addr + 4); */
-
-	/* /\* Don't trample our module with placement address *\/ */
-	/* _placement_addr = initrd_end; */
-
-	/* /\* Upper memory start from 1MB and in kilo bytes *\/ */
-	/* mem_end_page = (mboot_ptr->mem_upper + mboot_ptr->mem_lower) * 1024; */
 	
-	/* /\* Enable paging now *\/ */
-	/* init_paging(mem_end_page); */
-
-	/* kprintf("Memory paging enabled, physical memory: %d bytes.\n", mem_end_page); */
-
 	/* /\* Start multitasking now *\/ */
 	/* init_multitask(); */
 
@@ -101,8 +118,8 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 
 	/* kprintf("Floppy driver initialized.\n"); */
 
-	/* /\* Print the banner *\/ */
-	/* announce(); */
+	/* Print the banner */
+	announce();
 
 	/* parent_pid = getpid(); */
 

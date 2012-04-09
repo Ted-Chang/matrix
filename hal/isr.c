@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include "isr.h"
 #include "hal.h"
+#include "lirq.h"
 #include "util.h"
 #include "matrix/debug.h"
 
@@ -65,13 +66,13 @@ void register_interrupt_handler(uint8_t irq, struct irq_hook *hook, isr_t handle
 	if (irq < 0 || irq >= 256)
 		PANIC("register_interrupt_handler: invalid irq!\n");
 	
-	disable_interrupt();
+	irq_disable();
 
 	line = &_interrupt_handlers[irq];
 	while (*line) {
 		/* Check if the hook has been registered already */
 		if (hook == (*line)) {
-			enable_interrupt();
+			irq_enable();
 			return;
 		}
 		line = &((*line)->next);
@@ -82,7 +83,7 @@ void register_interrupt_handler(uint8_t irq, struct irq_hook *hook, isr_t handle
 	hook->irq = irq;
 	*line = hook;
 	
-	enable_interrupt();
+	irq_enable();
 }
 
 void unregister_interrupt_handler(struct irq_hook *hook)
@@ -93,7 +94,7 @@ void unregister_interrupt_handler(struct irq_hook *hook)
 	if (irq < 0 || irq >= 256)
 		PANIC("unregister_interrupt_handler: invalid irq!\n");
 	
-	disable_interrupt();
+	irq_disable();
 
 	line = &_interrupt_handlers[irq];
 	while (*line) {
@@ -105,5 +106,5 @@ void unregister_interrupt_handler(struct irq_hook *hook)
 		line = &((*line)->next);
 	}
 	
-	enable_interrupt();
+	irq_enable();
 }

@@ -4,11 +4,13 @@
 #include "list.h"
 #include "cpu.h"
 #include "hal.h"
+#include "mm/page.h"
 #include "mm/mmgr.h"
 #include "exceptn.h"
 #include "proc/task.h"
 #include "matrix/debug.h"
 #include "lapic.h"
+#include "kd.h"			// Kernel Debugger
 
 
 extern struct irq_hook *_interrupt_handlers[];
@@ -25,8 +27,8 @@ struct cpu_features _cpu_features;
 struct cpu _boot_cpu;
 
 /* Information about all CPUs */
-static size_t _nr_cpus;
-static size_t _highest_cpu_id;
+size_t _nr_cpus;
+size_t _highest_cpu_id;
 struct list _running_cpus;
 struct cpu **_cpus = NULL;
 
@@ -36,6 +38,11 @@ static u_char _boot_double_fault_stack[KSTK_SIZE]__attribute__((aligned(PAGE_SIZ
 cpu_id_t cpu_id()
 {
 	return (cpu_id_t)lapic_id();
+}
+
+static kd_status_t kd_cmd_cpus(int argc, char **argv, struct kd_filter *filter)
+{
+	return KD_SUCCESS;
 }
 
 static void init_descriptor(struct cpu *c)
@@ -53,7 +60,7 @@ static void init_descriptor(struct cpu *c)
 static void cpu_ctor(struct cpu *c, cpu_id_t id, int state)
 {
 	memset(c, 0, sizeof(struct cpu));
-	list_init(&c->header);
+	LIST_INIT(&c->header);
 	c->id = id;
 	c->state = state;
 }
@@ -162,6 +169,16 @@ static void arch_preinit_per_cpu(struct cpu *c)
 		PANIC("CPU does not support PGE");
 }
 
+/* Perform additional initialization of the current CPU */
+static void arch_init_per_cpu()
+{
+	/* Register the Kernel Debugger command */
+	kd_register_cmd("cpus", "Display a list of CPUs.", kd_cmd_cpus);
+
+	/* Initialize the local advanced programmable interrupt controller */
+	init_lapic();
+}
+
 void preinit_cpu()
 {
 	/* The boot CPU is initially assigned an ID of 0. It will be corrected
@@ -183,7 +200,7 @@ void preinit_per_cpu(struct cpu *c)
 
 void init_per_cpu()
 {
-	;
+	arch_init_per_cpu();
 }
 
 void init_cpu()

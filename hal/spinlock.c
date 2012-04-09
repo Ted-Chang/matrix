@@ -44,7 +44,7 @@ void spinlock_release(struct spinlock *lock)
 	state = lock->state;
 
 	leave_cs_barrier();
-	atomic_set(lock->value, 1);
+	atomic_set(&lock->value, 1);
 	irq_restore(state);
 }
 

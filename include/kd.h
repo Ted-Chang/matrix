@@ -25,4 +25,7 @@ struct kd_filter {
 
 typedef kd_status_t (*kd_cmd_t)(int argc, char **argv, struct kd_filter *filter);
 
+extern void kd_register_cmd(const char *name, const char *desc, kd_cmd_t func);
+extern void kd_unregister_cmd(const char *name);
+
 #endif	/* __KDB_H__ */

@@ -48,13 +48,7 @@ typedef struct pd {
 	uint32_t physical_addr;
 } pd_t;
 
-
-#ifdef _X86_
-#define PAGE_SIZE	4096
-#endif	/* _X86_ */
-
-
-void init_paging(uint64_t mem_size);
+void init_kheap(uint64_t mem_size);
 
 void switch_page_dir(struct pd *new);
 

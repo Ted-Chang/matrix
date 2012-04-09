@@ -215,6 +215,8 @@ struct cpu_features {
 };
 typedef struct cpu_features cpu_features_t;
 
+extern struct cpu_features _cpu_features;
+
 struct cpu;
 
 /* Architecture specific CPU structure */
@@ -246,7 +248,24 @@ struct cpu {
 };
 typedef struct cpu cpu_t;
 
+#define CURR_CPU	((struct cpu *)cpu_get_pointer())
+
 extern struct cpu _boot_cpu;
+extern size_t _highest_cpu_id;
+extern size_t _nr_cpus;
+extern struct list _running_cpus;
+extern struct cpu **_cpus;
+
+/**
+ * Get the cpu structure pointer from GS register, this was set when we
+ * initialize the GDT of that CPU.
+ */
+static INLINE struct cpu *cpu_get_pointer()
+{
+	uint32_t addr;
+	asm ("mov %%gs:0, %0" : "=r"(addr));
+	return (struct cpu *)addr;
+}
 
 /* Read CR0 register */
 static INLINE uint32_t x86_read_cr0()
@@ -296,6 +315,12 @@ static INLINE void x86_cpuid(uint32_t level, uint32_t *a, uint32_t *b, uint32_t 
 	asm volatile("cpuid" : "=a"(*a), "=b"(*b), "=c"(*c), "=d"(*d) : "0"(level));
 }
 
+/* Invalidate a TLB entry */
+static INLINE void x86_invlpg(uint32_t addr)
+{
+	asm volatile("invlpg (%0)" :: "r"(addr));
+}
+
 static INLINE void cpu_halt()
 {
 	while (TRUE)
@@ -307,9 +332,12 @@ static INLINE void cpu_idle()
 	asm volatile("sti;hlt;cli");
 }
 
-void preinit_cpu();
-void preinit_per_cpu(struct cpu *c);
-void init_per_cpu();
-void init_cpu();
+extern cpu_id_t cpu_id();
+extern void dump_cpu(struct cpu *c);
+
+extern void preinit_cpu();
+extern void preinit_per_cpu(struct cpu *c);
+extern void init_per_cpu();
+extern void init_cpu();
 
 #endif	/* __CPU_H__ */

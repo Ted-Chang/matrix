@@ -2,6 +2,10 @@
 #include <stddef.h>
 #include "matrix/matrix.h"
 #include "matrix/debug.h"
+#include "list.h"
+#include "mm/mm.h"
+#include "mm/page.h"
+#include "mm/phys.h"
 #include "cpu.h"
 #include "lapic.h"
 
@@ -10,8 +14,6 @@ static volatile uint32_t *_lapic_mapping = NULL;
 
 /* Local APIC base address */
 static uint32_t _lapic_base = 0;
-
-extern struct cpu_features _cpu_features;
 
 
 static INLINE uint32_t lapic_read(unsigned reg)
@@ -29,6 +31,11 @@ static INLINE void lapic_eoi()
 	lapic_write(LAPIC_REG_EOI, 0);
 }
 
+boolean_t lapic_enabled()
+{
+	return (_lapic_mapping != NULL);
+}
+
 uint32_t lapic_id()
 {
 	return _lapic_mapping ? (lapic_read(LAPIC_REG_APIC_ID) >> 24) : 0;
@@ -37,7 +44,7 @@ uint32_t lapic_id()
 /**
  * Initialize the local APIC on the current CPU.
  */
-void lapic_init()
+void init_lapic()
 {
 	uint64_t base;
 
@@ -55,4 +62,46 @@ void lapic_init()
 		PANIC("Cannot handle CPU in x2APIC mode");
 
 	base &= 0xFFFFF000;
+
+	if (_lapic_mapping) {
+		/* This is a secondary CPU. Ensure that the base address is not
+		 * different to the boot CPU's.
+		 */
+		if (base != !_lapic_base) 
+			PANIC("This CPU has different LAPIC address to boot CPU");
+	} else {
+		/* This is the boot CPU. Map the LAPIC into virtual memory and
+		 * register interrupt vector handlers.
+		 */
+		_lapic_base = base;
+		_lapic_mapping = physical_map(base, PAGE_SIZE, MM_BOOT);
+
+		DEBUG(DL_DBG, ("lapic: physical location 0x%x, mapped to 0x%x\n",
+			       base, _lapic_mapping));
+
+		/* Install the LAPIC timer device */
+		;
+
+		/* Install interrupt vector handlers */
+		;
+	}
+
+	/* Enable the local APIC (bit 8) and set the spurious interrupt vector
+	 * in the Spurious Interrupt Vector Register.
+	 */
+	lapic_write(LAPIC_REG_SPURIOUS, LAPIC_VECT_SPURIOUS|(1<<8));
+	lapic_write(LAPIC_REG_TIMER_DIVIDER, LAPIC_TIMER_DIV8);
+
+	/* Sanity check */
+	if (CURR_CPU != &_boot_cpu) {
+		if (CURR_CPU->id != lapic_id())
+			PANIC("CPU ID mismatch detected");
+	}
+
+	/* Accept all interrupts */
+	lapic_write(LAPIC_REG_TPR, lapic_read(LAPIC_REG_TPR) & 0xFFFFFF00);
+
+	/* Enable the timer: interrupt vector, no extra bits */
+	lapic_write(LAPIC_REG_TIMER_INITIAL, 0);
+	lapic_write(LAPIC_REG_LVT_TIMER, LAPIC_VECT_TIMER);
 }

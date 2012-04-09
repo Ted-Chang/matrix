@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include "matrix/matrix.h"
 #include "hal.h"
+#include "lirq.h"
 #include "isr.h"
 #include "floppy.h"
 #include "util.h"
@@ -108,7 +109,7 @@ static int dma_xfer(uint32_t physical_addr, uint32_t len, boolean_t read)
 	off = physical_addr & 0xFFFF;
 	len -= 1;	// With DMA, if you want k bytes, you need to ask for k-1 bytes
 
-	disable_interrupt();
+	irq_disable();
 	outportb(DMA_FLIPFLOP, DMA_CHANNEL | 4);	// Set channel mask bit
 	outportb(DMA_FLIPFLOP, 0);			// Clear flip flop
 	outportb(DMA_MODE, (read ? 0x48 : 0x44) + DMA_CHANNEL); // Mode
@@ -118,7 +119,7 @@ static int dma_xfer(uint32_t physical_addr, uint32_t len, boolean_t read)
 	outportb(DMA_LENGTH, len & 0xFF);		// Length: low bytes
 	outportb(DMA_LENGTH, len >> 8);			// Length: high bytes
 	outportb(DMA_FLIPFLOP, DMA_CHANNEL);		// Clear channel mask bit
-	enable_interrupt();
+	irq_enable();
 	
 	return -1;
 }

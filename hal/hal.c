@@ -3,8 +3,9 @@
  */
 
 #include <types.h>
+#include <string.h>	// memset
 #include "hal.h"
-#include "string.h"	// memset
+#include "matrix/debug.h"
 #include "cpu.h"	// For CPU stuff
 
 /* Interrupt Descriptor Table entries and its pointer, they
@@ -38,22 +39,6 @@ uint16_t inportw(uint16_t port)
 	uint16_t ret;
 	asm volatile("inw %1, %0" : "=a" (ret) : "dN" (port));
 	return ret;
-}
-
-/*
- * Enable the hardware interrupts
- */
-void enable_interrupt()
-{
-	asm volatile("sti");
-}
-
-/*
- * Disable the hardware interrupts
- */
-void disable_interrupt()
-{
-	asm volatile("cli");
 }
 
 /*
@@ -225,11 +210,14 @@ void init_gdt(struct cpu *c)
 	/* Although once the thread system is up the GS base is pointed at
 	 * the architecture thread data, we need _curr_cpu to work before that.
 	 * Our CPU data has a pointer at the start which we can use, so point
-	 * the GS base at that to begin with.
+	 * the GS base at that for later use by cpu_get_pointer().
 	 */
 	c->arch.parent = c;
+	
+	DEBUG(DL_DBG, ("init_gdt: save cpu(0x%x) to GS register.\n",
+		       (uint32_t)&c->arch));
 
-	x86_write_msr(X86_MSR_GS_BASE, (uint64_t)&c->arch);
+	x86_write_msr(X86_MSR_GS_BASE, (uint32_t)&c->arch);
 	x86_write_msr(X86_MSR_K_GS_BASE, 0);
 }
 

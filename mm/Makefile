@@ -8,6 +8,9 @@ TARGETOBJ := $(OBJ)/vector.o \
 	$(OBJ)/mmgr.o \
 	$(OBJ)/kheap.o \
 	$(OBJ)/fixed_heap.o \
+	$(OBJ)/mmu.o \
+	$(OBJ)/page.o \
+	$(OBJ)/phys.o \
 
 
 .PHONY: clean help

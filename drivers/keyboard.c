@@ -1,5 +1,6 @@
 #include <types.h>
 #include "hal.h"
+#include "lirq.h"
 #include "util.h"
 #include "isr.h"
 #include "keyboard.h"
@@ -169,11 +170,11 @@ static void kbd_reset()
 
 static void rawq_put(int8_t code)
 {
-	disable_interrupt();
+	irq_disable();
 	/* Put the key into the key queue and update the raw queue with
 	 * new scan code.
 	 */
-	enable_interrupt();
+	irq_enable();
 }
 
 static int8_t rawq_read()
@@ -265,7 +266,7 @@ static void kbd_callback(struct registers *regs)
 
 	/* We don't check the error code here */
 	if (!process(scan_code)) {
-		enable_interrupt();	// Reenable interrupts
+		irq_enable();	// Reenable interrupts
 	}
 	
 	interrupt_done(regs->int_no);

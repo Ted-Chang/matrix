@@ -1,5 +1,7 @@
 #include <types.h>
 #include <stddef.h>
+#include "list.h"
+#include "mm/page.h"
 #include "mm/mmgr.h"
 #include "mm/fixed_heap.h"
 #include "kd.h"
