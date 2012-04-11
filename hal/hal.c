@@ -214,10 +214,7 @@ void init_gdt(struct cpu *c)
 	 */
 	c->arch.parent = c;
 	
-	DEBUG(DL_DBG, ("init_gdt: save cpu(0x%x) to GS register.\n",
-		       (uint32_t)&c->arch));
-
-	x86_write_msr(X86_MSR_GS_BASE, (uint32_t)&c->arch);
+	x86_write_msr(X86_MSR_GS_BASE, (uint64_t)c);
 	x86_write_msr(X86_MSR_K_GS_BASE, 0);
 }
 

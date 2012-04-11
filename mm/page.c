@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include "spinlock.h"
 #include "list.h"
+#include "cpu.h"
 #include "matrix/debug.h"
 #include "mm/page.h"
 

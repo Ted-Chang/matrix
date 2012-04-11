@@ -68,9 +68,14 @@ static void cpu_ctor(struct cpu *c, cpu_id_t id, int state)
 /* Dump information of the specified CPU */
 void dump_cpu(struct cpu *c)
 {
-	DEBUG(DL_DBG, ("cpu %d:\n"
-		       "* phys_bits(%d), virt_bits(%d)\n",
-		       c->id, c->arch.max_phys_bits, c->arch.max_virt_bits));
+	DEBUG(DL_DBG, ("CPU %d detail information:\n", c->id));
+	DEBUG(DL_DBG, ("vendor: %s\n", c->arch.vendor_str));
+	DEBUG(DL_DBG, ("cpu step(%d), phys_bits(%d), virt_bits(%d)\n",
+		       c->arch.cpu_step, c->arch.max_phys_bits,
+		       c->arch.max_virt_bits));
+	if (lapic_enabled()) {
+		DEBUG(DL_DBG, ("lapic frequency(%lld)\n", c->arch.lapic_freq));
+	}
 }
 
 /* Detect CPU features */
@@ -98,6 +103,17 @@ static void detect_cpu_features(struct cpu *c, struct cpu_features *f)
 				  &f->extended_ecx, &f->extended_edx);
 		}
 
+		if (f->highest_extended >= X86_CPUID_BRAND_STRING3) {
+			/* Get vendor information */
+			ptr = (uint32_t *)c->arch.vendor_str;
+			x86_cpuid(X86_CPUID_BRAND_STRING1, &ptr[0], &ptr[1],
+				  &ptr[2], &ptr[3]);
+			x86_cpuid(X86_CPUID_BRAND_STRING2, &ptr[4], &ptr[5],
+				  &ptr[6], &ptr[7]);
+			x86_cpuid(X86_CPUID_BRAND_STRING3, &ptr[8], &ptr[9],
+				  &ptr[10], &ptr[11]);
+		}
+		
 		if (f->highest_extended >= X86_CPUID_ADDRESS_SIZE) {
 			x86_cpuid(X86_CPUID_ADDRESS_SIZE, &eax, &ebx, &ecx, &edx);
 			c->arch.max_phys_bits = eax & 0xFF;
@@ -106,6 +122,10 @@ static void detect_cpu_features(struct cpu *c, struct cpu_features *f)
 	} else {
 		f->highest_extended = 0;
 	}
+
+	/* Specify default vendor name if it was not found */
+	if (!c->arch.vendor_str[0])
+		strcpy(c->arch.vendor_str, "Unknown Vendor");
 
 	if (!c->arch.max_phys_bits)
 		c->arch.max_phys_bits = 32;

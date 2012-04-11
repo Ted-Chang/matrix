@@ -90,7 +90,8 @@ extern isr_handler
 
 ; This is our common ISR stub. It saves the processor state, sets
 ; up for kernel mode segments, calls the C-level fault handler,
-; and finally restores the stack frame.
+; and finally restores the stack frame. Note that GS was used by us
+; to store per CPU private data, so don't touch it here.
 isr_common_stub:
 	pusha                   ; Pushes edi,esi,ebp,esp,ebx,edx,ecx,eax
 
@@ -101,7 +102,6 @@ isr_common_stub:
 	mov ds, ax
 	mov es, ax
 	mov fs, ax
-	mov gs, ax
 
 	call isr_handler
 
@@ -109,7 +109,6 @@ isr_common_stub:
 	mov ds, bx
 	mov es, bx
 	mov fs, bx
-	mov gs, bx
 
 	popa                    ; Pops edi,esi,ebp...
 	add esp, 8     		; Cleans up the pushed error code and pushed ISR number
@@ -121,7 +120,8 @@ extern irq_handler
 
 ; This is our common IRQ stub. It saves the processor state, sets
 ; up for kernel mode segments, call the C-level fault handler, and
-; finally restores the stack frame.
+; finally restores the stack frame. Note that GS was used by us to
+; store per CPU private data, so don't touch it here.
 irq_common_stub:
 	pusha
 
@@ -132,7 +132,6 @@ irq_common_stub:
 	mov ds, ax
 	mov es, ax
 	mov fs, ax
-	mov gs, ax
 
 	call irq_handler
 
@@ -140,7 +139,6 @@ irq_common_stub:
 	mov ds, bx
 	mov es, bx
 	mov fs, bx
-	mov gs, bx
 
 	popa
 	add esp, 8		; Stack rewind

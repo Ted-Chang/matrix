@@ -72,14 +72,10 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 
 	kprintf("Kernel memory management subsystem initialization complete.\n");
 
-	struct cpu *c = CURR_CPU;
-	kprintf("main: cpu(0x%x)\n", c);
-	//dump_cpu(c);
-
 	/* Perform more per-CPU initialization that can be done after the
 	 * memory management subsystem was up.
 	 */
-	//init_per_cpu();
+	init_per_cpu();
 
 	/* Get the system clock */
 	//init_clock();

@@ -228,12 +228,19 @@ struct arch_cpu {
 	struct tss tss;			// Task State Segment
 	void *double_fault_stack;	// Pointer to the stack for double faults
 
+	/* CPU information */
+	uint64_t cpu_freq;		// CPU frequency in Hz
+	uint64_t lapic_freq;		// LAPIC timer frequency in Hz
+	char vendor_str[64];		// Vendor string
+
+	uint8_t cpu_step;		// CPU Step
+
 	uint8_t max_phys_bits;		// Maximum physical address bits
 	uint8_t max_virt_bits;		// Maximum virtual address bits
 };
 
 /* CPU ID */
-typedef uint32_t cpu_id_t;
+typedef uint16_t cpu_id_t;
 struct cpu {
 	struct list header;	// Link to running CPUs list
 	
@@ -256,17 +263,6 @@ extern size_t _nr_cpus;
 extern struct list _running_cpus;
 extern struct cpu **_cpus;
 
-/**
- * Get the cpu structure pointer from GS register, this was set when we
- * initialize the GDT of that CPU.
- */
-static INLINE struct cpu *cpu_get_pointer()
-{
-	uint32_t addr;
-	asm ("mov %%gs:0, %0" : "=r"(addr));
-	return (struct cpu *)addr;
-}
-
 /* Read CR0 register */
 static INLINE uint32_t x86_read_cr0()
 {
@@ -275,6 +271,7 @@ static INLINE uint32_t x86_read_cr0()
 	return r;
 }
 
+/* Write CR0 register */
 static INLINE void x86_write_cr0(uint32_t val)
 {
 	asm volatile("mov %0, %%cr4" :: "r"(val));
@@ -319,6 +316,17 @@ static INLINE void x86_cpuid(uint32_t level, uint32_t *a, uint32_t *b, uint32_t 
 static INLINE void x86_invlpg(uint32_t addr)
 {
 	asm volatile("invlpg (%0)" :: "r"(addr));
+}
+
+/* Get the current CPU pointer, the point was set when we initialize
+ * the GDT for the CPU
+ */
+static INLINE struct cpu *cpu_get_pointer()
+{
+	uint32_t addr;
+	//asm ("mov %%gs:0, %0" : "=r"(addr));
+	addr = x86_read_msr(X86_MSR_GS_BASE);
+	return (struct cpu *)addr;
 }
 
 static INLINE void cpu_halt()

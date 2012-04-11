@@ -8,6 +8,7 @@
 #include "list.h"
 #include "hal.h"
 #include "isr.h"	// register interrupt handler
+#include "cpu.h"
 #include "mm/page.h"	// PAGE_SIZE
 #include "mm/mmgr.h"
 #include "mm/kheap.h"
