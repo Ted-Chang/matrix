@@ -16,4 +16,6 @@
 
 #define ROUND_UP(_x, _n)	(((_x) + (_n) - 1u) & ~((_n) - 1u))
 
+#define ROUND_DOWN(_x, _n)	((_x) - ((_x) % (_n)))
+
 #endif	/* __MATRIX_H__ */

@@ -11,6 +11,7 @@ TARGETOBJ := $(OBJ)/vector.o \
 	$(OBJ)/mmu.o \
 	$(OBJ)/page.o \
 	$(OBJ)/phys.o \
+	$(OBJ)/kmem.o \
 
 
 .PHONY: clean help
