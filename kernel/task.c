@@ -7,8 +7,8 @@
 #include "matrix/matrix.h"
 #include "matrix/global.h"
 #include "matrix/const.h"
-#include "hal.h"
-#include "lirq.h"
+#include "hal/hal.h"
+#include "hal/lirq.h"
 #include "mm/mmgr.h"
 #include "mm/kheap.h"
 #include "proc/task.h"
@@ -135,9 +135,6 @@ void init_multitask()
 {
 	struct task *t;
 
-	/* Initialize the scheduler */
-	sched_init();
-	
 	/* Relocate the stack so we know where it is, the stack size is 8KB */
 	move_stack((void *)0xE0000000, 0x2000);
 

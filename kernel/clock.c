@@ -4,8 +4,8 @@
 #include "matrix/matrix.h"
 #include "matrix/const.h"
 #include "matrix/global.h"
-#include "isr.h"
-#include "hal.h"
+#include "hal/isr.h"
+#include "hal/hal.h"
 #include "timer.h"
 #include "proc/task.h"
 #include "proc/sched.h"
@@ -44,7 +44,7 @@ void do_clocktick()
 	}
 }
 
-static void clock_callback(struct registers *regs)
+static void clock_callback(struct intr_frame *frame)
 {
 	uint32_t ticks;
 

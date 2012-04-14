@@ -5,7 +5,7 @@
 #define INVALIDATE_ARRAY_SIZE	128
 
 struct mmu_ctx {
-	uint64_t pml4;		// Physical address of the PML4
+	phys_addr_t pml4;	// Physical address of the PML4
 	
 	/* Array of TLB entries to flush when unlocking context. Note
 	 * that if the count becomes greater than the array size, then

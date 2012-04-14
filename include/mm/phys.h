@@ -1,7 +1,7 @@
 #ifndef __PHYS_H__
 #define __PHYS_H__
 
-extern void *physical_map(uint32_t addr, size_t size, int mmflag);
-extern void physical_unmap(void *addr, size_t size, boolean_t shared);
+extern void *phys_map(phys_addr_t addr, size_t size, int mmflag);
+extern void phys_unmap(void *addr, size_t size, boolean_t shared);
 
 #endif	/* __PHYS_H__ */

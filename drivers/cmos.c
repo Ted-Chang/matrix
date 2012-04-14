@@ -2,7 +2,7 @@
 #include <time.h>
 #include "matrix/matrix.h"
 #include "cmos.h"
-#include "hal.h"
+#include "hal/hal.h"
 
 #define BCD2DEC(n)	(((n >> 4) & 0x0F) * 10 + (n & 0x0F))
 #define DEC2BCD(n)	(((n / 10) << 4) | (n % 10))

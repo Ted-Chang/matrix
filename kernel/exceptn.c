@@ -1,95 +1,95 @@
 #include <types.h>
-#include "hal.h"
-#include "isr.h"
+#include "hal/hal.h"
+#include "hal/isr.h"
 #include "matrix/debug.h"
 
 static struct irq_hook _exceptn_hooks[17];
 
-void divide_by_zero_fault(struct registers *regs)
+void divide_by_zero_fault(struct intr_frame *frame)
 {
 	PANIC("Divide by zero");
 }
 
-void single_step_trap(struct registers *regs)
+void single_step_trap(struct intr_frame *frame)
 {
 	PANIC("Single step");
 }
 
-void nmi_trap(struct registers *regs)
+void nmi_trap(struct intr_frame *frame)
 {
 	PANIC("NMI trap");
 }
 
-void breakpoint_trap(struct registers *regs)
+void breakpoint_trap(struct intr_frame *frame)
 {
 	PANIC("Breakpoint trap");
 }
 
-void overflow_trap(struct registers *regs)
+void overflow_trap(struct intr_frame *frame)
 {
 	PANIC("Overflow trap");
 }
 
-void bounds_check_fault(struct registers *regs)
+void bounds_check_fault(struct intr_frame *frame)
 {
 	PANIC("Bounds check fault");
 }
 
-void invalid_opcode_fault(struct registers *regs)
+void invalid_opcode_fault(struct intr_frame *frame)
 {
 	kprintf("Invalid opcode CS:0x%x, EIP:0x%x\n",
-		regs->cs, regs->eip);
+		frame->cs, frame->eip);
 	PANIC("Invalid opcode fault");
 }
 
-void no_device_fault(struct registers *regs)
+void no_device_fault(struct intr_frame *frame)
 {
 	PANIC("Device not found");
 }
 
-void double_fault_abort(struct registers *regs)
+void double_fault_abort(struct intr_frame *frame)
 {
 	PANIC("Double fault");
 }
 
-void invalid_tss_fault(struct registers *regs)
+void invalid_tss_fault(struct intr_frame *frame)
 {
 	PANIC("Invalid TSS");
 }
 
-void no_segment_fault(struct registers *regs)
+void no_segment_fault(struct intr_frame *frame)
 {
 	PANIC("Invalid segment");
 }
 
-void stack_fault(struct registers *regs)
+void stack_fault(struct intr_frame *frame)
 {
 	PANIC("Stack fault");
 }
 
-void general_protection_fault(struct registers *regs)
+void general_protection_fault(struct intr_frame *frame)
 {
 	kprintf("General protection fault CS:0x%x, EIP:0x%x\n",
-		regs->cs, regs->eip);
+		frame->cs, frame->eip);
 	PANIC("General protection fault");
 }
 
-void fpu_fault(struct registers *regs)
+void fpu_fault(struct intr_frame *frame)
 {
 	PANIC("FPU fault");
 }
 
-void alignment_check_fault(struct registers *regs)
+void alignment_check_fault(struct intr_frame *frame)
 {
 	PANIC("Alignment fault");
 }
 
-void machine_check_abort(struct registers *regs)
+void machine_check_abort(struct intr_frame *frame)
 {
 	PANIC("Machine check fault");
 }
 
-void simd_fpu_fault(struct registers *regs)
+void simd_fpu_fault(struct intr_frame *frame)
 {
 	PANIC("SIMD FPU fault");
 }

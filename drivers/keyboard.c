@@ -1,8 +1,8 @@
 #include <types.h>
-#include "hal.h"
-#include "lirq.h"
+#include "hal/hal.h"
+#include "hal/lirq.h"
 #include "util.h"
-#include "isr.h"
+#include "hal/isr.h"
 #include "keyboard.h"
 
 #define KBD_STATUS_PORT		0x64
@@ -257,7 +257,7 @@ static int process(u_char code)
 	return rc;
 }
 
-static void kbd_callback(struct registers *regs)
+static void kbd_callback(struct intr_frame *frame)
 {
 	u_char scan_code;
 	u_long temp;
@@ -269,7 +269,7 @@ static void kbd_callback(struct registers *regs)
 		irq_enable();	// Reenable interrupts
 	}
 	
-	interrupt_done(regs->int_no);
+	interrupt_done(frame->int_no);
 }
 
 void init_keyboard()

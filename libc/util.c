@@ -3,7 +3,7 @@
 #include "string.h"
 #include "stdio.h"
 #include "util.h"
-#include "hal.h"	// outportb
+#include "hal/hal.h"	// outportb
 
 static uint16_t _cursor_x = 0;
 static uint16_t _cursor_y = 0;

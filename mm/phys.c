@@ -7,14 +7,30 @@
 #include "mm/mm.h"
 #include "mm/phys.h"
 #include "mm/kmem.h"
+#include "hal/spinlock.h"
 
 #define PMAP_CONTAINS(addr, size) \
 	(addr >= KERNEL_PMAP_OFFSET && \
 	 (addr + size) <= (KERNEL_PMAP_OFFSET + KERNEL_PMAP_SIZE))
 
-void *physical_map(uint32_t addr, size_t size, int mmflag)
+/* Structure containing a memory type range */
+struct mem_type_range {
+	phys_addr_t start;	// Start of a range
+	phys_addr_t end;	// End of a range
+	uint32_t type;		// Type of the range
+};
+
+/* Maximum number of memory type ranges */
+#define MEM_TYPE_RANGE_MAX	64
+
+/* Memory type ranges */
+static struct mem_type_range _mem_types[MEM_TYPE_RANGE_MAX];
+static size_t _mem_types_count = 0;
+struct spinlock _mem_types_lock;
+
+void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 {
-	uint64_t base, end;
+	phys_addr_t base, end;
 
 	if (!size)
 		return NULL;
@@ -33,15 +49,15 @@ void *physical_map(uint32_t addr, size_t size, int mmflag)
 	return kmem_map(base, end-base, mmflag);
 }
 
-void physical_unmap(void *addr, size_t size, boolean_t shared)
+void phys_unmap(void *addr, size_t size, boolean_t shared)
 {
-	uint64_t base, end;
+	phys_addr_t base, end;
 
 	/* If the range lies within the physical map area, don't need to do
 	 * anything. Otherwise, unmap and free from kernel memory.
 	 */
-	if (addr < KERNEL_PMAP_BASE ||
-	    addr >= (KERNEL_PMAP_BASE + KERNEL_PMAP_SIZE)) {
+	if ((uint32_t)addr < KERNEL_PMAP_BASE ||
+	    (uint32_t)addr >= (KERNEL_PMAP_BASE + KERNEL_PMAP_SIZE)) {
 		base = ROUND_DOWN((uint32_t)addr, PAGE_SIZE);
 		end = ROUND_UP((uint32_t)addr + size, PAGE_SIZE);
 

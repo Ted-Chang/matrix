@@ -7,13 +7,18 @@
 #include "mm/page.h"
 #include "mm/phys.h"
 #include "cpu.h"
-#include "lapic.h"
+#include "hal/lapic.h"
+#include "hal/hal.h"
 
 /* Local APIC mapping. If NULL the LAPIC is not present */
 static volatile uint32_t *_lapic_mapping = NULL;
 
 /* Local APIC base address */
 static uint32_t _lapic_base = 0;
+
+/* Spurious IRQ hook and timer IRQ hook */
+static struct irq_hook _lapic_spurious_hook;
+static struct irq_hook _lapic_timer_hook;
 
 
 static INLINE uint32_t lapic_read(unsigned reg)
@@ -29,6 +34,16 @@ static INLINE void lapic_write(unsigned reg, uint32_t value)
 static INLINE void lapic_eoi()
 {
 	lapic_write(LAPIC_REG_EOI, 0);
+}
+
+static void lapic_spurious_callback(struct registers *regs)
+{
+	DEBUG(DL_DBG, ("lapic_spurious_callback: spurious interrupt received.\n"));
+}
+
+static void lapic_timer_callback(struct registers *regs)
+{
+	;
 }
 
 boolean_t lapic_enabled()
@@ -61,6 +76,7 @@ void init_lapic()
 	else if (_cpu_features.x2apic && (base & (1 << 10)))
 		PANIC("Cannot handle CPU in x2APIC mode");
 
+	/* Determines the physical address of the APIC registers page */
 	base &= 0xFFFFF000;
 
 	if (_lapic_mapping) {
@@ -80,10 +96,12 @@ void init_lapic()
 			       base, _lapic_mapping));
 
 		/* Install the LAPIC timer device */
-		;
+		register_interrupt_handler(LAPIC_VECT_SPURIOUS, &_lapic_spurious_hook,
+					   lapic_spurious_callback);
 
 		/* Install interrupt vector handlers */
-		;
+		register_interrupt_handler(LAPIC_VECT_TIMER, &_lapic_timer_hook,
+					   lapic_timer_callback);
 	}
 
 	/* Enable the local APIC (bit 8) and set the spurious interrupt vector

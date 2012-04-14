@@ -9,12 +9,13 @@
 #include "matrix/debug.h"
 #include "multiboot.h"
 #include "util.h"
-#include "hal.h"
+#include "hal/hal.h"
 #include "cpu.h"
 #include "mm/kheap.h"
 #include "mm/mmgr.h"
 #include "mm/page.h"
 #include "mm/mmu.h"
+#include "mm/kmem.h"
 #include "timer.h"
 #include "fs.h"
 #include "initrd.h"
@@ -68,6 +69,7 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	init_page();
 	init_mmu();
 	init_mmu_per_cpu();
+	init_kmem();
 	init_kheap(mem_end_page);
 
 	kprintf("Kernel memory management subsystem initialization complete.\n");
@@ -78,23 +80,12 @@ int kmain(struct multiboot *mboot_ptr, uint32_t initial_stack)
 	init_per_cpu();
 
 	/* Get the system clock */
-	//init_clock();
+	init_clock();
 
 	/* Properly initialize the CPU subsystem, and detect other CPUs */
-	//init_cpu();
-	
-	/* Enable interrupt so our timer can work */
-	/* enable_interrupt(); */
-
-	/* /\* Initialize our timer *\/ */
-	/* init_clock(); */
-
-	/* kprintf("System PIT initialized.\n"); */
-	
-	/* /\* Start multitasking now *\/ */
-	/* init_multitask(); */
-
-	/* kprintf("Multitask initialized.\n"); */
+	init_cpu();
+	init_sched();
+	init_multitask();
 
 	/* /\* Initialize the initial ramdisk and set it as the root filesystem *\/ */
 	/* root_node = init_initrd(initrd_location); */

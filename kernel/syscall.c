@@ -1,10 +1,10 @@
 #include <types.h>
-#include "hal.h"
+#include "hal/hal.h"
 #include "syscall.h"
-#include "isr.h"	// register_interrupt_handler
+#include "hal/isr.h"	// register_interrupt_handler
 #include "util.h"	// putstr
 
-static void syscall_handler(struct registers *regs);
+static void syscall_handler(struct intr_frame *frame);
 
 /* Define your system call here */
 DEFN_SYSCALL1(putstr, 0, const char *);
@@ -23,7 +23,7 @@ void init_syscalls()
 	register_interrupt_handler(0x80, &_syscall_hook, syscall_handler);
 }
 
-void syscall_handler(struct registers *regs)
+void syscall_handler(struct intr_frame *frame)
 {
 	int rc;
 	void *location;
@@ -31,10 +31,10 @@ void syscall_handler(struct registers *regs)
 	/* Firstly, check if the requested syscall number is valid.
 	 * The syscall number is found in EAX.
 	 */
-	if (regs->eax >= _nr_syscalls)
+	if (frame->eax >= _nr_syscalls)
 		return;
 
-	location = _syscalls[regs->eax];
+	location = _syscalls[frame->eax];
 
 	/* We don't know how many parameters the function wants, so we just
 	 * push them all onto the stack in the correct order. The function
@@ -53,7 +53,7 @@ void syscall_handler(struct registers *regs)
 		     pop %%ebx; \
 		     pop %%ebx; \
 		     pop %%ebx; \
-		     " : "=a" (rc) : "r" (regs->edi), "r" (regs->esi), "r" (regs->edx), "r" (regs->ecx), "r" (regs->ebx), "r" (location));
+		     " : "=a" (rc) : "r" (frame->edi), "r" (frame->esi), "r" (frame->edx), "r" (frame->ecx), "r" (frame->ebx), "r" (location));
 	
-	regs->eax = rc;
+	frame->eax = rc;
 }

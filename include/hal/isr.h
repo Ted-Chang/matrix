@@ -18,7 +18,7 @@
 #define IRQ14	46
 #define IRQ15	47
 
-struct registers {
+struct intr_frame {
 	uint32_t ds;
 	uint32_t edi;
 	uint32_t esi;

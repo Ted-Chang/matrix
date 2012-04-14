@@ -1,10 +1,10 @@
 #include <types.h>
 #include "matrix/matrix.h"
 #include "atomic.h"
-#include "lirq.h"
+#include "hal/lirq.h"
 #include "barrier.h"
 #include "matrix/debug.h"
-#include "spinlock.h"
+#include "hal/spinlock.h"
 
 static INLINE void spinlock_lock_internal(struct spinlock *lock)
 {

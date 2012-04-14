@@ -1,8 +1,9 @@
 #include <types.h>
 #include <stddef.h>
 #include <string.h>
-#include "hal.h"
-#include "lirq.h"
+#include "atomic.h"
+#include "hal/hal.h"
+#include "hal/lirq.h"
 #include "proc/task.h"
 #include "proc/sched.h"
 #include "matrix/debug.h"
@@ -15,6 +16,9 @@ struct task *_ready_tail[NR_SCHED_QUEUES];
 struct task *_next_task = NULL;
 struct task *_prev_task = NULL;
 struct task *_curr_task = NULL;				// Current running task
+
+/* Total number of running/ready tasks across all CPUs */
+static atomic_t _nr_running_tasks;
 
 static void sched(struct task *tp, int *queue, boolean_t *front);
 
@@ -40,12 +44,6 @@ static void pick_task()
 	}
 
 	DEBUG(DL_DBG, ("task %d picked.\n", _next_task->id));
-}
-
-void sched_init()
-{
-	memset(&_ready_head[0], 0, sizeof(struct task *) * NR_SCHED_QUEUES);
-	memset(&_ready_tail[0], 0, sizeof(struct task *) * NR_SCHED_QUEUES);
 }
 
 /**
@@ -173,4 +171,10 @@ static void sched(struct task *tp, int *queue, boolean_t *front)
 	 */
 	*queue = tp->priority;
 	*front = time_left;
+}
+
+void init_sched()
+{
+	memset(&_ready_head[0], 0, sizeof(struct task *) * NR_SCHED_QUEUES);
+	memset(&_ready_tail[0], 0, sizeof(struct task *) * NR_SCHED_QUEUES);
 }

@@ -6,8 +6,8 @@
 #include <stddef.h>
 #include <string.h>	// memset
 #include "list.h"
-#include "hal.h"
-#include "isr.h"	// register interrupt handler
+#include "hal/hal.h"
+#include "hal/isr.h"	// register interrupt handler
 #include "cpu.h"
 #include "mm/page.h"	// PAGE_SIZE
 #include "mm/mmgr.h"
@@ -246,7 +246,7 @@ void switch_page_dir(struct pd *dir)
  * We don't call interrupt_done here, check this when we implementing
  * the paging feature of our kernel.
  */
-void page_fault(struct registers *regs)
+void page_fault(struct intr_frame *frame)
 {
 	uint32_t faulting_addr;
 	int present;
@@ -259,10 +259,10 @@ void page_fault(struct registers *regs)
 	 */
 	asm volatile("mov %%cr2, %0" : "=r"(faulting_addr));
 
-	present = regs->err_code & 0x1;
-	rw = regs->err_code & 0x2;
-	us = regs->err_code & 0x4;
-	reserved = regs->err_code & 0x8;
+	present = frame->err_code & 0x1;
+	rw = frame->err_code & 0x2;
+	us = frame->err_code & 0x4;
+	reserved = frame->err_code & 0x8;
 
 	/* Print an error message */
 	kprintf("Page fault(%s%s%s%s) at 0x%x - EIP: 0x%x\n", 
@@ -271,7 +271,7 @@ void page_fault(struct registers *regs)
 		us ? "user-mode " : "supervisor-mode ",
 		reserved ? "reserved " : "",
 		faulting_addr,
-		regs->eip);
+		frame->eip);
 
 	PANIC("Page fault");
 }

@@ -3,7 +3,7 @@
 
 #include "list.h"
 #include "matrix/matrix.h"		// INLINE
-#include "hal.h"			// Count of GDT and IDT
+#include "hal/hal.h"			// Count of GDT and IDT
 
 /* Flags in the CR0 Control Register */
 #define X86_CR0_PE		(1<<0)	// Protect Mode Enable
@@ -275,6 +275,20 @@ static INLINE uint32_t x86_read_cr0()
 static INLINE void x86_write_cr0(uint32_t val)
 {
 	asm volatile("mov %0, %%cr4" :: "r"(val));
+}
+
+/* Read CR3 register */
+static INLINE uint32_t x86_read_cr3()
+{
+	uint32_t r;
+	asm volatile("mov %%cr3, %0" : "=r"(r));
+	return r;
+}
+
+/* Write CR3 register */
+static INLINE void x86_write_cr3(uint32_t val)
+{
+	asm volatile("mov %0, %%cr3" :: "r"(val));
 }
 
 /* Read CR4 register */

@@ -1,9 +1,9 @@
 #include <types.h>
 #include <stddef.h>
 #include "matrix/matrix.h"
-#include "hal.h"
-#include "lirq.h"
-#include "isr.h"
+#include "hal/hal.h"
+#include "hal/lirq.h"
+#include "hal/isr.h"
 #include "floppy.h"
 #include "util.h"
 #include "matrix/debug.h"

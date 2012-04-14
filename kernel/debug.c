@@ -1,7 +1,7 @@
 #include <types.h>
 #include <stddef.h>
-#include "hal.h"
-#include "lirq.h"
+#include "hal/hal.h"
+#include "hal/lirq.h"
 #include "matrix/debug.h"
 #include "matrix/global.h"
 #include "proc/task.h"

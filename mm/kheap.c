@@ -425,8 +425,12 @@ void free(struct heap *heap, void *p)
 		insert_vector(&heap->index, (void *)header);
 }
 
-
 void kfree(void *p)
 {
 	free(_kheap, p);
+}
+
+void *physical_map(phys_addr_t addr, size_t size, int flags)
+{
+	return NULL;
 }

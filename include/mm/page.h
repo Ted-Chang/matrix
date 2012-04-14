@@ -41,8 +41,11 @@ struct page {
 	struct list header;		// Link to page queue
 
 	/* Basic page information */
-	uint64_t addr;			// Physical address of page
-	unsigned state;			// State of this page
+	phys_addr_t addr;		// Physical address of page
+	uint32_t phys_range;		// Memory range that the page belongs to
+	uint32_t state;			// State of this page
+	uint8_t modified:1;		// Whether the page has been modified
+	uint8_t reserved:7;
 };
 
 /* Possible state of a page */
@@ -51,6 +54,7 @@ struct page {
 #define PAGE_STATE_CACHED	2
 #define PAGE_STATE_FREE		3
 
+extern void page_stats_get(struct page_stats *stats);
 extern void init_page();
 
 #endif	/* __PAGE_H__ */

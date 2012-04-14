@@ -5,7 +5,7 @@
 #ifndef __MMGR_H__
 #define __MMGR_H__
 
-#include <isr.h>	// For struct registers
+#include "hal/isr.h"
 
 /*
  * Page Table Entry
@@ -48,22 +48,15 @@ typedef struct pd {
 	uint32_t physical_addr;
 } pd_t;
 
-void init_kheap(uint64_t mem_size);
-
-void switch_page_dir(struct pd *new);
-
-struct pte *get_pte(uint32_t addr, int make, struct pd *dir);
-
-void page_fault(struct registers *regs);
-
-struct pd *clone_pd(struct pd *src);
-
-void alloc_frame(struct pte *pte, int is_kernel, int is_writable);
-
-void free_frame(struct pte *pte);
-
-uint32_t kmalloc(size_t size);
-
-uint32_t kmalloc_a(size_t size);
+extern void init_kheap(uint64_t mem_size);
+extern void switch_page_dir(struct pd *new);
+extern struct pte *get_pte(uint32_t addr, int make, struct pd *dir);
+extern void page_fault(struct intr_frame *frame);
+extern struct pd *clone_pd(struct pd *src);
+extern void alloc_frame(struct pte *pte, int is_kernel, int is_writable);
+extern void free_frame(struct pte *pte);
+extern uint32_t kmalloc(size_t size);
+extern uint32_t kmalloc_a(size_t size);
+extern void *physical_map(phys_addr_t addr, size_t size, int flags);
 
 #endif	/* __MMGR_H__ */

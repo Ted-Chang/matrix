@@ -4,7 +4,7 @@
 
 #include <types.h>
 #include <string.h>	// memset
-#include "hal.h"
+#include "hal/hal.h"
 #include "matrix/debug.h"
 #include "cpu.h"	// For CPU stuff
 

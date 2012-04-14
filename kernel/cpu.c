@@ -3,13 +3,13 @@
 #include <string.h>
 #include "list.h"
 #include "cpu.h"
-#include "hal.h"
+#include "hal/hal.h"
 #include "mm/page.h"
 #include "mm/mmgr.h"
 #include "exceptn.h"
 #include "proc/task.h"
 #include "matrix/debug.h"
-#include "lapic.h"
+#include "hal/lapic.h"
 #include "kd.h"			// Kernel Debugger
 
 

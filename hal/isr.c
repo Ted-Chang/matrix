@@ -4,9 +4,9 @@
 
 #include <types.h>
 #include <stddef.h>
-#include "isr.h"
-#include "hal.h"
-#include "lirq.h"
+#include "hal/isr.h"
+#include "hal/hal.h"
+#include "hal/lirq.h"
 #include "util.h"
 #include "matrix/debug.h"
 
@@ -15,7 +15,7 @@ struct irq_hook *_interrupt_handlers[256];
 /*
  * Software interrupt handler, call the exception handlers
  */
-void isr_handler(struct registers regs)
+void isr_handler(struct intr_frame frame)
 {
 	struct irq_hook *hook;
 	boolean_t processed = FALSE;
@@ -23,13 +23,13 @@ void isr_handler(struct registers regs)
 	/* Avoid the problem caused by the signed interrupt number if it is
 	 * max than 0x80
 	 */
-	uint8_t int_no = regs.int_no & 0xFF;
+	uint8_t int_no = frame.int_no & 0xFF;
 
 	hook = _interrupt_handlers[int_no];
 	while (hook) {
 		isr_t handler = hook->handler;
 		if (handler)
-			handler(&regs);
+			handler(&frame);
 		hook = hook->next;
 		processed = TRUE;
 	}
@@ -43,18 +43,18 @@ void isr_handler(struct registers regs)
 /*
  * Hardware interrupt handler, dispatch the interrupt
  */
-void irq_handler(struct registers regs)
+void irq_handler(struct intr_frame frame)
 {
 	struct irq_hook *hook;
 	
 	/* Notify the PIC that we have done so we can accept >= priority IRQs now */
-	interrupt_done(regs.int_no);
+	interrupt_done(frame.int_no);
 
-	hook = _interrupt_handlers[regs.int_no];
+	hook = _interrupt_handlers[frame.int_no];
 	while (hook) {
 		isr_t handler = hook->handler;
 		if (handler)
-			handler(&regs);
+			handler(&frame);
 		hook = hook->next;
 	}
 }

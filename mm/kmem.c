@@ -1,9 +1,11 @@
 #include <types.h>
 #include <stddef.h>
 #include "list.h"
+#include "matrix/debug.h"
 #include "mm/mm.h"
 #include "mm/mlayout.h"
 #include "mm/kmem.h"
+#include "mm/page.h"
 
 /* Number of free list, it is the bits of a pointer in current architecture */
 #define KMEM_FREELISTS		32
@@ -63,8 +65,30 @@ static struct kmem_range *kmem_range_get(int mmflag)
 	}
 }
 
-void *kmem_map(uint64_t base, size_t size, int mmflag)
+void *kmem_map(phys_addr_t base, size_t size, int mmflag)
 {
+	int rc;
+	void *ret;
+	size_t i;
+
+	ASSERT(!(base & PAGE_SIZE));
+
+	/* */
+	for (i = 0; i < size; i += PAGE_SIZE) {
+		if (rc != 0) {
+			DEBUG(DL_WRN, ("failed to map page 0x%x to %p\n",
+				       base + i, ret + i));
+			goto fail;
+		}
+	}
+
+	return ret;
+
+fail:
+	/* Rollback the transaction */
+	for (; i; i -= PAGE_SIZE)
+		;
+	
 	return NULL;
 }
 
