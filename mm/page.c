@@ -6,6 +6,10 @@
 #include "kd.h"
 #include "matrix/debug.h"
 #include "mm/page.h"
+#include "multiboot.h"
+
+#define ABOVE4G			0x100000000LL
+#define ABOVE16M		0x1000000LL
 
 /* Number of the page queues */
 #define NR_PAGE_QUEUE		3
@@ -42,7 +46,7 @@ static page_num_t _nr_total_pages = 0;
 static struct page_queue _page_queues[NR_PAGE_QUEUE];
 
 /* Free page list */
-static struct free_page_list _free_page_list[NR_FREE_PAGE_LIST];
+static struct free_page_list _free_page_lists[NR_FREE_PAGE_LIST];
 
 /* Physical memory ranges */
 static struct physical_range _phys_ranges[PHYS_RANG_MAX];
@@ -53,14 +57,97 @@ static kd_status_t kd_cmd_page(int argc, char **argv, struct kd_filter *filter)
 	return KD_SUCCESS;
 }
 
-void page_add_physical_range(phys_addr_t start, phys_addr_t end, unsigned freelist)
+void page_add_physical_range(phys_addr_t start, phys_addr_t end, uint32_t freelist)
 {
-	;
+	struct free_page_list *list = &_free_page_lists[freelist];
+	struct physical_range *range, *prev;
+
+	/* Increase the total page count */
+	_nr_total_pages += (end - start) / PAGE_SIZE;
+
+	/* Update the free list to include this range */
+	if (!list->minaddr && !list->maxaddr) {
+		list->minaddr = start;
+		list->maxaddr = end;
+	} else {
+		if (start < list->minaddr)
+			list->minaddr = start;
+		if (end > list->maxaddr)
+			list->maxaddr = end;
+	}
+
+	/* If we are contiguous with the previously recorded range (if any) and
+	 * have the same free list index, just append to it, else add a new range.
+	 */
+	if (_nr_phys_ranges) {
+		prev = &_phys_ranges[_nr_phys_ranges - 1];
+		if ((start == prev->end) && (freelist == prev->freelist)) {
+			prev->end = end;
+			return;
+		}
+	}
+
+	if (_nr_phys_ranges >= PHYS_RANG_MAX) {
+		PANIC("Too many physical memory ranges");
+	}
+
+	range = &_phys_ranges[_nr_phys_ranges++];
+	range->start = start;
+	range->end = end;
+	range->freelist = freelist;
 }
 
 void platform_init_page()
 {
-	;
+	struct multiboot_mmap_entry *mmap;
+	
+	for (mmap = _mbi->mmap_addr;
+	     (unsigned long)mmap < (_mbi->mmap_addr + _mbi->mmap_length);
+	     mmap = (struct multiboot_mmap_entry *)
+		     ((u_long)mmap + mmap->size + sizeof(mmap->size))) {
+		switch (mmap->type) {
+		case MULTIBOOT_MEMORY_AVAILABLE:
+		case MULTIBOOT_MEMORY_RESERVED:
+			break;
+		default:
+			continue;
+		}
+
+		/* Determine which free list pages in the range should be put in.
+		 * If necessary, split into multiple ranges.
+		 */
+		if (mmap->addr < ABOVE16M) {
+			if (mmap->addr + mmap->len <= ABOVE16M) {
+				page_add_physical_range(mmap->addr, mmap->addr + mmap->size,
+							FREE_PAGE_LIST_BELOW16M);
+			} else if (mmap->addr + mmap->len <= ABOVE4G) {
+				page_add_physical_range(mmap->addr, ABOVE16M,
+							FREE_PAGE_LIST_BELOW16M);
+				page_add_physical_range(ABOVE16M, mmap->addr + mmap->size,
+							FREE_PAGE_LIST_BELOW4G);
+			} else {
+				page_add_physical_range(mmap->addr, ABOVE16M,
+							FREE_PAGE_LIST_BELOW16M);
+				page_add_physical_range(ABOVE16M, ABOVE4G,
+							FREE_PAGE_LIST_BELOW4G);
+				page_add_physical_range(ABOVE4G, mmap->addr + mmap->size,
+							FREE_PAGE_LIST_ABOVE4G);
+			}
+		} else if (mmap->addr < ABOVE4G) {
+			if (mmap->addr + mmap->len <= ABOVE4G) {
+				page_add_physical_range(mmap->addr, mmap->addr + mmap->size,
+							FREE_PAGE_LIST_BELOW4G);
+			} else {
+				page_add_physical_range(mmap->addr, ABOVE4G,
+							FREE_PAGE_LIST_BELOW4G);
+				page_add_physical_range(ABOVE4G, mmap->addr + mmap->size,
+							FREE_PAGE_LIST_ABOVE4G);
+			}
+		} else {
+			page_add_physical_range(mmap->addr, mmap->addr + mmap->size,
+						FREE_PAGE_LIST_ABOVE4G);
+		}
+	}
 }
 
 void init_page()
@@ -77,9 +164,9 @@ void init_page()
 		spinlock_init(&_page_queues[i].lock, "page_queue_lock");
 	}
 	for (i = 0; i < NR_FREE_PAGE_LIST; i++) {
-		LIST_INIT(&_free_page_list[i].pages);
-		_free_page_list[i].minaddr = 0;
-		_free_page_list[i].maxaddr = 0;
+		LIST_INIT(&_free_page_lists[i].pages);
+		_free_page_lists[i].minaddr = 0;
+		_free_page_lists[i].maxaddr = 0;
 	}
 
 	/* First call into platform-specific code to parse the memory map
@@ -88,15 +175,15 @@ void init_page()
 	platform_init_page();
 	DEBUG(DL_DBG, ("page: available physical memory ranges:\n"));
 	for (i = 0; i < _nr_phys_ranges; i++) {
-		DEBUG(DL_DBG, ("0x%x - 0x%x [%u]\n",
+		DEBUG(DL_DBG, ("0x%x - 0x%x [%d]\n",
 			       _phys_ranges[i].start, _phys_ranges[i].end,
 			       _phys_ranges[i].freelist));
 	}
 	DEBUG(DL_DBG, ("page: free list coverage:\n"));
 	for (i = 0; i < NR_FREE_PAGE_LIST; i++) {
 		DEBUG(DL_DBG, ("%d: 0x%x - 0x%x\n", i,
-			       _free_page_list[i].minaddr,
-			       _free_page_list[i].maxaddr));
+			       _free_page_lists[i].minaddr,
+			       _free_page_lists[i].maxaddr));
 	}
 
 	DEBUG(DL_DBG, ("page: %d pages, %dKB was used for structures at 0x%x\n",

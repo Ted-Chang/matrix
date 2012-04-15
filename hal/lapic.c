@@ -83,7 +83,7 @@ void init_lapic()
 		/* This is a secondary CPU. Ensure that the base address is not
 		 * different to the boot CPU's.
 		 */
-		if (base != !_lapic_base) 
+		if (base != _lapic_base) 
 			PANIC("This CPU has different LAPIC address to boot CPU");
 	} else {
 		/* This is the boot CPU. Map the LAPIC into virtual memory and

@@ -179,7 +179,7 @@ static void rawq_put(int8_t code)
 
 static int8_t rawq_read()
 {
-	;
+	return 0;
 }
 
 static void rawq_clear()

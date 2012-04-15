@@ -136,6 +136,15 @@ int kprintf(const char *str, ...)
 				i++;
 				break;
 			}
+			/* Unsigned integers */
+			case 'u': {
+				int c = va_arg(args, int);
+				char temp_str[32] = {0};
+				itoa(c, 10, temp_str);
+				putstr(temp_str);
+				i++;
+				break;
+			}
 			/* Display in hex */
 			case 'X':
 			case 'x': {

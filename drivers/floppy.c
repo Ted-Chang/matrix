@@ -277,7 +277,7 @@ static void stop_motor(struct fdd *f)
 	}
 }
 
-static void flpy_callback(struct registers *regs)
+static void flpy_callback(struct intr_frame *regs)
 {
 	_irq_signaled = TRUE;
 	kprintf("flpy_callback: interrupt received!\n");
