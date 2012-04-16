@@ -8,7 +8,6 @@
 #include "matrix/matrix.h"
 #include "matrix/debug.h"
 #include "multiboot.h"
-#include "util.h"
 #include "hal/hal.h"
 #include "cpu.h"
 #include "mm/kheap.h"
@@ -28,8 +27,6 @@
 
 uint32_t _initial_esp;
 struct multiboot_info *_mbi;
-
-extern void init_task();
 
 static void announce();
 static void dump_mbi(struct multiboot_info *mbi);

@@ -1,6 +1,5 @@
 #include <types.h>
 #include "string.h"	// memset
-#include "util.h"
 #include "vector.h"
 #include "mm/mmgr.h"
 #include "matrix/debug.h"

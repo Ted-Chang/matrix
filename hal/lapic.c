@@ -36,12 +36,12 @@ static INLINE void lapic_eoi()
 	lapic_write(LAPIC_REG_EOI, 0);
 }
 
-static void lapic_spurious_callback(struct registers *regs)
+static void lapic_spurious_callback(struct intr_frame *frame)
 {
 	DEBUG(DL_DBG, ("lapic_spurious_callback: spurious interrupt received.\n"));
 }
 
-static void lapic_timer_callback(struct registers *regs)
+static void lapic_timer_callback(struct intr_frame *frame)
 {
 	;
 }

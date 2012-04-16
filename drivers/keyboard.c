@@ -1,9 +1,9 @@
 #include <types.h>
 #include "hal/hal.h"
 #include "hal/lirq.h"
-#include "util.h"
 #include "hal/isr.h"
 #include "keyboard.h"
+#include "matrix/debug.h"
 
 #define KBD_STATUS_PORT		0x64
 #define KBD_DATA_PORT		0x60

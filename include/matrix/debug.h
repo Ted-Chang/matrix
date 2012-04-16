@@ -1,8 +1,6 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
 
-#include "util.h"
-
 #define DL_ERR		0x00000004
 #define DL_WRN		0x00000003
 #define DL_INF		0x00000002
@@ -23,9 +21,12 @@
 
 extern uint32_t _debug_level;
 
-void panic(const char *message, const char *file, uint32_t line);
-
-void panic_assert(const char *file, uint32_t line, const char *desc);
+extern void putch(char ch);
+extern void clear_scr();
+extern void putstr(const char *str);
+extern int kprintf(const char *str, ...);
+extern void panic(const char *message, const char *file, uint32_t line);
+extern void panic_assert(const char *file, uint32_t line, const char *desc);
 
 #ifdef _DEBUG_SCHED
 void check_runqueues(char *when);

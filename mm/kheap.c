@@ -1,5 +1,4 @@
 #include <types.h>
-#include "util.h"
 #include "vector.h"
 #include "mm/kheap.h"
 #include "mm/mmgr.h"

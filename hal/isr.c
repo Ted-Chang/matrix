@@ -7,7 +7,6 @@
 #include "hal/isr.h"
 #include "hal/hal.h"
 #include "hal/lirq.h"
-#include "util.h"
 #include "matrix/debug.h"
 
 struct irq_hook *_interrupt_handlers[256];

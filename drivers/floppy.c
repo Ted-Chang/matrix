@@ -5,7 +5,6 @@
 #include "hal/lirq.h"
 #include "hal/isr.h"
 #include "floppy.h"
-#include "util.h"
 #include "matrix/debug.h"
 
 

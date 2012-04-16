@@ -27,4 +27,6 @@ typedef unsigned char u_char;
 /* Physical address type definition */
 typedef uint64_t phys_addr_t;
 
+typedef int ptrdiff_t;
+
 #endif	/* __TYPES_H__ */

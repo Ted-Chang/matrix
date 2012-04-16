@@ -1,10 +1,10 @@
 #include <types.h>
 #include <stddef.h>
 #include <time.h>
-#include "util.h"
 #include "proc/task.h"
 #include "syscall.h"
 #include "system.h"
+#include "matrix/debug.h"
 
 void idle_task();
 void sys_task();

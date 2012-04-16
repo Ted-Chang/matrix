@@ -53,6 +53,13 @@ size_t strlen(const char *str)
 	return len;
 }
 
+size_t strnlen(const char *str, size_t num)
+{
+	size_t len = 0;
+	while (str[len++] && (len <= num));
+	return len;
+}
+
 char * strchr(const char *str, int ch)
 {
 	while (*str && *str != (char)ch)

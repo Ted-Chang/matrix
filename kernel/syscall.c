@@ -2,7 +2,7 @@
 #include "hal/hal.h"
 #include "syscall.h"
 #include "hal/isr.h"	// register_interrupt_handler
-#include "util.h"	// putstr
+#include "matrix/debug.h"
 
 static void syscall_handler(struct intr_frame *frame);
 
