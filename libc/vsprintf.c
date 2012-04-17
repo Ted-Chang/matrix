@@ -6,10 +6,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include "div64.h"
-
-#ifndef PAGE_SIZE
-#define PAGE_SIZE	0x1000
-#endif	/* PAGE_SIZE */
+#include "mm/page.h"		// PAGE_SIZE
 
 #define ZEROPAD	1		// pad with zero
 #define SIGN	2		// unsigned or signed long

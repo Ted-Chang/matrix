@@ -1,6 +1,8 @@
 #ifndef __PAGE_H__
 #define __PAGE_H__
 
+#include "list.h"
+
 #ifdef _X86_
 #define PAGE_WIDTH		12	// Width of a page in bits
 #define PAGE_SIZE		4096	// Size of a page (4KB)
@@ -42,7 +44,7 @@ struct page {
 
 	/* Basic page information */
 	phys_addr_t addr;		// Physical address of page
-	uint32_t phys_range;		// Memory range that the page belongs to
+	uint32_t phys_zone;		// Memory zone that the page belongs to
 	uint32_t state;			// State of this page
 	uint8_t modified:1;		// Whether the page has been modified
 	uint8_t reserved:7;

@@ -18,7 +18,7 @@
 #define PHYS_RANG_MAX		32
 
 /* Structure describing a range of physical memory. */
-struct physical_range {
+struct physical_zone {
 	phys_addr_t start;		// Start of the range
 	phys_addr_t end;		// End of the range
 	struct page *pages;		// Pages in the range
@@ -49,23 +49,23 @@ static struct page_queue _page_queues[NR_PAGE_QUEUE];
 static struct free_page_list _free_page_lists[NR_FREE_PAGE_LIST];
 
 /* Physical memory ranges */
-static struct physical_range _phys_ranges[PHYS_RANG_MAX];
-static size_t _nr_phys_ranges = 0;
+static struct physical_zone _phys_zones[PHYS_RANG_MAX];
+static size_t _nr_phys_zones = 0;
 
 static kd_status_t kd_cmd_page(int argc, char **argv, struct kd_filter *filter)
 {
 	return KD_SUCCESS;
 }
 
-void page_add_physical_range(phys_addr_t start, phys_addr_t end, uint32_t freelist)
+void page_add_physical_zone(phys_addr_t start, phys_addr_t end, uint32_t freelist)
 {
 	struct free_page_list *list = &_free_page_lists[freelist];
-	struct physical_range *range, *prev;
+	struct physical_zone *zone, *prev;
 
 	/* Increase the total page count */
 	_nr_total_pages += (end - start) / PAGE_SIZE;
 
-	/* Update the free list to include this range */
+	/* Update the free list to include this zone */
 	if (!list->minaddr && !list->maxaddr) {
 		list->minaddr = start;
 		list->maxaddr = end;
@@ -76,25 +76,25 @@ void page_add_physical_range(phys_addr_t start, phys_addr_t end, uint32_t freeli
 			list->maxaddr = end;
 	}
 
-	/* If we are contiguous with the previously recorded range (if any) and
-	 * have the same free list index, just append to it, else add a new range.
+	/* If we are contiguous with the previously recorded zone (if any) and
+	 * have the same free list index, just append to it, else add a new zone.
 	 */
-	if (_nr_phys_ranges) {
-		prev = &_phys_ranges[_nr_phys_ranges - 1];
+	if (_nr_phys_zones) {
+		prev = &_phys_zones[_nr_phys_zones - 1];
 		if ((start == prev->end) && (freelist == prev->freelist)) {
 			prev->end = end;
 			return;
 		}
 	}
 
-	if (_nr_phys_ranges >= PHYS_RANG_MAX) {
-		PANIC("Too many physical memory ranges");
+	if (_nr_phys_zones >= PHYS_RANG_MAX) {
+		PANIC("Too many physical memory zones");
 	}
 
-	range = &_phys_ranges[_nr_phys_ranges++];
-	range->start = start;
-	range->end = end;
-	range->freelist = freelist;
+	zone = &_phys_zones[_nr_phys_zones++];
+	zone->start = start;
+	zone->end = end;
+	zone->freelist = freelist;
 }
 
 void platform_init_page()
@@ -113,39 +113,39 @@ void platform_init_page()
 			continue;
 		}
 
-		/* Determine which free list pages in the range should be put in.
-		 * If necessary, split into multiple ranges.
+		/* Determine which free list pages in the zone should be put in.
+		 * If necessary, split into multiple zones.
 		 */
 		if (mmap->addr < ABOVE16M) {
 			if (mmap->addr + mmap->len <= ABOVE16M) {
-				page_add_physical_range(mmap->addr, mmap->addr + mmap->size,
-							FREE_PAGE_LIST_BELOW16M);
+				page_add_physical_zone(mmap->addr, mmap->addr + mmap->size,
+						       FREE_PAGE_LIST_BELOW16M);
 			} else if (mmap->addr + mmap->len <= ABOVE4G) {
-				page_add_physical_range(mmap->addr, ABOVE16M,
-							FREE_PAGE_LIST_BELOW16M);
-				page_add_physical_range(ABOVE16M, mmap->addr + mmap->size,
-							FREE_PAGE_LIST_BELOW4G);
+				page_add_physical_zone(mmap->addr, ABOVE16M,
+						       FREE_PAGE_LIST_BELOW16M);
+				page_add_physical_zone(ABOVE16M, mmap->addr + mmap->size,
+						       FREE_PAGE_LIST_BELOW4G);
 			} else {
-				page_add_physical_range(mmap->addr, ABOVE16M,
-							FREE_PAGE_LIST_BELOW16M);
-				page_add_physical_range(ABOVE16M, ABOVE4G,
-							FREE_PAGE_LIST_BELOW4G);
-				page_add_physical_range(ABOVE4G, mmap->addr + mmap->size,
-							FREE_PAGE_LIST_ABOVE4G);
+				page_add_physical_zone(mmap->addr, ABOVE16M,
+						       FREE_PAGE_LIST_BELOW16M);
+				page_add_physical_zone(ABOVE16M, ABOVE4G,
+						       FREE_PAGE_LIST_BELOW4G);
+				page_add_physical_zone(ABOVE4G, mmap->addr + mmap->size,
+						       FREE_PAGE_LIST_ABOVE4G);
 			}
 		} else if (mmap->addr < ABOVE4G) {
 			if (mmap->addr + mmap->len <= ABOVE4G) {
-				page_add_physical_range(mmap->addr, mmap->addr + mmap->size,
-							FREE_PAGE_LIST_BELOW4G);
+				page_add_physical_zone(mmap->addr, mmap->addr + mmap->size,
+						       FREE_PAGE_LIST_BELOW4G);
 			} else {
-				page_add_physical_range(mmap->addr, ABOVE4G,
+				page_add_physical_zone(mmap->addr, ABOVE4G,
 							FREE_PAGE_LIST_BELOW4G);
-				page_add_physical_range(ABOVE4G, mmap->addr + mmap->size,
-							FREE_PAGE_LIST_ABOVE4G);
+				page_add_physical_zone(ABOVE4G, mmap->addr + mmap->size,
+						       FREE_PAGE_LIST_ABOVE4G);
 			}
 		} else {
-			page_add_physical_range(mmap->addr, mmap->addr + mmap->size,
-						FREE_PAGE_LIST_ABOVE4G);
+			page_add_physical_zone(mmap->addr, mmap->addr + mmap->size,
+					       FREE_PAGE_LIST_ABOVE4G);
 		}
 	}
 }
@@ -173,11 +173,11 @@ void init_page()
 	 * provided by the loader and separate it further as required
 	 */
 	platform_init_page();
-	DEBUG(DL_DBG, ("page: available physical memory ranges:\n"));
-	for (i = 0; i < _nr_phys_ranges; i++) {
+	DEBUG(DL_DBG, ("page: available physical memory zones:\n"));
+	for (i = 0; i < _nr_phys_zones; i++) {
 		DEBUG(DL_DBG, ("0x%x - 0x%x [%d]\n",
-			       _phys_ranges[i].start, _phys_ranges[i].end,
-			       _phys_ranges[i].freelist));
+			       _phys_zones[i].start, _phys_zones[i].end,
+			       _phys_zones[i].freelist));
 	}
 	DEBUG(DL_DBG, ("page: free list coverage:\n"));
 	for (i = 0; i < NR_FREE_PAGE_LIST; i++) {
@@ -189,18 +189,18 @@ void init_page()
 	DEBUG(DL_DBG, ("page: %d pages, %dKB was used for structures at 0x%x\n",
 		       _nr_total_pages, pages_size / 1024, pages_base));
 
-	/* Create page structures for each memory range we have */
-	for (i = 0; i < _nr_phys_ranges; i++) {
-		count = (_phys_ranges[i].end - _phys_ranges[i].start) / PAGE_SIZE;
+	/* Create page structures for each memory zone we have */
+	for (i = 0; i < _nr_phys_zones; i++) {
+		count = (_phys_zones[i].end - _phys_zones[i].start) / PAGE_SIZE;
 		size = sizeof(struct page) * count;
 		
-		/* Initialize each range */
-		memset(_phys_ranges[i].pages, 0, size);
+		/* Initialize each zone */
+		memset(_phys_zones[i].pages, 0, size);
 		for (j = 0; j < count; j++) {
-			LIST_INIT(&_phys_ranges[i].pages[j].header);
-			_phys_ranges[i].pages[j].addr = _phys_ranges[i].start +
+			LIST_INIT(&_phys_zones[i].pages[j].header);
+			_phys_zones[i].pages[j].addr = _phys_zones[i].start +
 				((phys_addr_t)j * PAGE_SIZE);
-			_phys_ranges[i].pages[j].phys_range = i;
+			_phys_zones[i].pages[j].phys_zone = i;
 		}
 	}
 	

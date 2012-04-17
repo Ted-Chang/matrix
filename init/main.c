@@ -37,6 +37,7 @@ static void dump_mbi(struct multiboot_info *mbi);
 int kmain(u_long addr, uint32_t initial_stk)
 {
 	int i, rc, parent_pid;
+	char str[128];
 
 	_mbi = (struct multiboot_info *)addr;
 
