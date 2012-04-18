@@ -50,14 +50,14 @@ size_t strlen(const char *str)
 {
 	size_t len = 0;
 	while (str[len++]);
-	return len;
+	return len - 1;
 }
 
 size_t strnlen(const char *str, size_t num)
 {
 	size_t len = 0;
 	while (str[len++] && (len <= num));
-	return len;
+	return len - 1;
 }
 
 char * strchr(const char *str, int ch)

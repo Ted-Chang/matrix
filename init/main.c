@@ -5,6 +5,7 @@
 #include <types.h>
 #include <time.h>
 #include <string.h>
+#include <stdarg.h>
 #include "matrix/matrix.h"
 #include "matrix/debug.h"
 #include "multiboot.h"
@@ -30,6 +31,7 @@ struct multiboot_info *_mbi;
 
 static void announce();
 static void dump_mbi(struct multiboot_info *mbi);
+static void printk(const char *fmt, ...);
 
 /**
  * The entry point of the matrix kernel.
@@ -46,7 +48,12 @@ int kmain(u_long addr, uint32_t initial_stk)
 
 	ASSERT(_mbi->mods_count > 0);
 
-	dump_mbi(_mbi);
+	//dump_mbi(_mbi);
+	printk("%d\n", 1000);
+	printk("%s\n", "Hello world.");
+	printk("%x\n", 1000);
+	printk("%x\n", 0xFFFFEEFF);
+	printk("%d\n", 100001);
 	
 	/* Preinitialize the CPUs in the system */
 	preinit_cpu();
@@ -145,4 +152,14 @@ void dump_mbi(struct multiboot_info *mbi)
 		kprintf("mbi->mmap_length: 0x%x\n", mbi->mmap_length);
 		kprintf("mbi->mmap_addr: 0x%x\n", mbi->mmap_addr);
 	}
+}
+
+void printk(const char *fmt, ...)
+{
+	char buffer[256];
+	va_list args;
+	va_start(args, fmt);
+	vsprintf(buffer, fmt, args);
+	kprintf(buffer);
+	va_end(args);
 }
