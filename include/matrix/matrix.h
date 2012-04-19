@@ -18,4 +18,8 @@
 
 #define ROUND_DOWN(_x, _n)	((_x) - ((_x) % (_n)))
 
+#define MIN(_x, _y)		((_x) < (_y) ? (_x) : (_y))
+
+#define MAX(_x, _y)		((_x) > (_y) ? (_x) : (_y))
+
 #endif	/* __MATRIX_H__ */

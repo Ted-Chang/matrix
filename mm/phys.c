@@ -21,10 +21,10 @@ struct mem_type_range {
 };
 
 /* Maximum number of memory type ranges */
-#define MEM_TYPE_RANGE_MAX	64
+#define MEM_TYPE_ZONE_MAX	64
 
 /* Memory type ranges */
-static struct mem_type_range _mem_types[MEM_TYPE_RANGE_MAX];
+static struct mem_type_range _mem_types[MEM_TYPE_ZONE_MAX];
 static size_t _mem_types_count = 0;
 struct spinlock _mem_types_lock;
 

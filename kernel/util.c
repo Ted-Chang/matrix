@@ -1,7 +1,7 @@
 #include <types.h>
-#include "stdarg.h"
-#include "string.h"
-#include "stdio.h"
+#include <stdarg.h>
+#include <string.h>
+#include <stdio.h>
 #include "matrix/debug.h"
 #include "hal/hal.h"	// outportb
 
@@ -96,76 +96,19 @@ void clear_scr()
 	update_cursor();
 }
 
-int kprintf(const char *str, ...)
+int kprintf(const char *fmt, ...)
 {
-	size_t i;
+#define DBG_BUFF_SIZE	512
+	char buf[DBG_BUFF_SIZE];
 	va_list args;
 
-	if (!str)
+	if (!fmt)
 		return 0;
 
-	va_start(args, str);
-
-	for (i = 0; i < strlen(str); i++) {
-		switch (str[i]) {
-		case '%':
-			switch (str[i+1]) {
-			/* Characters */
-			case 'c': {
-				char c = va_arg(args, char);
-				putch(c);
-				i++;
-				break;
-			}
-			/* Address of the string */
-			case 's': {
-				int c = (int)va_arg(args, int);
-				char temp_str[64] = {0};
-				strcpy(temp_str, (const char *)c);
-				putstr(temp_str);
-				i++;
-				break;
-			}
-			/* Integers */
-			case 'd':
-			case 'i': {
-				int c = va_arg(args, int);
-				char temp_str[32] = {0};
-				itoa_s(c, 10, temp_str);
-				putstr(temp_str);
-				i++;
-				break;
-			}
-			/* Unsigned integers */
-			case 'u': {
-				int c = va_arg(args, int);
-				char temp_str[32] = {0};
-				itoa(c, 10, temp_str);
-				putstr(temp_str);
-				i++;
-				break;
-			}
-			/* Display in hex */
-			case 'X':
-			case 'x': {
-				int c = va_arg(args, int);
-				char temp_str[32] = {0};
-				itoa(c, 16, temp_str);
-				putstr(temp_str);
-				i++;
-				break;
-			}
-			default:
-				va_end(args);
-				return 1;
-			}
-			break;
-		default:
-			putch(str[i]);
-			break;
-		}
-	}
-
+	va_start(args, fmt);
+	vsnprintf(buf, DBG_BUFF_SIZE, fmt, args);
+	putstr(buf);
 	va_end(args);
+	
 	return 1;
 }

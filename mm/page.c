@@ -4,8 +4,10 @@
 #include "list.h"
 #include "cpu.h"
 #include "kd.h"
+#include "matrix/matrix.h"
 #include "matrix/debug.h"
 #include "mm/page.h"
+#include "mm/mlayout.h"
 #include "multiboot.h"
 
 #define ABOVE4G			0x100000000LL
@@ -15,7 +17,7 @@
 #define NR_PAGE_QUEUE		3
 
 /* Maximum number of physical ranges */
-#define PHYS_RANG_MAX		32
+#define PHYS_ZONE_MAX		32
 
 /* Structure describing a range of physical memory. */
 struct physical_zone {
@@ -49,7 +51,7 @@ static struct page_queue _page_queues[NR_PAGE_QUEUE];
 static struct free_page_list _free_page_lists[NR_FREE_PAGE_LIST];
 
 /* Physical memory ranges */
-static struct physical_zone _phys_zones[PHYS_RANG_MAX];
+static struct physical_zone _phys_zones[PHYS_ZONE_MAX];
 static size_t _nr_phys_zones = 0;
 
 static kd_status_t kd_cmd_page(int argc, char **argv, struct kd_filter *filter)
@@ -63,10 +65,10 @@ void page_add_physical_zone(phys_addr_t start, phys_addr_t end, uint32_t freelis
 	struct physical_zone *zone, *prev;
 
 	/* Increase the total page count */
-	_nr_total_pages += (end - start) / PAGE_SIZE;
+	_nr_total_pages += ((end - start) / PAGE_SIZE);
 
 	/* Update the free list to include this zone */
-	if (!list->minaddr && !list->maxaddr) {
+	if (!list->minaddr && !list->maxaddr) {		// First initialization 
 		list->minaddr = start;
 		list->maxaddr = end;
 	} else {
@@ -87,7 +89,7 @@ void page_add_physical_zone(phys_addr_t start, phys_addr_t end, uint32_t freelis
 		}
 	}
 
-	if (_nr_phys_zones >= PHYS_RANG_MAX) {
+	if (_nr_phys_zones >= PHYS_ZONE_MAX) {
 		PANIC("Too many physical memory zones");
 	}
 
@@ -118,33 +120,33 @@ void platform_init_page()
 		 */
 		if (mmap->addr < ABOVE16M) {
 			if (mmap->addr + mmap->len <= ABOVE16M) {
-				page_add_physical_zone(mmap->addr, mmap->addr + mmap->size,
+				page_add_physical_zone(mmap->addr, mmap->addr + mmap->len,
 						       FREE_PAGE_LIST_BELOW16M);
 			} else if (mmap->addr + mmap->len <= ABOVE4G) {
 				page_add_physical_zone(mmap->addr, ABOVE16M,
 						       FREE_PAGE_LIST_BELOW16M);
-				page_add_physical_zone(ABOVE16M, mmap->addr + mmap->size,
+				page_add_physical_zone(ABOVE16M, mmap->addr + mmap->len,
 						       FREE_PAGE_LIST_BELOW4G);
 			} else {
 				page_add_physical_zone(mmap->addr, ABOVE16M,
 						       FREE_PAGE_LIST_BELOW16M);
 				page_add_physical_zone(ABOVE16M, ABOVE4G,
 						       FREE_PAGE_LIST_BELOW4G);
-				page_add_physical_zone(ABOVE4G, mmap->addr + mmap->size,
+				page_add_physical_zone(ABOVE4G, mmap->addr + mmap->len,
 						       FREE_PAGE_LIST_ABOVE4G);
 			}
 		} else if (mmap->addr < ABOVE4G) {
 			if (mmap->addr + mmap->len <= ABOVE4G) {
-				page_add_physical_zone(mmap->addr, mmap->addr + mmap->size,
+				page_add_physical_zone(mmap->addr, mmap->addr + mmap->len,
 						       FREE_PAGE_LIST_BELOW4G);
 			} else {
 				page_add_physical_zone(mmap->addr, ABOVE4G,
 							FREE_PAGE_LIST_BELOW4G);
-				page_add_physical_zone(ABOVE4G, mmap->addr + mmap->size,
+				page_add_physical_zone(ABOVE4G, mmap->addr + mmap->len,
 						       FREE_PAGE_LIST_ABOVE4G);
 			}
 		} else {
-			page_add_physical_zone(mmap->addr, mmap->addr + mmap->size,
+			page_add_physical_zone(mmap->addr, mmap->addr + mmap->len,
 					       FREE_PAGE_LIST_ABOVE4G);
 		}
 	}
@@ -152,6 +154,7 @@ void platform_init_page()
 
 void init_page()
 {
+	struct multiboot_mmap_entry *mmap;
 	phys_addr_t pages_base = 0, offset = 0, addr;
 	phys_addr_t pages_size = 0, size;
 	page_num_t count, j;
@@ -175,20 +178,48 @@ void init_page()
 	platform_init_page();
 	DEBUG(DL_DBG, ("page: available physical memory zones:\n"));
 	for (i = 0; i < _nr_phys_zones; i++) {
-		DEBUG(DL_DBG, ("0x%x - 0x%x [%d]\n",
+		DEBUG(DL_DBG, ("0x%016lx - 0x%016lx [%d]\n",
 			       _phys_zones[i].start, _phys_zones[i].end,
 			       _phys_zones[i].freelist));
 	}
 	DEBUG(DL_DBG, ("page: free list coverage:\n"));
 	for (i = 0; i < NR_FREE_PAGE_LIST; i++) {
-		DEBUG(DL_DBG, ("%d: 0x%x - 0x%x\n", i,
+		DEBUG(DL_DBG, ("%d: 0x%016lx - 0x%016lx\n", i,
 			       _free_page_lists[i].minaddr,
 			       _free_page_lists[i].maxaddr));
 	}
 
-	DEBUG(DL_DBG, ("page: %d pages, %dKB was used for structures at 0x%x\n",
-		       _nr_total_pages, pages_size / 1024, pages_base));
+	/* Find a suitable free zone to store the page structures in. This zone
+	 * must be the largest possible zone that is accessible through the physical
+	 * map area, as we cannot map in any new memory currently.
+	 */
+	for (mmap = _mbi->mmap_addr;
+	     (unsigned long)mmap < (_mbi->mmap_addr + _mbi->mmap_length);
+	     mmap = (struct multiboot_mmap_entry *)
+		     ((u_long)mmap + mmap->size + sizeof(mmap->size))) {
+		/* Only available memory can be used */
+		if (mmap->type != MULTIBOOT_MEMORY_AVAILABLE)
+			continue;
 
+		if (mmap->addr < KERNEL_PMAP_SIZE) {
+			size = MIN(KERNEL_PMAP_SIZE, mmap->len);
+			if (size > pages_size) {
+				pages_base = mmap->addr;
+				pages_size = size;
+			}
+		}
+	}
+
+	/* Check if we have enough memory in this zone. */
+	size = ROUND_UP(sizeof(struct page) * _nr_total_pages, PAGE_SIZE);
+	if (size > pages_size) {
+		PANIC("Not enough contiguous memory for initialization");
+	}
+	pages_size = size;
+
+	DEBUG(DL_DBG, ("page: %d pages, %dKB was used for structures at 0x%016lx\n",
+		       _nr_total_pages, pages_size / 1024, pages_base));
+	
 	/* Create page structures for each memory zone we have */
 	for (i = 0; i < _nr_phys_zones; i++) {
 		count = (_phys_zones[i].end - _phys_zones[i].start) / PAGE_SIZE;

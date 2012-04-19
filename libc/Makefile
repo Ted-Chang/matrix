@@ -3,7 +3,7 @@ include ../Makefile.inc
 
 OBJ := ../bin/obji386
 
-TARGETOBJ := $(OBJ)/stdio.o $(OBJ)/string.o  $(OBJ)/div64.o $(OBJ)/vsprintf.o $(OBJ)/util.o
+TARGETOBJ := $(OBJ)/stdio.o $(OBJ)/string.o  $(OBJ)/div64.o $(OBJ)/vsprintf.o
 
 .PHONY: clean help
 

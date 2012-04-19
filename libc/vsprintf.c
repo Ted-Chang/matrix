@@ -340,7 +340,7 @@ int format_decode(const char *fmt, struct printf_spec *spec)
 	/* Process flags */
 	spec->flags = 0;
 
-	while (TRUE) {	// This also skip first `%'
+	while (1) {	// This also skip first `%'
 		boolean_t found = TRUE;
 
 		++fmt;
@@ -394,10 +394,8 @@ qualifier:
 		if (!(spec->qualifier == *fmt)) {
 			if (spec->qualifier == 'l') {
 				spec->qualifier = 'L';
-				++fmt;
 			} else if (spec->qualifier == 'h') {
 				spec->qualifier = 'H';
-				++fmt;
 			}
 		}
 	}
