@@ -25,6 +25,7 @@
 #include "keyboard.h"
 #include "floppy.h"
 #include "system.h"
+#include "../tests/test.h"
 
 uint32_t _initial_esp;
 struct multiboot_info *_mbi;
@@ -48,6 +49,10 @@ int kmain(u_long addr, uint32_t initial_stk)
 	ASSERT(_mbi->mods_count > 0);
 
 	//dump_mbi(_mbi);
+
+	list_test();
+
+	while (1);
 	
 	/* Preinitialize the CPUs in the system */
 	preinit_cpu();

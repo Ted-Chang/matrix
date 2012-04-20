@@ -35,7 +35,7 @@ LDFLAGS := -melf_i386 -TLink.ld
 all: $(TARGET)
 	@echo "Making default target."
 
-$(TARGET): hal_module libc_module mm_module fs_module kernel_module drivers_module init_module 
+$(TARGET): hal_module libc_module mm_module fs_module kernel_module drivers_module init_module tests_module
 	$(LD) $(LDFLAGS) -Map bin/matrix.map -o $(TARGET) $(OBJ)/*.o
 
 hal_module:
@@ -58,6 +58,9 @@ drivers_module:
 
 init_module:
 	@cd init && $(MAKE) $(MAKEFLAGS)
+
+tests_module:
+	@cd tests && $(MAKE) $(MAKEFLAGS)
 
 clean:
 	for d in $(MODULES); do (cd $$d; $(MAKE) clean); done; $(RM) $(TARGET) bin/matrix.map
