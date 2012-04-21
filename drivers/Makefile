@@ -11,7 +11,7 @@ TARGETOBJ := $(OBJ)/keyboard.o $(OBJ)/floppy.o $(OBJ)/cmos.o
 all: $(TARGETOBJ)
 
 $(OBJ)/%.o: %.c
-	$(CC) -m32 -I../include $(CFLAGS_global) -c -o $@ $<
+	$(CC) -m32 -g -I../include $(CFLAGS_global) -c -o $@ $<
 
 clean:
 	$(RM) $(TARGETOBJ)

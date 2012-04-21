@@ -19,7 +19,7 @@ TARGETOBJ := $(OBJ)/vector.o \
 all: $(TARGETOBJ)
 
 $(OBJ)/%.o: %.c
-	$(CC) -m32 -D_X86_ -I../include $(CFLAGS_global) -c -o $@ $<
+	$(CC) -m32 -D_X86_ -g -I../include $(CFLAGS_global) -c -o $@ $<
 
 clean:
 	$(RM) $(TARGETOBJ)

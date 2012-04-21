@@ -1,4 +1,4 @@
-Debugging tips:
+[Debugging tips]
 
 * set a lenear address executive break point
 lb 0x1040ea
@@ -11,7 +11,7 @@ NOTE: no space between the expression
 u /10
 
 
-Debugging process:
+* Debugging process:
 lb 0x104008
 c
 s
@@ -26,3 +26,40 @@ lb 0x101d23
 (print the stack when you got a panic)
 print-stack 10
 
+
+
+[Debugging with GDB+QEMU]
+
+usage: qemu [options] [disk_image]
+
+* compile with debugging symbols using "-g" option
+
+* put all of the debugging information in a separate file
+objcopy --only-keep-debug matrix matrix.sym
+
+* strip your executable of debugging information
+objcopy --strip-debug matrix
+
+* start qemu with your floppy image
+qemu -s -S -drive file=~/vm/matrix/matrix.img,index=0,if=floppy
+* start the gdbserver in your virtual machine
+in your virtual machine
+Ctrl + Alt + 2
+gdbserver tcp::2012
+* start gdb in another console
+gdb
+(gdb) file ~/sources/matrix/bin/matrix
+Reading symbols from /home/ted/sources/matrix/bin/matrix...(no debugging symbols found)...done.
+(gdb) target remote :2012
+Remote debugging using :2012
+(gdb) symbol-file ~/sources/matrix/bin/matrix.sym
+Reading symbols from /home/ted/sources/matrix/bin/matrix.sym...done.
+(gdb) break kmain
+Breakpoint 1 at 0x10503c: file main.c, line 40.
+(gdb) continue
+Continuing.
+
+Breakpoint 1, kmain (addr=can't compute CFA for this frame
+) at main.c:40
+40	{
+(gdb)

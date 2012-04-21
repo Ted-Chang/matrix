@@ -12,7 +12,7 @@ TARGETOBJ := $(OBJ)/entry.o \
 all: $(TARGETOBJ)
 
 $(OBJ)/%.o: %.c
-	$(CC) -m32 $(CFLAGS_global) -I../include -c -o $@ $<
+	$(CC) -m32 -g $(CFLAGS_global) -I../include -c -o $@ $<
 
 $(OBJ)/entry.o:
 	nasm $(ASFLAGS) -o $(OBJ)/entry.o entry.s

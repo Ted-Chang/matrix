@@ -274,10 +274,7 @@ void init_page()
 				((phys_addr_t)j * PAGE_SIZE);
 			_phys_zones[i].pages[j].phys_zone = i;
 
-			// For DEBUG!!!
-			kprintf("zone:%d, page: %08x, list(0x%x), header(0x%x, 0x%x)\n",
-				i, j, &_phys_zones[i].pages[j].header, _phys_zones[i].pages[j].header.prev,
-				_phys_zones[i].pages[j].header.next);
+			ASSERT(LIST_EMPTY(&_phys_zones[i].pages[j].header));
 		}
 	}
 

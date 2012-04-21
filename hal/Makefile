@@ -17,7 +17,7 @@ TARGETOBJ := $(OBJ)/hal.o \
 all: $(TARGETOBJ)
 
 $(OBJ)/%.o: %.c
-	$(CC) -D_X86_ -m32 -I../include $(CFLAGS_global) -c -o $@ $<
+	$(CC) -D_X86_ -m32 -g -I../include $(CFLAGS_global) -c -o $@ $<
 
 $(OBJ)/dscptr.o:
 	nasm $(ASFLAGS) -o $(OBJ)/dscptr.o dscptr.s

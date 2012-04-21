@@ -50,10 +50,6 @@ int kmain(u_long addr, uint32_t initial_stk)
 
 	//dump_mbi(_mbi);
 
-	list_test();
-
-	while (1);
-	
 	/* Preinitialize the CPUs in the system */
 	preinit_cpu();
 	preinit_per_cpu(&_boot_cpu);
