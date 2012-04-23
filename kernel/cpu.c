@@ -5,7 +5,7 @@
 #include "cpu.h"
 #include "hal/hal.h"
 #include "mm/page.h"
-#include "mm/mmgr.h"
+#include "mm/kmem.h"
 #include "exceptn.h"
 #include "proc/task.h"
 #include "matrix/debug.h"

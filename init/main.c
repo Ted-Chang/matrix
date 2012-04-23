@@ -3,6 +3,7 @@
  */
 
 #include <types.h>
+#include <stddef.h>
 #include <time.h>
 #include <string.h>
 #include <stdarg.h>
@@ -11,11 +12,10 @@
 #include "multiboot.h"
 #include "hal/hal.h"
 #include "cpu.h"
-#include "mm/kheap.h"
-#include "mm/mmgr.h"
 #include "mm/page.h"
 #include "mm/mmu.h"
 #include "mm/kmem.h"
+#include "mm/malloc.h"
 #include "timer.h"
 #include "fs.h"
 #include "initrd.h"
@@ -63,6 +63,7 @@ int kmain(u_long addr, uint32_t initial_stk)
 	init_mmu();
 	init_mmu_per_cpu();
 	init_kmem();
+	init_malloc();
 
 	kprintf("Kernel memory management subsystem initialization complete.\n");
 

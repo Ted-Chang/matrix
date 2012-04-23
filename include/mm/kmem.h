@@ -1,8 +1,12 @@
 #ifndef __KMEM_H__
 #define __KMEM_H__
 
-extern void *kmem_map(phys_addr_t base, size_t size, int mmflag);
-extern void kmem_unmap(void *addr, size_t size, boolean_t shared);
+extern void *kmalloc(size_t size);
+extern void *kmalloc_a(size_t size);
+extern void *kmalloc_p(size_t size, uint32_t *phys);
+extern void *kmalloc_ap(size_t size, uint32_t *phys);
+extern void *kmalloc_int(size_t size, int align, uint32_t *phys);
+extern void kfree(void *p);
 
 extern void init_kmem();
 

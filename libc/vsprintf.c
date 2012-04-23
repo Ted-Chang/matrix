@@ -471,11 +471,6 @@ qualifier:
 	return ++fmt - start;
 }
 
-int vsprintf(char *buf, const char *fmt, va_list args)
-{
-	return vsnprintf(buf, INT_MAX, fmt, args);
-}
-
 int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 {
 	unsigned long long num;
@@ -626,4 +621,9 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 
 	/* The trailing null byte doesn't count towards the total */
 	return str - buf;
+}
+
+int vsprintf(char *buf, const char *fmt, va_list args)
+{
+	return vsnprintf(buf, INT_MAX, fmt, args);
 }

@@ -5,13 +5,12 @@ include ../Makefile.inc
 OBJ := ../bin/obji386
 
 TARGETOBJ := $(OBJ)/vector.o \
-	$(OBJ)/mmgr.o \
-	$(OBJ)/kheap.o \
 	$(OBJ)/fixed_heap.o \
 	$(OBJ)/mmu.o \
 	$(OBJ)/page.o \
 	$(OBJ)/phys.o \
 	$(OBJ)/kmem.o \
+	$(OBJ)/malloc.o \
 
 
 .PHONY: clean help
