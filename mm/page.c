@@ -5,6 +5,7 @@
 #include "list.h"
 #include "cpu.h"
 #include "kd.h"
+#include "mutex.h"
 #include "matrix/matrix.h"
 #include "matrix/debug.h"
 #include "mm/mm.h"
@@ -49,8 +50,10 @@ static page_num_t _nr_total_pages = 0;
 /* Allocated page queues */
 static struct page_queue _page_queues[NR_PAGE_QUEUE];
 
-/* Free page list */
+/* Free page list, it was seperated by ABOVE4G, BELOW4G and BWLOW16M */
 static struct free_page_list _free_page_lists[NR_FREE_PAGE_LIST];
+static struct mutex _free_page_lock;
+
 
 /* Physical memory ranges */
 static struct physical_zone _phys_zones[PHYS_ZONE_MAX];
@@ -61,7 +64,7 @@ static kd_status_t kd_cmd_page(int argc, char **argv, struct kd_filter *filter)
 	return KD_SUCCESS;
 }
 
-static inline void page_queue_append(u_long index, struct page *page)
+static INLINE void page_queue_append(u_long index, struct page *page)
 {
 	ASSERT(LIST_EMPTY(&page->header));
 
@@ -71,12 +74,21 @@ static inline void page_queue_append(u_long index, struct page *page)
 	spinlock_release(&_page_queues[index].lock);
 }
 
-static inline void page_queue_remove(u_long index, struct page *page)
+static INLINE void page_queue_remove(u_long index, struct page *page)
 {
 	spinlock_acquire(&_page_queues[index].lock);
 	list_del(&page->header);
 	_page_queues[index].count--;
 	spinlock_release(&_page_queues[index].lock);
+}
+
+static void remove_page_from_current_queue(struct page *page)
+{
+	/* Check that we have a valid current state. */
+	if (page->state >= NR_PAGE_QUEUE)
+		PANIC("Page has invalid state\n");
+	
+	page_queue_remove(page->state, page);
 }
 
 struct page *page_lookup(phys_addr_t addr)
@@ -92,6 +104,75 @@ struct page *page_lookup(phys_addr_t addr)
 	}
 	
 	return NULL;
+}
+
+struct page *page_alloc(int mmflag)
+{
+	void *mapping;
+	struct page *page;
+	uint32_t i;
+
+	/* Acquire the lock */
+	mutex_acquire(&_free_page_lock);
+
+	/* Attempt to allocate from each of the lists */
+	for (i = 0; i < NR_FREE_PAGE_LIST; i++) {
+		if (LIST_EMPTY(&_free_page_lists[i].pages))
+			continue;
+
+		/* Get the page and mark it as allocated */
+		page = LIST_ENTRY(&_free_page_lists[i].pages, struct page, header);
+		list_del(&page->header);
+		page->state = PAGE_STATE_ALLOCATED;
+
+		mutex_release(&_free_page_lock);
+		
+		/* Put the page onto the allocated queue */
+		page_queue_append(PAGE_STATE_ALLOCATED, page);
+
+		/* If we require a zero page, clear it now */
+		if (FLAG_ON(mmflag, MM_ZERO)) {
+			;
+		}
+
+		return page;
+	}
+
+	if (FLAG_ON(mmflag, MM_BOOT))
+		PANIC("Unable to satisfy boot page allocation");
+	else if (FLAG_ON(mmflag, MM_WAIT))
+		PANIC("TODO: Reclaim or wait for memory");
+	
+	mutex_release(&_free_page_lock);
+
+	return NULL;
+}
+
+static void page_free_internal(struct page *page)
+{
+	/* Clear the state and flags of this page */
+	page->state = PAGE_STATE_FREE;
+	page->modified = FALSE;
+
+	/* Push it into the appropriated list */
+	list_add(&page->header,
+		 &_free_page_lists[_phys_zones[page->phys_zone].freelist].pages);
+}
+
+void page_free(struct page *page)
+{
+	if (page->state == PAGE_STATE_FREE)
+		PANIC("Attempting to free already freed page");
+
+	/* Remove the page from current queue */
+	remove_page_from_current_queue(page);
+	
+	mutex_acquire(&_free_page_lock);
+	page_free_internal(page);
+	mutex_release(&_free_page_lock);
+
+	DEBUG(DL_DBG, ("page: freed page 0x%016lx (list:%u)\n", page->addr,
+		       _phys_zones[page->phys_zone].freelist));
 }
 
 void page_add_physical_zone(phys_addr_t start, phys_addr_t end, uint32_t freelist)
@@ -142,13 +223,6 @@ void platform_init_page()
 	     (unsigned long)mmap < (_mbi->mmap_addr + _mbi->mmap_length);
 	     mmap = (struct multiboot_mmap_entry *)
 		     ((u_long)mmap + mmap->size + sizeof(mmap->size))) {
-		switch (mmap->type) {
-		case MULTIBOOT_MEMORY_AVAILABLE:
-		case MULTIBOOT_MEMORY_RESERVED:
-			break;
-		default:
-			continue;
-		}
 
 		/* Determine which free list pages in the zone should be put in.
 		 * If necessary, split into multiple zones.
@@ -176,7 +250,7 @@ void platform_init_page()
 						       FREE_PAGE_LIST_BELOW4G);
 			} else {
 				page_add_physical_zone(mmap->addr, ABOVE4G,
-							FREE_PAGE_LIST_BELOW4G);
+						       FREE_PAGE_LIST_BELOW4G);
 				page_add_physical_zone(ABOVE4G, mmap->addr + mmap->len,
 						       FREE_PAGE_LIST_ABOVE4G);
 			}
@@ -208,6 +282,7 @@ void init_page()
 		_free_page_lists[i].minaddr = 0;
 		_free_page_lists[i].maxaddr = 0;
 	}
+	mutex_init(&_free_page_lock, "free_page_lock", 0);
 
 	/* First call into platform-specific code to parse the memory map
 	 * provided by the loader and separate it further as required
@@ -221,7 +296,7 @@ void init_page()
 	}
 	DEBUG(DL_DBG, ("page: free list coverage:\n"));
 	for (i = 0; i < NR_FREE_PAGE_LIST; i++) {
-		DEBUG(DL_DBG, ("%d: 0x%016lx - 0x%016lx\n", i,
+		DEBUG(DL_DBG, ("[%d]: 0x%016lx - 0x%016lx\n", i,
 			       _free_page_lists[i].minaddr,
 			       _free_page_lists[i].maxaddr));
 	}
@@ -234,6 +309,7 @@ void init_page()
 	     (u_long)mmap < (_mbi->mmap_addr + _mbi->mmap_length);
 	     mmap = (struct multiboot_mmap_entry *)
 		     ((u_long)mmap + mmap->size + sizeof(mmap->size))) {
+
 		/* Only available memory can be used */
 		if (mmap->type != MULTIBOOT_MEMORY_AVAILABLE)
 			continue;
@@ -256,25 +332,22 @@ void init_page()
 
 	DEBUG(DL_DBG, ("page: %d pages, %dKB was used for structures at 0x%016lx\n",
 		       _nr_total_pages, pages_size / 1024, pages_base));
-	
+
 	/* Create page structures for each memory zone we have */
 	for (i = 0; i < _nr_phys_zones; i++) {
 		/* Calculate how many bytes we need for this zone */
 		count = (_phys_zones[i].end - _phys_zones[i].start) / PAGE_SIZE;
 		size = sizeof(struct page) * count;
-		/* Map the memory for it */
 		_phys_zones[i].pages = phys_map(pages_base + offset, size, MM_BOOT);
 		offset += size;
 		
-		/* Initialize the pages of this zone */
+		/* Initialize the pages belong to this zone */
 		memset(_phys_zones[i].pages, 0, size);
 		for (j = 0; j < count; j++) {
 			LIST_INIT(&_phys_zones[i].pages[j].header);
 			_phys_zones[i].pages[j].addr = _phys_zones[i].start +
 				((phys_addr_t)j * PAGE_SIZE);
 			_phys_zones[i].pages[j].phys_zone = i;
-
-			ASSERT(LIST_EMPTY(&_phys_zones[i].pages[j].header));
 		}
 	}
 
@@ -284,23 +357,12 @@ void init_page()
 	     mmap = (struct multiboot_mmap_entry *)
 		     ((u_long)mmap + mmap->size + sizeof(mmap->size))) {
 		/* Determine what state to give pages in this zone */
-		switch (mmap->type) {
-		case MULTIBOOT_MEMORY_AVAILABLE:
-			free = TRUE;
-			break;
-		case MULTIBOOT_MEMORY_RESERVED:
-			free = FALSE;
-			break;
-		default:
-			continue;
-		}
+		free = (mmap->type == MULTIBOOT_MEMORY_AVAILABLE) ? TRUE : FALSE;
 
 		/* We must individually look up each page because a signle memory map
 		 * can be split over multiple physical zone.
 		 */
-		for (addr = mmap->addr;
-		     addr != (mmap->addr + mmap->len);
-		     addr += PAGE_SIZE) {
+		for (addr = mmap->addr; addr != (mmap->addr + mmap->len); addr += PAGE_SIZE) {
 			page = page_lookup(addr);
 			ASSERT(page);
 

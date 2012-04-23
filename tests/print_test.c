@@ -11,4 +11,6 @@ void print_test()
 	kprintf("A long long decimal:%ld\n", 0x100000000);
 	kprintf("A long long hex:%lx\n", 0x100000000);
 	kprintf("A String(%s)\n", "Hello, kprintf");
+	kprintf("An unsigned long: %u\n", 0xFFFFFFFF);
+	kprintf("A signed long: %d\n", 0xFFFFFFFF);
 }

@@ -7,4 +7,7 @@ void unit_test()
 	print_test();
 	list_test();
 	lock_test();
+	mem_test();
+	
+	while (1);
 }

@@ -48,7 +48,9 @@ int kmain(u_long addr, uint32_t initial_stk)
 
 	ASSERT(_mbi->mods_count > 0);
 
+	//kprintf("initial_stk: 0x%x\n", initial_stk);
 	//dump_mbi(_mbi);
+	//unit_test();
 
 	/* Preinitialize the CPUs in the system */
 	preinit_cpu();
@@ -128,6 +130,8 @@ void announce()
 
 void dump_mbi(struct multiboot_info *mbi)
 {
+	struct multiboot_mmap_entry *mmap;
+	
 	kprintf("mbi->flags: 0x%x\n", mbi->flags);
 	if (FLAG_ON(mbi->flags, 0x00000001)) {
 		kprintf("mbi->mem_low: 0x%x\n", mbi->mem_lower);
@@ -147,4 +151,13 @@ void dump_mbi(struct multiboot_info *mbi)
 		kprintf("mbi->mmap_length: 0x%x\n", mbi->mmap_length);
 		kprintf("mbi->mmap_addr: 0x%x\n", mbi->mmap_addr);
 	}
+	for (mmap = _mbi->mmap_addr;
+	     (u_long)mmap < (_mbi->mmap_addr + _mbi->mmap_length);
+	     mmap = (struct multiboot_mmap_entry *)
+		     ((u_long)mmap + mmap->size + sizeof(mmap->size))) {
+		kprintf("mmap addr(0x%016lx), len(0x%016lx), type(%d)\n",
+			mmap->addr, mmap->len, mmap->type);
+	}
+	kprintf("mbi->mods_addr: 0x%x\n", *((uint32_t *)_mbi->mods_addr));
+	kprintf("placement address: 0x%x\n", *((uint32_t *)(_mbi->mods_addr + 4)));
 }

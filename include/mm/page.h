@@ -56,6 +56,8 @@ struct page {
 #define PAGE_STATE_CACHED	2
 #define PAGE_STATE_FREE		3
 
+extern struct page *page_alloc(int mmflag);
+extern void page_free(struct page *page);
 extern void page_stats_get(struct page_stats *stats);
 extern void init_page();
 

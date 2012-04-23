@@ -6,6 +6,7 @@ OBJ := ../bin/obji386
 TARGETOBJ := $(OBJ)/print_test.o \
 	$(OBJ)/list_test.o \
 	$(OBJ)/lock_test.o \
+	$(OBJ)/mem_test.o \
 	$(OBJ)/tests.o \
 
 

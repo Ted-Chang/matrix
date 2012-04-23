@@ -17,6 +17,7 @@ TARGETOBJ := $(OBJ)/debug.o \
 	$(OBJ)/kd.o \
 	$(OBJ)/cpu.o \
 	$(OBJ)/util.o \
+	$(OBJ)/mutex.o \
 
 
 .PHONY: clean help

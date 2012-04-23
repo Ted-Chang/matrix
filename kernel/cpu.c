@@ -205,7 +205,7 @@ void preinit_cpu()
 	 * once we have the ability to get the real ID.
 	 */
 	cpu_ctor(&_boot_cpu, 0, CPU_RUNNING);
-	list_add_tail(&_running_cpus, &_boot_cpu.header);
+	list_add_tail(&_boot_cpu.header, &_running_cpus);
 
 	/* Perform architecture specific initialization. This initialize some
 	 * state shared between all CPUs.

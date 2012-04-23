@@ -32,6 +32,8 @@ print-stack 10
 
 usage: qemu [options] [disk_image]
 
+Note that if you are using GDB of x86_64 platform, you should change the qemu to qemu-system-x86_64.
+
 * compile with debugging symbols using "-g" option
 
 * put all of the debugging information in a separate file

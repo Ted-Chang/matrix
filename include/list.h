@@ -19,7 +19,13 @@ typedef struct list list_t;
 	(((list)->prev == (list)) && ((list)->next == (list)))
 
 #define LIST_INIT(list) \
-	(((list)->prev) = ((list)->next) = list)
+	(((list)->prev) = ((list)->next) = (list))
+
+#define LIST_FOR_EACH(pos, head) \
+	for (pos = (head)->next; pos != (head); pos = pos->next)
+
+#define LIST_FOR_EACH_SAFE(pos, n, head) \
+	for (pos = (head)->next, n = pos->next; pos != head; pos = n, n = pos->next)
 
 static INLINE void __list_add(struct list *new, struct list *prev,
 			      struct list *next)
@@ -30,11 +36,17 @@ static INLINE void __list_add(struct list *new, struct list *prev,
 	new->prev = prev;
 }
 
+/**
+ * Insert a new entry after the specified head
+ */
 static INLINE void list_add(struct list *new, struct list *head)
 {
 	__list_add(new, head, head->next);
 }
 
+/**
+ * Insert a new entry before the specified head
+ */
 static INLINE void list_add_tail(struct list *new, struct list *head)
 {
 	__list_add(new, head->prev, head);
