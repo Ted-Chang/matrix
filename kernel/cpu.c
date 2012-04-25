@@ -230,6 +230,6 @@ void init_cpu()
 	_nr_cpus = 1;
 
 	/* Create the initial CPU array and the boot CPU to it */
-	_cpus = (struct cpu **)kmalloc(sizeof(struct cpu *) * _highest_cpu_id + 1);
+	_cpus = (struct cpu **)kmem_alloc(sizeof(struct cpu *) * _highest_cpu_id + 1);
 	_cpus[_boot_cpu.id] = &_boot_cpu;
 }

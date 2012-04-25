@@ -39,17 +39,17 @@ void *alloc(struct heap *heap, size_t size, uint8_t page_align);
 
 struct heap *_kheap = NULL;
 
-void *kmalloc_int(size_t size, int align, uint32_t *phys)
+void *kmem_alloc_int(size_t size, int align, uint32_t *phys)
 {
-	if (_kheap) {	// The heap manager was initialized
+	if (_kheap) {
 		void *addr = alloc(_kheap, size, (uint8_t)align);
 		if (phys) {
-			struct page *page = mmu_ctx_get_page(&_kernel_mmu_ctx,
-							     (uint32_t)addr, FALSE);
+			struct page *page = mmu_get_pages(&_kernel_mmu_ctx,
+							  (uint32_t)addr, FALSE);
 			*phys = page->frame * 0x1000 + ((uint32_t)addr & 0xFFF);
 		}
 		return addr;
-	} else {	// The heap manager was not initialized
+	} else {
 		uint32_t tmp;
 
 		/* If the address is not already page-aligned */
@@ -69,24 +69,24 @@ void *kmalloc_int(size_t size, int align, uint32_t *phys)
 	}
 }
 
-void *kmalloc(size_t size)
+void *kmem_alloc(size_t size)
 {
-	return kmalloc_int(size, 0, 0);
+	return kmem_alloc_int(size, 0, 0);
 }
 
-void *kmalloc_a(size_t size)
+void *kmem_alloc_a(size_t size)
 {
-	return kmalloc_int(size, 1, 0);
+	return kmem_alloc_int(size, 1, 0);
 }
 
-void *kmalloc_p(size_t size, uint32_t *phys)
+void *kmem_alloc_p(size_t size, uint32_t *phys)
 {
-	return kmalloc_int(size, 0, phys);
+	return kmem_alloc_int(size, 0, phys);
 }
 
-void *kmalloc_ap(size_t size, uint32_t *phys)
+void *kmem_alloc_ap(size_t size, uint32_t *phys)
 {
-	return kmalloc_int(size, 1, phys);
+	return kmem_alloc_int(size, 1, phys);
 }
 
 static void expand(struct heap *heap, size_t new_size)
@@ -110,8 +110,8 @@ static void expand(struct heap *heap, size_t new_size)
 	i = old_size;
 
 	while (i < new_size) {
-		alloc_frame(mmu_ctx_get_page(&_kernel_mmu_ctx, heap->start_addr + i, TRUE),
-			    heap->supervisor ? 1 : 0, heap->readonly ? 0 : 1);
+		page_alloc(mmu_get_pages(&_kernel_mmu_ctx, heap->start_addr + i, TRUE),
+			   heap->supervisor ? 1 : 0, heap->readonly ? 0 : 1);
 		i += 0x1000;	/* Page size */
 	}
 	
@@ -138,7 +138,7 @@ static uint32_t contract(struct heap *heap, size_t new_size)
 	i = old_size - 0x1000;
 
 	while (new_size < i) {
-		free_frame(mmu_ctx_get_page(&_kernel_mmu_ctx, heap->start_addr + i, FALSE));
+		page_free(mmu_get_pages(&_kernel_mmu_ctx, heap->start_addr + i, FALSE));
 		i -= 0x1000;
 	}
 
@@ -166,7 +166,7 @@ struct heap *create_heap(uint32_t start, uint32_t end, uint32_t max,
 	ASSERT(start % 0x1000 == 0);
 	ASSERT(end % 0x1000 == 0);
 
-	heap = (struct heap *)kmalloc(sizeof(struct heap));
+	heap = (struct heap *)kmem_alloc(sizeof(struct heap));
 
 	/* Initialize the index of the heap, size of index is fixed */
 	heap->index = place_vector((void *)start, HEAP_INDEX_SIZE, header_compare);
@@ -439,13 +439,14 @@ void free(struct heap *heap, void *p)
 		insert_vector(&heap->index, (void *)header);
 }
 
-void kfree(void *p)
+void kmem_free(void *p)
 {
 	free(_kheap, p);
 }
 
 void init_kmem()
 {
-	_kheap = create_heap(KERNEL_KMEM_BASE, KERNEL_KMEM_BASE + KERNEL_KMEM_SIZE,
+	/* Create kernel heap at KERNEL_KMEM_BASE */
+	_kheap = create_heap(KERNEL_PMAP_BASE, KERNEL_PMAP_BASE + KERNEL_PMAP_SIZE,
 			     0xCFFFF000, FALSE, FALSE);
 }

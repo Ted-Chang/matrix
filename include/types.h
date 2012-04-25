@@ -25,7 +25,7 @@ typedef unsigned long u_long;
 typedef unsigned char u_char;
 
 /* Physical address type definition */
-typedef uint64_t phys_addr_t;
+typedef uint32_t phys_addr_t;
 
 /* Physical memory size definition */
 typedef uint32_t phys_size_t;

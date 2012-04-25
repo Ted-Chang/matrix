@@ -217,6 +217,7 @@ typedef struct cpu_features cpu_features_t;
 
 extern struct cpu_features _cpu_features;
 
+struct va_space;
 struct cpu;
 
 /* Architecture specific CPU structure */
@@ -242,16 +243,18 @@ struct arch_cpu {
 /* CPU ID */
 typedef uint16_t cpu_id_t;
 struct cpu {
-	struct list header;	// Link to running CPUs list
+	struct list header;		// Link to running CPUs list
 	
-	cpu_id_t id;		// ID of this CPU
-	struct arch_cpu arch;	// Architecture specific information
+	cpu_id_t id;			// ID of this CPU
+	struct arch_cpu arch;		// Architecture specific information
 	
 	/* Current state of the CPU */
 	enum {
 		CPU_OFFLINE,
 		CPU_RUNNING,
 	} state;
+
+	struct va_space *space;		// Address space currently in use
 };
 typedef struct cpu cpu_t;
 

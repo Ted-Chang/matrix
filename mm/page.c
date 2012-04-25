@@ -71,7 +71,7 @@ static uint32_t first_frame()
 	return 0;
 }
 
-void alloc_frame(struct page *p, int is_kernel, int is_writable)
+void page_alloc(struct page *p, int is_kernel, int is_writable)
 {
 	if (p->frame != 0) {
 		DEBUG(DL_DBG, ("alloc_frame: page(0x%x), frame(0x%x), kernel(%d), writable(%d)\n",
@@ -94,7 +94,7 @@ void alloc_frame(struct page *p, int is_kernel, int is_writable)
 	}
 }
 
-void free_frame(struct page *p)
+void page_free(struct page *p)
 {
 	uint32_t frame;
 	if (!(frame = p->frame)) {
@@ -130,6 +130,6 @@ void init_page()
 	_nr_total_pages = mem_size / PAGE_SIZE;
 
 	/* Allocate the bitmap for the pages */
-	_pages = kmalloc(_nr_total_pages/(4*8));
+	_pages = kmem_alloc(_nr_total_pages/(4*8));
 	memset(_pages, 0, _nr_total_pages/(4*8));
 }

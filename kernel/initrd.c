@@ -75,7 +75,7 @@ struct vfs_node *init_initrd(uint32_t location)
 		(location + sizeof(struct initrd_header));
 
 	/* Initialize the root directory */
-	initrd_root = (struct vfs_node *)kmalloc(sizeof(struct vfs_node));
+	initrd_root = (struct vfs_node *)kmem_alloc(sizeof(struct vfs_node));
 	strcpy(initrd_root->name, "initrd");
 	initrd_root->mask = initrd_root->uid =
 		initrd_root->gid =
@@ -93,7 +93,7 @@ struct vfs_node *init_initrd(uint32_t location)
 	initrd_root->impl = 0;
 
 	/* Initialize the dev directory */
-	initrd_dev = (struct vfs_node *)kmalloc(sizeof(struct vfs_node));
+	initrd_dev = (struct vfs_node *)kmem_alloc(sizeof(struct vfs_node));
 	strcpy(initrd_dev->name, "dev");
 	initrd_dev->mask = initrd_dev->uid =
 		initrd_dev->gid =
@@ -111,7 +111,7 @@ struct vfs_node *init_initrd(uint32_t location)
 	initrd_dev->impl = 0;
 
 	root_nodes = (struct vfs_node *)
-		kmalloc(sizeof(struct vfs_node) * initrd_hdr->nr_files);
+		kmem_alloc(sizeof(struct vfs_node) * initrd_hdr->nr_files);
 	nr_root_nodes = initrd_hdr->nr_files;
 
 	/* For each file in the root directory */

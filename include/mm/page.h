@@ -21,8 +21,8 @@ struct page {
 
 extern phys_addr_t _placement_addr;
 
-extern void alloc_frame(struct page *p, int is_kernel, int is_writable);
-extern void free_frame(struct page *p);
+extern void page_alloc(struct page *p, int is_kernel, int is_writable);
+extern void page_free(struct page *p);
 extern void init_page();
 
 #endif	/* __PAGE_H__ */

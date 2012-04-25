@@ -3,7 +3,7 @@
 #include "hal/isr.h"
 #include "matrix/debug.h"
 
-static struct irq_hook _exceptn_hooks[17];
+static struct irq_hook _exceptn_hooks[18];
 
 void divide_by_zero_fault(struct intr_frame *frame)
 {
@@ -74,6 +74,36 @@ void general_protection_fault(struct intr_frame *frame)
 	PANIC("General protection fault");
 }
 
+void page_fault(struct intr_frame *frame)
+{
+	uint32_t faulting_addr;
+	int present;
+	int rw;
+	int us;
+	int reserved;
+
+	/* A page fault has occurred. The CR2 register
+	 * contains the faulting address.
+	 */
+	asm volatile("mov %%cr2, %0" : "=r"(faulting_addr));
+
+	present = frame->err_code & 0x1;
+	rw = frame->err_code & 0x2;
+	us = frame->err_code & 0x4;
+	reserved = frame->err_code & 0x8;
+
+	/* Print an error message */
+	kprintf("Page fault(%s%s%s%s) at 0x%x - EIP: 0x%x\n", 
+		present ? "present " : "non-present ",
+		rw ? "write " : "read ",
+		us ? "user-mode " : "supervisor-mode ",
+		reserved ? "reserved " : "",
+		faulting_addr,
+		frame->eip);
+
+	PANIC("Page fault");
+}
+
 void fpu_fault(struct intr_frame *frame)
 {
 	PANIC("FPU fault");
@@ -115,8 +145,9 @@ void init_exception_handlers()
 	register_interrupt_handler(11, &_exceptn_hooks[10], no_segment_fault);
 	register_interrupt_handler(12, &_exceptn_hooks[11], stack_fault);
 	register_interrupt_handler(13, &_exceptn_hooks[12], general_protection_fault);
-	register_interrupt_handler(16, &_exceptn_hooks[13], fpu_fault);
-	register_interrupt_handler(17, &_exceptn_hooks[14], alignment_check_fault);
-	register_interrupt_handler(18, &_exceptn_hooks[15], machine_check_abort);
-	register_interrupt_handler(19, &_exceptn_hooks[16], simd_fpu_fault);
+	register_interrupt_handler(14, &_exceptn_hooks[13], page_fault);
+	register_interrupt_handler(16, &_exceptn_hooks[14], fpu_fault);
+	register_interrupt_handler(17, &_exceptn_hooks[15], alignment_check_fault);
+	register_interrupt_handler(18, &_exceptn_hooks[16], machine_check_abort);
+	register_interrupt_handler(19, &_exceptn_hooks[17], simd_fpu_fault);
 }

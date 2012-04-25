@@ -25,6 +25,10 @@ vb 0x08:0x1015f9
 lb 0x101d23
 (print the stack when you got a panic)
 print-stack 10
+(check the value control registers)
+creg
+(check the page by the virtual address)
+page 0xe007ffff
 
 
 

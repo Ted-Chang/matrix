@@ -24,5 +24,7 @@
 #define va_arg(AP, TYPE) \
 	(*(TYPE *)((AP += VA_SIZE(TYPE)) - VA_SIZE(TYPE)))
 
+int vsnprintf(char *buf, size_t size, const char *fmt, va_list args);
+int vsprintf(char *buf, const char *fmt, va_list args);
 
 #endif	/* __STDARG_H__ */

@@ -81,6 +81,9 @@ static INLINE int64_t atomic_dec64(atomic64_t *var)
 	return atomic_sub64(var, 1);
 }
 
+/**
+ * Atomic test and set for 64-bit integer
+ */
 static INLINE int atomic_tas64(atomic64_t *var, int64_t test, int64_t val)
 {
 	int res;
