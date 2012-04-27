@@ -71,11 +71,11 @@ static uint32_t first_frame()
 	return 0;
 }
 
-void page_alloc(struct page *p, int is_kernel, int is_writable)
+void page_alloc(struct page *p, boolean_t kernel, boolean_t write)
 {
 	if (p->frame != 0) {
 		DEBUG(DL_DBG, ("alloc_frame: page(0x%x), frame(0x%x), kernel(%d), writable(%d)\n",
-			       p, p->frame, is_kernel, is_writable));
+			       p, p->frame, kernel, write));
 		return;
 	} else {
 		/* Get the first free frame from our global frame set */
@@ -88,8 +88,8 @@ void page_alloc(struct page *p, int is_kernel, int is_writable)
 		set_frame(idx * 0x1000);
 		
 		p->present = 1;
-		p->rw = is_writable ? 1 : 0;
-		p->user = is_kernel ? 0 : 1;
+		p->rw = write ? 1 : 0;
+		p->user = kernel ? 0 : 1;
 		p->frame = idx;
 	}
 }

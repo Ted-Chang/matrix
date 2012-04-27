@@ -19,6 +19,10 @@
 #define IS_CURRENT_CTX(ctx)	(IS_KERNEL_CTX(ctx) || \
 				 (CURR_SPACE && (ctx == CURR_SPACE->mmu)))
 
+/* Flags for the new table of the specified context */
+#define TBL_MAPPING_FLAGS(ctx)	(IS_KERNEL_CTX(ctx) ? (X86_PTE_PRESENT | X86_PTE_WRITE) : \
+				 (X86_PTE_PRESENT | X86_PTE_WRITE | X86_PTE_USER))
+
 /* Definitions of a page table */
 struct ptbl {
 	struct page pte[1024];
@@ -116,6 +120,40 @@ static void mmu_invalidate_ctx(struct mmu_ctx *ctx, uint32_t virt, boolean_t sha
 		x86_invlpg(virt);
 }
 
+struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t make,
+			  int mmflag)
+{
+	uint32_t dir_idx, tbl_idx;
+	struct pdir *pdir;
+
+	pdir = ctx->pdir;
+	
+	/* Calculate the page table index and page directory index */
+	tbl_idx = (virt / PAGE_SIZE) % 1024;
+	dir_idx = (virt / PAGE_SIZE) / 1024;
+
+	if (pdir->ptbl[dir_idx]) {	// The page table already assigned
+		return &pdir->ptbl[dir_idx]->pte[tbl_idx];
+	} else if (make) {		// Make a new page table
+		uint32_t tmp;
+		
+		/* Allocate a new page table */
+		pdir->ptbl[dir_idx] = (struct ptbl *)kmem_alloc_ap(sizeof(struct ptbl), &tmp);
+		
+		/* Clear the content of the page table */
+		memset(pdir->ptbl[dir_idx], 0, sizeof(struct ptbl));
+
+		/* Set the content of the page directory entry */
+		pdir->pde[dir_idx] = tmp|TBL_MAPPING_FLAGS(ctx);
+		
+		return &pdir->ptbl[dir_idx]->pte[tbl_idx];
+	} else {
+		DEBUG(DL_INF, ("no page for addr(0x%08x) in mmu contex(0x%08x)\n",
+			       virt, ctx));
+		return NULL;
+	}
+}
+
 void mmu_lock_ctx(struct mmu_ctx *ctx)
 {
 	mutex_acquire(&ctx->lock);
@@ -126,36 +164,62 @@ void mmu_unlock_ctx(struct mmu_ctx *ctx)
 	mutex_release(&ctx->lock);
 }
 
-struct page *mmu_get_pages(struct mmu_ctx *ctx, uint32_t addr, boolean_t make)
+status_t mmu_map_page(struct mmu_ctx *ctx, uint32_t virt, phys_addr_t phys,
+		     boolean_t write, boolean_t execute, int mmflag)
 {
-	uint32_t pd_idx, pt_idx;
-	struct pdir *pdir;
+	uint32_t pte, pde;
+	struct page *page;
 
-	pdir = ctx->pdir;
-	
-	/* Calculate the page table index and page directory index */
-	pt_idx = (addr / PAGE_SIZE) % 1024;
-	pd_idx = (addr / PAGE_SIZE) / 1024;
-
-	if (pdir->ptbl[pd_idx]) {	// The page table already assigned
-		return &pdir->ptbl[pd_idx]->pte[pt_idx];
-	} else if (make) {		// Make a new page table
-		uint32_t tmp;
-		
-		/* Allocate a new page table */
-		pdir->ptbl[pd_idx] = (struct ptbl *)kmem_alloc_ap(sizeof(struct ptbl), &tmp);
-		
-		/* Clear the content of the page table */
-		memset(pdir->ptbl[pd_idx], 0, sizeof(struct ptbl));
-
-		pdir->pde[pd_idx] = tmp|X86_PTE_PRESENT|X86_PTE_WRITE|X86_PTE_USER;
-		
-		return &pdir->ptbl[pd_idx]->pte[pt_idx];
-	} else {
-		DEBUG(DL_INF, ("no page for addr(0x%08x) in mmu contex(0x%08x)\n",
-			       addr, ctx));
-		return NULL;
+	/* Find the page table for the virtual address */
+	page = mmu_get_page(ctx, virt, TRUE, 0);
+	if (!page) {
+		return STATUS_NO_MEMORY;
 	}
+
+	/* Check if the mapping already exist. */
+	if (page->present)
+		PANIC("Virtual address already mapped.");
+
+	/* Set the PTE */
+	page->present = 1;
+	
+	if (write)
+		page->rw = 1;
+
+	if (!IS_KERNEL_CTX(ctx))
+		page->user = 1;
+
+	page->frame = phys >> 12;
+	
+	return STATUS_SUCCESS;
+}
+
+boolean_t mmu_unmap_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t shared,
+			 phys_addr_t *phys)
+{
+	uint32_t pte, pde;
+	struct ptbl *ptbl;
+	phys_addr_t paddr;
+	
+	/* Find the page table for the virtual address */
+	pde = (virt / PAGE_SIZE) / 1024;
+	ptbl = ctx->pdir->ptbl[pde];
+
+	/* If the mapping doesn't exist we did nothing */
+	pte = (virt / PAGE_SIZE) % 1024;
+	if (!ptbl->pte[pte].present)
+		return FALSE;
+
+	/* Save the physical address */
+	paddr = ptbl->pte[pte].frame << 12;
+	
+	/* Clear the entry and Invalidate the TLB entry */
+	memset(&ptbl->pte[pte], 0, sizeof(struct page));
+
+	if (phys)
+		*phys = paddr;
+	
+	return TRUE;
 }
 
 void mmu_switch_ctx(struct mmu_ctx *ctx)
@@ -164,12 +228,10 @@ void mmu_switch_ctx(struct mmu_ctx *ctx)
 	
 	ASSERT((ctx->pdbr % 4096) == 0);
 
-	//x86_write_cr3(ctx->pdbr);
-	//x86_write_cr0(x86_read_cr0() | 0x80000000);
+	DEBUG(DL_DBG, ("switch context to 0x%08x, pdbr(0x%08x)\n", ctx, ctx->pdbr));
 
-	kprintf("switch context to 0x%08x, pdbr(0x%08x)\n", ctx, ctx->pdbr);
+	x86_write_cr3(ctx->pdbr);
 
-	asm volatile("mov %0, %%cr3":: "r"(ctx->pdbr));
 	asm volatile("mov %%cr0, %0": "=r"(cr0));
 	cr0 |= 0x80000000;
 	asm volatile("mov %0, %%cr0":: "r"(cr0));
@@ -210,6 +272,7 @@ void mmu_destroy_ctx(struct mmu_ctx *ctx)
 void arch_init_mmu()
 {
 	phys_addr_t i, pdbr;
+	struct page *page;
 	
 	/* Initialize the kernel MMU context structure */
 	mutex_init(&_kernel_mmu_ctx.lock, "mmu_ctx_lock", 0);
@@ -222,28 +285,25 @@ void arch_init_mmu()
 	
 	mmu_lock_ctx(&_kernel_mmu_ctx);
 
-	/* Map some pages in the kernel heap area. Here we call mmu_ctx_get_page
+	/* Allocate some pages in the kernel heap area. Here we call mmu_ctx_get_page
 	 * but not page_alloc, this cause the page tables to be created when necessary.
 	 * We can't allocate page yet because they need to be identity mapped first.
 	 */
-	for (i = KERNEL_PMAP_BASE;
-	     i < KERNEL_PMAP_BASE + KERNEL_PMAP_SIZE;
-	     i += PAGE_SIZE)
-		mmu_get_pages(&_kernel_mmu_ctx, i, TRUE);
+	for (i = KERNEL_KMEM_BASE; i < KERNEL_KMEM_BASE+KERNEL_KMEM_SIZE; i += PAGE_SIZE)
+	 	mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
 
-	i = 0;
 	/* Do identity map for the memory we used */
-	while (i < (_placement_addr + PAGE_SIZE)) {
+	for (i = 0; i < (_placement_addr + PAGE_SIZE); i += PAGE_SIZE) {
 		/* Kernel code is readable but not writable from user-mode */
-		page_alloc(mmu_get_pages(&_kernel_mmu_ctx, i, TRUE), FALSE, FALSE);
-		i += PAGE_SIZE;
+		page = mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
+		page_alloc(page, FALSE, FALSE);
 	}
 
 	/* Allocate those pages we mapped earlier */
-	for (i = KERNEL_PMAP_BASE;
-	     i < KERNEL_PMAP_BASE + KERNEL_PMAP_SIZE;
-	     i += PAGE_SIZE)
-		page_alloc(mmu_get_pages(&_kernel_mmu_ctx, i, TRUE), FALSE, FALSE);
+	for (i = KERNEL_KMEM_BASE; i < KERNEL_KMEM_BASE+KERNEL_KMEM_SIZE; i += PAGE_SIZE) {
+		page = mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
+		page_alloc(page, FALSE, FALSE);
+	}
 	
 	mmu_unlock_ctx(&_kernel_mmu_ctx);
 }

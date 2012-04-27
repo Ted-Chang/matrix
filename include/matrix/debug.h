@@ -14,7 +14,7 @@
 	} while (0)
 
 
-#define PANIC(msg)	panic(msg, __FILE__, __LINE__)
+#define PANIC(msg)	panic(__FILE__, __LINE__, msg)
 
 #define ASSERT(b)	((b) ? (void)0: panic_assert(__FILE__, __LINE__, #b))
 
@@ -25,7 +25,7 @@ extern void putch(char ch);
 extern void clear_scr();
 extern void putstr(const char *str);
 extern int kprintf(const char *str, ...);
-extern void panic(const char *message, const char *file, uint32_t line);
+extern void panic(const char *file, uint32_t line, const char *message);
 extern void panic_assert(const char *file, uint32_t line, const char *desc);
 
 #ifdef _DEBUG_SCHED

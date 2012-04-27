@@ -65,18 +65,19 @@ int kmain(u_long addr, uint32_t initial_stk)
 	init_kmem();
 	init_malloc();
 
-	kprintf("Kernel memory management subsystem initialization complete.\n");
+	kprintf("Memory management subsystem initialization complete!\n");
 
 	/* Perform more per-CPU initialization that can be done after the
 	 * memory management subsystem was up.
 	 */
-	//init_per_cpu();
+	init_per_cpu();
 
 	/* Get the system clock */
 	//init_clock();
 
 	/* Properly initialize the CPU subsystem, and detect other CPUs */
-	//init_cpu();
+	init_cpu();
+
 	//init_sched();
 	//init_multitask();
 

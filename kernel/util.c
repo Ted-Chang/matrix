@@ -6,6 +6,10 @@
 #include "matrix/debug.h"
 #include "hal/hal.h"	// outportb
 
+#ifndef DBG_BUFF_SIZE
+#define DBG_BUFF_SIZE	512
+#endif
+
 static uint16_t _cursor_x = 0;
 static uint16_t _cursor_y = 0;
 static uint16_t *_video_mem = (uint16_t *)0xB8000;
@@ -99,7 +103,6 @@ void clear_scr()
 
 int kprintf(const char *fmt, ...)
 {
-#define DBG_BUFF_SIZE	512
 	char buf[DBG_BUFF_SIZE];
 	va_list args;
 

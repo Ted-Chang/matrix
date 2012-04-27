@@ -9,7 +9,3 @@
 #include "mm/mm.h"
 #include "mm/phys.h"
 
-void *physical_map(phys_addr_t addr, size_t size, int flags)
-{
-	return NULL;
-}

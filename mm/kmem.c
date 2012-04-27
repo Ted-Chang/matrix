@@ -1,5 +1,6 @@
 #include <types.h>
 #include <stddef.h>
+#include "status.h"
 #include "list.h"
 #include "matrix/debug.h"
 #include "mm/mm.h"
@@ -11,6 +12,8 @@
 
 #define HEAP_INDEX_SIZE		0x20000
 #define HEAP_MAGIC		0x123890AB
+
+phys_addr_t _pmap_addr;
 
 /*
  * Size information for a block
@@ -35,17 +38,19 @@ struct heap {
 	uint8_t readonly;
 };
 
-void *alloc(struct heap *heap, size_t size, uint8_t page_align);
+void *kheap_alloc(struct heap *heap, size_t size, uint8_t page_align);
+void *raw_alloc(size_t size, int mmflag);
+void raw_free(void *addr, size_t size);
 
 struct heap *_kheap = NULL;
 
 void *kmem_alloc_int(size_t size, int align, uint32_t *phys)
 {
 	if (_kheap) {
-		void *addr = alloc(_kheap, size, (uint8_t)align);
+		void *addr = kheap_alloc(_kheap, size, (uint8_t)align);
 		if (phys) {
-			struct page *page = mmu_get_pages(&_kernel_mmu_ctx,
-							  (uint32_t)addr, FALSE);
+			struct page *page = mmu_get_page(&_kernel_mmu_ctx, (uint32_t)addr,
+							  FALSE, 0);
 			*phys = page->frame * 0x1000 + ((uint32_t)addr & 0xFFF);
 		}
 		return addr;
@@ -89,6 +94,45 @@ void *kmem_alloc_ap(size_t size, uint32_t *phys)
 	return kmem_alloc_int(size, 1, phys);
 }
 
+void *kmem_map(phys_addr_t base, size_t size, int mmflag)
+{
+	status_t rc;
+	uint32_t ret;
+	size_t i;
+	
+	ASSERT(!(base % PAGE_SIZE) && size);
+
+	/* Allocate virtual memory range to map the physical memory range */
+	ret = (uint32_t)raw_alloc(size, 0);
+	if (!ret) {
+		return NULL;
+	}
+
+	mmu_lock_ctx(&_kernel_mmu_ctx);
+
+	for (i = 0; i < size; i += PAGE_SIZE) {
+		rc = mmu_map_page(&_kernel_mmu_ctx, ret + i, base + i, TRUE, TRUE, 0);
+		if (rc != STATUS_SUCCESS)
+			goto failed;
+		DEBUG(DL_DBG, ("page mapped, virt(0x%x), base(0x%x)\n",
+			       ret + i, base + i));
+	}
+	
+	mmu_unlock_ctx(&_kernel_mmu_ctx);
+
+	return (void *)ret;
+
+failed:
+	/* Unmap the pages we have mapped before */
+	for (; i; i -= PAGE_SIZE)
+		mmu_unmap_page(&_kernel_mmu_ctx, ret + (i - PAGE_SIZE), TRUE, NULL);
+	
+	mmu_unlock_ctx(&_kernel_mmu_ctx);
+	raw_free(ret, size);
+	
+	return NULL;
+}
+
 static void expand(struct heap *heap, size_t new_size)
 {
 	uint32_t old_size, i;
@@ -110,7 +154,7 @@ static void expand(struct heap *heap, size_t new_size)
 	i = old_size;
 
 	while (i < new_size) {
-		page_alloc(mmu_get_pages(&_kernel_mmu_ctx, heap->start_addr + i, TRUE),
+		page_alloc(mmu_get_page(&_kernel_mmu_ctx, heap->start_addr + i, TRUE, 0),
 			   heap->supervisor ? 1 : 0, heap->readonly ? 0 : 1);
 		i += 0x1000;	/* Page size */
 	}
@@ -138,7 +182,7 @@ static uint32_t contract(struct heap *heap, size_t new_size)
 	i = old_size - 0x1000;
 
 	while (new_size < i) {
-		page_free(mmu_get_pages(&_kernel_mmu_ctx, heap->start_addr + i, FALSE));
+		page_free(mmu_get_page(&_kernel_mmu_ctx, heap->start_addr + i, FALSE, 0));
 		i -= 0x1000;
 	}
 
@@ -157,8 +201,8 @@ static int8_t header_compare(void *x, void *y)
 		return (a->size > b->size) ? 1 : 0;
 }
 
-struct heap *create_heap(uint32_t start, uint32_t end, uint32_t max,
-			 uint8_t supervisor, uint8_t readonly)
+struct heap *create_kheap(uint32_t start, uint32_t end, uint32_t max,
+			  uint8_t supervisor, uint8_t readonly)
 {
 	struct heap *heap;
 	struct header *hole;
@@ -231,7 +275,7 @@ static uint32_t find_smallest_hole(struct heap *heap, size_t size, uint8_t page_
 	}
 }
 
-void *alloc(struct heap *heap, size_t size, uint8_t page_align)
+void *kheap_alloc(struct heap *heap, size_t size, uint8_t page_align)
 {
 	uint32_t new_size;
 	int32_t iterator;
@@ -287,7 +331,7 @@ void *alloc(struct heap *heap, size_t size, uint8_t page_align)
 		}
 
 		/* We have enough space now. Call alloc again. */
-		return alloc(heap, size, page_align);
+		return kheap_alloc(heap, size, page_align);
 	}
 
 	orig_hole_hdr = (struct header *)lookup_vector(&heap->index, iterator);
@@ -361,7 +405,7 @@ void *alloc(struct heap *heap, size_t size, uint8_t page_align)
 	return (void *)((uint32_t)block_hdr + sizeof(struct header));
 }
 
-void free(struct heap *heap, void *p)
+void kheap_free(struct heap *heap, void *p)
 {
 	char do_add;
 	struct header *header, *test_hdr;
@@ -439,14 +483,33 @@ void free(struct heap *heap, void *p)
 		insert_vector(&heap->index, (void *)header);
 }
 
+void *raw_alloc(size_t size, int mmflag)
+{
+	void *addr;
+	
+	ASSERT(size && (size % PAGE_SIZE == 0));
+
+	addr = (void *)_pmap_addr;
+	_pmap_addr += size;
+
+	return addr;
+}
+
+void raw_free(void *addr, size_t size)
+{
+	;
+}
+
 void kmem_free(void *p)
 {
-	free(_kheap, p);
+	kheap_free(_kheap, p);
 }
 
 void init_kmem()
 {
+	_pmap_addr = KERNEL_PMAP_BASE;
+	
 	/* Create kernel heap at KERNEL_KMEM_BASE */
-	_kheap = create_heap(KERNEL_PMAP_BASE, KERNEL_PMAP_BASE + KERNEL_PMAP_SIZE,
-			     0xCFFFF000, FALSE, FALSE);
+	_kheap = create_kheap(KERNEL_KMEM_BASE, KERNEL_KMEM_BASE+KERNEL_KMEM_SIZE,
+			      0xCFFFF000, FALSE, FALSE);
 }

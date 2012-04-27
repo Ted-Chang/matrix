@@ -90,9 +90,9 @@ void init_lapic()
 		 * register interrupt vector handlers.
 		 */
 		_lapic_base = base;
-		_lapic_mapping = physical_map(base, PAGE_SIZE, MM_BOOT);
+		_lapic_mapping = kmem_map((phys_addr_t)base, PAGE_SIZE, 0);
 
-		DEBUG(DL_DBG, ("lapic: physical location 0x%x, mapped to 0x%x\n",
+		DEBUG(DL_DBG, ("lapic: physical location 0x%016lx, mapped to 0x%x\n",
 			       base, _lapic_mapping));
 
 		/* Install the LAPIC timer device */
