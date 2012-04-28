@@ -277,7 +277,7 @@ void init_keyboard()
 	/* Init keyboard status */
 	kbd_reset();
 
-	register_interrupt_handler(IRQ1, &_kbd_hook, kbd_callback);
+	register_irq_handler(IRQ1, &_kbd_hook, kbd_callback);
 
 	/* Clear the keyboard input buffer */
 }

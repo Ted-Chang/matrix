@@ -9,7 +9,7 @@
 #include "hal/lirq.h"
 #include "matrix/debug.h"
 
-struct irq_hook *_interrupt_handlers[256];
+struct irq_hook *_irq_handlers[256];
 
 /*
  * Software interrupt handler, call the exception handlers
@@ -24,7 +24,7 @@ void isr_handler(struct intr_frame frame)
 	 */
 	uint8_t int_no = frame.int_no & 0xFF;
 
-	hook = _interrupt_handlers[int_no];
+	hook = _irq_handlers[int_no];
 	while (hook) {
 		isr_t handler = hook->handler;
 		if (handler)
@@ -49,7 +49,7 @@ void irq_handler(struct intr_frame frame)
 	/* Notify the PIC that we have done so we can accept >= priority IRQs now */
 	interrupt_done(frame.int_no);
 
-	hook = _interrupt_handlers[frame.int_no];
+	hook = _irq_handlers[frame.int_no];
 	while (hook) {
 		isr_t handler = hook->handler;
 		if (handler)
@@ -58,7 +58,7 @@ void irq_handler(struct intr_frame frame)
 	}
 }
 
-void register_interrupt_handler(uint8_t irq, struct irq_hook *hook, isr_t handler)
+void register_irq_handler(uint8_t irq, struct irq_hook *hook, isr_t handler)
 {
 	struct irq_hook **line;
 	
@@ -67,7 +67,7 @@ void register_interrupt_handler(uint8_t irq, struct irq_hook *hook, isr_t handle
 	
 	irq_disable();
 
-	line = &_interrupt_handlers[irq];
+	line = &_irq_handlers[irq];
 	while (*line) {
 		/* Check if the hook has been registered already */
 		if (hook == (*line)) {
@@ -85,7 +85,7 @@ void register_interrupt_handler(uint8_t irq, struct irq_hook *hook, isr_t handle
 	irq_enable();
 }
 
-void unregister_interrupt_handler(struct irq_hook *hook)
+void unregister_irq_handler(struct irq_hook *hook)
 {
 	int irq = hook->irq;
 	struct irq_hook **line;
@@ -95,7 +95,7 @@ void unregister_interrupt_handler(struct irq_hook *hook)
 	
 	irq_disable();
 
-	line = &_interrupt_handlers[irq];
+	line = &_irq_handlers[irq];
 	while (*line) {
 		if ((*line) == hook) {
 			*line = (*line)->next;

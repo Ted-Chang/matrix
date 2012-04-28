@@ -1,7 +1,9 @@
 #ifndef __TIMER_H__
 #define __TIMER_H__
 
-#define TIMER_NEVER	(-1)
+#define PIT_BASE_FREQUENCY	1193182L	// clock frequency for timer in PC and AT
+
+#define TIMER_NEVER		(-1)
 
 struct timer;
 

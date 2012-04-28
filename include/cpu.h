@@ -234,8 +234,11 @@ struct arch_cpu {
 	uint64_t lapic_freq;		// LAPIC timer frequency in Hz
 	char vendor_str[64];		// Vendor string
 
-	uint8_t cpu_step;		// CPU Step
+	/* Time conversion factors */
+	uint64_t cycles_per_us;		// CPU cycles per us
+	uint64_t lapic_timer_cv;	// LAPIC timer conversion factor
 
+	uint8_t cpu_step;		// CPU Step
 	uint8_t max_phys_bits;		// Maximum physical address bits
 	uint8_t max_virt_bits;		// Maximum virtual address bits
 };

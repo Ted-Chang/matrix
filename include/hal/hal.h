@@ -115,11 +115,11 @@ extern void outportb(uint16_t port, uint8_t value);
 extern uint8_t inportb(uint16_t port);
 extern uint16_t inportw(uint16_t port);
 extern void interrupt_done(uint32_t int_no);
+extern void set_kernel_stack(uint32_t stack);
+extern void register_irq_handler(uint8_t irq, struct irq_hook *hook, isr_t handler);
+extern void unregister_irq_handler(struct irq_hook *hook);
 extern void init_gdt();
 extern void init_idt();
-extern void set_kernel_stack(uint32_t stack);
-extern void register_interrupt_handler(uint8_t irq, struct irq_hook *hook, isr_t handler);
-extern void unregister_interrupt_handler(struct irq_hook *hook);
 
 
 /* Declaration of the interrupt service routines */
@@ -155,7 +155,6 @@ void isr28();
 void isr29();
 void isr30();
 void isr31();
-void isr128();	// Interrupt handler for system call
 
 void irq0();
 void irq1();
@@ -173,5 +172,10 @@ void irq12();
 void irq13();
 void irq14();
 void irq15();
+
+void isr128();	// Interrupt handler for system call
+void isr239();	// LAPIC timer
+void isr240();	// LAPIC spurious
+void isr241();
 
 #endif	/* __HAL_H__ */

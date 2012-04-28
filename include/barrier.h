@@ -9,4 +9,6 @@
 /* Barrier for leaving a critical section */
 #define leave_cs_barrier()	asm volatile("" ::: "memory")
 
+#define memory_barrier()	asm volatile("mfence" ::: "memory")
+
 #endif	/* __BARRIER_H__ */

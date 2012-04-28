@@ -1,6 +1,7 @@
 #include <types.h>
 #include <stddef.h>
 
+/* It's not needed on 64bit architectures */
 #if BITS_PER_LONG == 32
 
 uint32_t __attribute__((weak)) __div64_32(uint64_t *n, uint32_t base)

@@ -180,6 +180,11 @@ void init_idt()
 	/* The following interrupt number is for system call */
 	idt_set_gate(128, (uint32_t)isr128, 0x08, 0x8E);
 
+	/* The following is for LAPIC timer and spurious */
+	idt_set_gate(239, (uint32_t)isr239, 0x08, 0x8E);
+	idt_set_gate(240, (uint32_t)isr240, 0x08, 0x8E);
+	idt_set_gate(241, (uint32_t)isr241, 0x08, 0x8E);
+
 	idt_flush((uint32_t)&_idt_ptr);
 }
 

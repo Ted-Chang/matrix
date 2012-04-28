@@ -3,10 +3,13 @@
 #include "matrix/matrix.h"
 #include "matrix/debug.h"
 #include "list.h"
+#include "div64.h"
 #include "mm/mm.h"
 #include "mm/page.h"
 #include "mm/phys.h"
 #include "cpu.h"
+#include "time.h"
+#include "pit.h"
 #include "hal/lapic.h"
 #include "hal/hal.h"
 
@@ -41,9 +44,16 @@ static void lapic_spurious_callback(struct intr_frame *frame)
 	DEBUG(DL_DBG, ("lapic_spurious_callback: spurious interrupt received.\n"));
 }
 
+static void lapic_timer_init(useconds_t us)
+{
+	uint32_t count = (uint32_t)((CURR_CPU->arch.lapic_timer_cv * us) >> 32);
+	lapic_write(LAPIC_REG_TIMER_INITIAL, (count == 0 && us != 0) ? 1 : count);
+}
+
 static void lapic_timer_callback(struct intr_frame *frame)
 {
-	;
+	kprintf("lapic_timer_callback:\n");
+	lapic_eoi();
 }
 
 boolean_t lapic_enabled()
@@ -56,12 +66,54 @@ uint32_t lapic_id()
 	return _lapic_mapping ? (lapic_read(LAPIC_REG_APIC_ID) >> 24) : 0;
 }
 
+static uint64_t calculate_lapic_freq()
+{
+	uint16_t shi, slo, ehi, elo, pticks;
+	uint64_t end, lticks;
+		
+	/* Set PIT channel 0 to single-shot mode */
+	outportb(0x43, 0x34);
+	outportb(0x40, 0xFF);
+	outportb(0x40, 0xFF);
+
+	/* Wait for the cycle to begin */
+	do {
+		outportb(0x43, 0x00);
+		slo = inportb(0x40);
+		shi = inportb(0x40);
+	} while (shi != 0xFF);
+
+	/* Kick off the LAPIC timer */
+	lapic_write(LAPIC_REG_TIMER_INITIAL, 0xFFFFFFFF);
+
+	/* Wait for the high byte to decrease to 128 */
+	do {
+		outportb(0x43, 0x00);
+		elo = inportb(0x40);
+		ehi = inportb(0x40);
+	} while (ehi > 0x80);
+
+	/* Get current timer value */
+	end = lapic_read(LAPIC_REG_TIMER_CURRENT);
+
+	/* LAPIC ticks */
+	lticks = 0xFFFFFFFF - end;
+	/* PIT ticks */
+	pticks = ((ehi << 8) | elo) - ((shi << 8) | slo);
+
+	/* Calculate frequency */
+	lticks = (lticks * 8 * PIT_BASE_FREQUENCY);
+
+	do_div(lticks, pticks);
+	return lticks;
+}
+
 /**
  * Initialize the local APIC on the current CPU.
  */
 void init_lapic()
 {
-	uint64_t base;
+	uint64_t base, temp;
 
 	/* Don't do anything if we don't have LAPIC support */
 	if (!_cpu_features.apic)
@@ -95,13 +147,11 @@ void init_lapic()
 		DEBUG(DL_DBG, ("lapic: physical location 0x%016lx, mapped to 0x%x\n",
 			       base, _lapic_mapping));
 
-		/* Install the LAPIC timer device */
-		register_interrupt_handler(LAPIC_VECT_SPURIOUS, &_lapic_spurious_hook,
-					   lapic_spurious_callback);
-
 		/* Install interrupt vector handlers */
-		register_interrupt_handler(LAPIC_VECT_TIMER, &_lapic_timer_hook,
-					   lapic_timer_callback);
+		register_irq_handler(LAPIC_VECT_SPURIOUS, &_lapic_spurious_hook,
+				     lapic_spurious_callback);
+		register_irq_handler(LAPIC_VECT_TIMER, &_lapic_timer_hook,
+				     lapic_timer_callback);
 	}
 
 	/* Enable the local APIC (bit 8) and set the spurious interrupt vector
@@ -110,12 +160,28 @@ void init_lapic()
 	lapic_write(LAPIC_REG_SPURIOUS, LAPIC_VECT_SPURIOUS|(1<<8));
 	lapic_write(LAPIC_REG_TIMER_DIVIDER, LAPIC_TIMER_DIV8);
 
+	/* Calculate LAPIC frequency. */
+	if (CURR_CPU == &_boot_cpu)
+		CURR_CPU->arch.lapic_freq = calculate_lapic_freq();
+	else
+		CURR_CPU->arch.lapic_freq = _boot_cpu.arch.lapic_freq;
+
 	/* Sanity check */
 	if (CURR_CPU != &_boot_cpu) {
 		if (CURR_CPU->id != lapic_id())
 			PANIC("CPU ID mismatch detected");
 	}
 
+	/* Figure out the timer conversion factor */
+	temp = ((CURR_CPU->arch.lapic_freq / 8) << 32);
+	do_div(temp, 1000000);
+	CURR_CPU->arch.lapic_timer_cv = temp;
+	temp = CURR_CPU->arch.lapic_freq;
+	do_div(temp, 1000000);
+	
+	DEBUG(DL_DBG, ("timer conversion factor for CPU(%d):%ld, frequency(%ld MHz)\n",
+		       CURR_CPU->id, CURR_CPU->arch.lapic_timer_cv, temp));
+	
 	/* Accept all interrupts */
 	lapic_write(LAPIC_REG_TPR, lapic_read(LAPIC_REG_TPR) & 0xFFFFFF00);
 

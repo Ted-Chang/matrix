@@ -13,7 +13,7 @@
 #define HEAP_INDEX_SIZE		0x20000
 #define HEAP_MAGIC		0x123890AB
 
-phys_addr_t _pmap_addr;
+static phys_addr_t _pmap_addr;
 
 /*
  * Size information for a block
@@ -39,10 +39,11 @@ struct heap {
 };
 
 void *kheap_alloc(struct heap *heap, size_t size, uint8_t page_align);
-void *raw_alloc(size_t size, int mmflag);
-void raw_free(void *addr, size_t size);
+void *kmem_raw_alloc(size_t size, int mmflag);
+void kmem_raw_free(void *addr, size_t size);
 
 struct heap *_kheap = NULL;
+struct mutex _kmem_lock;
 
 void *kmem_alloc_int(size_t size, int align, uint32_t *phys)
 {
@@ -103,7 +104,7 @@ void *kmem_map(phys_addr_t base, size_t size, int mmflag)
 	ASSERT(!(base % PAGE_SIZE) && size);
 
 	/* Allocate virtual memory range to map the physical memory range */
-	ret = (uint32_t)raw_alloc(size, 0);
+	ret = (uint32_t)kmem_raw_alloc(size, 0);
 	if (!ret) {
 		return NULL;
 	}
@@ -128,9 +129,14 @@ failed:
 		mmu_unmap_page(&_kernel_mmu_ctx, ret + (i - PAGE_SIZE), TRUE, NULL);
 	
 	mmu_unlock_ctx(&_kernel_mmu_ctx);
-	raw_free(ret, size);
+	kmem_raw_free(ret, size);
 	
 	return NULL;
+}
+
+void kmem_unmap(void *addr, size_t size, boolean_t shared)
+{
+	;
 }
 
 static void expand(struct heap *heap, size_t new_size)
@@ -483,19 +489,23 @@ void kheap_free(struct heap *heap, void *p)
 		insert_vector(&heap->index, (void *)header);
 }
 
-void *raw_alloc(size_t size, int mmflag)
+void *kmem_raw_alloc(size_t size, int mmflag)
 {
 	void *addr;
 	
 	ASSERT(size && (size % PAGE_SIZE == 0));
 
+	mutex_acquire(&_kmem_lock);
+	
 	addr = (void *)_pmap_addr;
 	_pmap_addr += size;
+
+	mutex_release(&_kmem_lock);
 
 	return addr;
 }
 
-void raw_free(void *addr, size_t size)
+void kmem_raw_free(void *addr, size_t size)
 {
 	;
 }
@@ -507,6 +517,8 @@ void kmem_free(void *p)
 
 void init_kmem()
 {
+	mutex_init(&_kmem_lock, "kmem_lock", 0);
+	
 	_pmap_addr = KERNEL_PMAP_BASE;
 	
 	/* Create kernel heap at KERNEL_KMEM_BASE */

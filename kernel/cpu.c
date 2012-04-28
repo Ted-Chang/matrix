@@ -13,7 +13,7 @@
 #include "kd.h"			// Kernel Debugger
 
 
-extern struct irq_hook *_interrupt_handlers[];
+extern struct irq_hook *_irq_handlers[];
 extern struct idt_ptr _idt_ptr;
 extern void idt_flush();
 extern void init_gdt();
@@ -137,8 +137,7 @@ static void arch_preinit_cpu()
 {
 	/* Initialize the global IDT and the interrupt handler table */
 	init_idt();
-	memset(&_interrupt_handlers[0], 0, sizeof(struct irq_hook *)*256);
-	init_exception_handlers();
+	init_exceptn_handlers();
 }
 
 static void arch_preinit_per_cpu(struct cpu *c)

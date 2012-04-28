@@ -32,4 +32,7 @@ typedef uint32_t phys_size_t;
 
 typedef int ptrdiff_t;
 
+/* Micro second type definition */
+typedef uint32_t useconds_t;
+
 #endif	/* __TYPES_H__ */

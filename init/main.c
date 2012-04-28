@@ -11,12 +11,14 @@
 #include "matrix/debug.h"
 #include "multiboot.h"
 #include "hal/hal.h"
+#include "hal/lirq.h"
 #include "cpu.h"
 #include "mm/page.h"
 #include "mm/mmu.h"
 #include "mm/kmem.h"
 #include "mm/malloc.h"
-#include "timer.h"
+#include "time.h"
+#include "pit.h"
 #include "fs.h"
 #include "initrd.h"
 #include "proc/task.h"
@@ -56,7 +58,7 @@ int kmain(u_long addr, uint32_t initial_stk)
 	preinit_cpu();
 	preinit_per_cpu(&_boot_cpu);
 
-	kprintf("CPU preinitialization complete!\n");
+	DEBUG(DL_DBG, ("CPU preinitialization complete!\n"));
 
 	/* Initialize kernel memory management subsystem */
 	init_page();
@@ -65,7 +67,7 @@ int kmain(u_long addr, uint32_t initial_stk)
 	init_kmem();
 	init_malloc();
 
-	kprintf("Memory management subsystem initialization complete!\n");
+	DEBUG(DL_DBG, ("Memory management subsystem initialization complete!\n"));
 
 	/* Perform more per-CPU initialization that can be done after the
 	 * memory management subsystem was up.

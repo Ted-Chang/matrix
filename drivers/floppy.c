@@ -401,7 +401,7 @@ void init_floppy()
 	u_long cmos_drive0, cmos_drive1;
 
 	/* Setup the interrupt handler */
-	register_interrupt_handler(IRQ6, &_flpy_hook, flpy_callback);
+	register_irq_handler(IRQ6, &_flpy_hook, flpy_callback);
 
 	/* Reset primary controller */
 	_primary_fdc.base_port = FDC_PRI;

@@ -6,12 +6,10 @@
 #include "matrix/global.h"
 #include "hal/isr.h"
 #include "hal/hal.h"
-#include "timer.h"
+#include "pit.h"
 #include "proc/task.h"
 #include "proc/sched.h"
 #include "matrix/debug.h"
-
-#define TIMER_FREQ	1193182L	// clock frequency for timer in PC and AT
 
 extern struct timer *_active_timers;
 extern void tmrs_exptimers(struct timer **list, clock_t now);
@@ -90,7 +88,7 @@ void init_clock()
 	 * clock (1193182 Hz) by, to get our required frequency. Important
 	 * note that the divisor must be small enough to fit into 16-bits.
 	 */
-	divisor = TIMER_FREQ / HZ;
+	divisor = PIT_BASE_FREQUENCY / HZ;
 
 	/* Send the command byte */
 	outportb(0x43, 0x36);
