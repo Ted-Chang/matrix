@@ -11,6 +11,9 @@
 #include "matrix/debug.h"
 #include "hal/lapic.h"
 #include "kd.h"			// Kernel Debugger
+#include "pit.h"
+#include "tsc.h"
+#include "div64.h"
 
 
 extern struct irq_hook *_irq_handlers[];
@@ -63,6 +66,10 @@ static void cpu_ctor(struct cpu *c, cpu_id_t id, int state)
 	LIST_INIT(&c->header);
 	c->id = id;
 	c->state = state;
+
+	/* Initialize timer related stuff */
+	LIST_INIT(&c->timers);
+	spinlock_init(&c->timer_lock, "timer_lock");
 }
 
 /* Dump information of the specified CPU */
@@ -93,6 +100,9 @@ static void detect_cpu_features(struct cpu *c, struct cpu_features *f)
 
 	/* Get Standard feature information */
 	x86_cpuid(X86_CPUID_FEATURE_INFO, &eax, &ebx, &f->standard_ecx, &f->standard_edx);
+
+	/* Save model information */
+	c->arch.cpu_step = eax & 0x0F;
 
 	/* Get the highest supported extended level */
 	x86_cpuid(X86_CPUID_EXT_MAX, &f->highest_extended, &ebx, &ecx, &edx);
@@ -138,6 +148,45 @@ static void arch_preinit_cpu()
 	/* Initialize the global IDT and the interrupt handler table */
 	init_idt();
 	init_exceptn_handlers();
+}
+
+uint64_t calculate_cpu_freq()
+{
+	uint16_t shi, slo, ehi, elo, ticks;
+	uint64_t start, end, cycles;
+
+	/* Set the PIT to rate generator mode */
+	/* outportb(0x43, 0x34); */
+	/* outportb(0x40, 0xFF); */
+	/* outportb(0x40, 0xFF); */
+
+	/* /\* Wait for the cycle to begin *\/ */
+	/* do { */
+	/* 	outportb(0x43, 0x00); */
+	/* 	slo = inportb(0x40); */
+	/* 	shi = inportb(0x40); */
+	/* } while(shi != 0xFF); */
+
+	/* /\* Get the start TSC value *\/ */
+	/* start = x86_rdtsc(); */
+
+	/* /\* Wait for the high byte to decrease to 128 *\/ */
+	/* do { */
+	/* 	outportb(0x43, 0x00); */
+	/* 	elo = inportb(0x40); */
+	/* 	ehi = inportb(0x40); */
+	/* } while(ehi > 0x80); */
+
+	/* /\* Get the end TSC value *\/ */
+	/* end = x86_rdtsc(); */
+
+	/* /\* Calculate the differences between the values *\/ */
+	/* cycles = end - start; */
+	/* ticks = ((ehi << 8) | elo) - ((shi << 8) | slo); */
+
+	/* kprintf("base freq: %d, ticks: %d\n", PIT_BASE_FREQUENCY, ticks); */
+	/* Calculate frequency */
+	return /*cycles * (PIT_BASE_FREQUENCY / ticks)*/0;
 }
 
 static void arch_preinit_per_cpu(struct cpu *c)
@@ -186,6 +235,18 @@ static void arch_preinit_per_cpu(struct cpu *c)
 		PANIC("CPU does not support TSC");
 	else if (!_cpu_features.pge)
 		PANIC("CPU does not support PGE");
+
+	/* Get the CPU frequency */
+	if (c == &_boot_cpu)
+		c->arch.cpu_freq = 0;
+	else
+		c->arch.cpu_freq = _boot_cpu.arch.cpu_freq;
+
+	/* Work out the cycles per us */
+	//c->arch.cycles_per_us = c->arch.cpu_freq / 1000000;
+	
+	/* Initialize the TSC target */
+	init_tsc_target();
 }
 
 /* Perform additional initialization of the current CPU */

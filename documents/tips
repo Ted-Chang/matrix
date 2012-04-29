@@ -10,6 +10,8 @@ NOTE: no space between the expression
 * disassemble the instruction at give address
 u /10
 
+* logging 
+edit the bochsrc.bxrc, set the log option to a file
 
 * Debugging process:
 lb 0x104008
@@ -29,6 +31,15 @@ print-stack 10
 creg
 (check the page by the virtual address)
 page 0xe007ffff
+
+* Debugging APIC
+boot your operating system and press the config button in bochs emulator
+9. Log options for individual devices
+then
+28. [APIC0]
+choose
+ask
+for all the actions
 
 
 
@@ -69,3 +80,4 @@ Breakpoint 1, kmain (addr=can't compute CFA for this frame
 ) at main.c:40
 40	{
 (gdb)
+

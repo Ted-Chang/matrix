@@ -4,6 +4,7 @@
 #include "list.h"
 #include "matrix/matrix.h"		// INLINE
 #include "hal/hal.h"			// Count of GDT and IDT
+#include "hal/spinlock.h"
 
 /* Flags in the CR0 Control Register */
 #define X86_CR0_PE		(1<<0)	// Protect Mode Enable
@@ -229,15 +230,15 @@ struct arch_cpu {
 	struct tss tss;			// Task State Segment
 	void *double_fault_stack;	// Pointer to the stack for double faults
 
+	/* Time conversion factors */
+	uint64_t cycles_per_us;		// CPU cycles per us
+	uint64_t lapic_timer_cv;	// LAPIC timer conversion factor
+	int64_t system_time_offset;	// Value to subtract from TSC value for system_time()
+
 	/* CPU information */
 	uint64_t cpu_freq;		// CPU frequency in Hz
 	uint64_t lapic_freq;		// LAPIC timer frequency in Hz
 	char vendor_str[64];		// Vendor string
-
-	/* Time conversion factors */
-	uint64_t cycles_per_us;		// CPU cycles per us
-	uint64_t lapic_timer_cv;	// LAPIC timer conversion factor
-
 	uint8_t cpu_step;		// CPU Step
 	uint8_t max_phys_bits;		// Maximum physical address bits
 	uint8_t max_virt_bits;		// Maximum virtual address bits
@@ -258,6 +259,11 @@ struct cpu {
 	} state;
 
 	struct va_space *space;		// Address space currently in use
+
+	/* Timer related structures */
+	struct list timers;		// List of active timers
+	struct spinlock timer_lock;	// Lock to protect timer list
+	boolean_t timer_enabled;	// Whether the timer for this CPU is enabled
 };
 typedef struct cpu cpu_t;
 

@@ -52,7 +52,7 @@ static void lapic_timer_init(useconds_t us)
 
 static void lapic_timer_callback(struct intr_frame *frame)
 {
-	kprintf("lapic_timer_callback:\n");
+	do_clocktick();
 	lapic_eoi();
 }
 

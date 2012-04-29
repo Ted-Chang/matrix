@@ -75,7 +75,7 @@ int kmain(u_long addr, uint32_t initial_stk)
 	init_per_cpu();
 
 	/* Get the system clock */
-	//init_clock();
+	init_clock();
 
 	/* Properly initialize the CPU subsystem, and detect other CPUs */
 	init_cpu();

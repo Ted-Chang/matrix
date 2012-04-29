@@ -15,6 +15,4 @@ struct tm {
 	int tm_isdst;
 };
 
-int get_cmostime(struct tm *t);
-
 #endif	/* __TIME_H__ */
