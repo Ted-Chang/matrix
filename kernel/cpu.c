@@ -57,7 +57,8 @@ static void init_descriptor(struct cpu *c)
 	/* Point the CPU to the global IDT */
 	idt_flush((uint32_t)&_idt_ptr);
 
-	DEBUG(DL_DBG, ("GDT and TSS installed for cpu:%d\n", c->id));
+	DEBUG(DL_DBG, ("GDT and TSS installed for cpu(%d) at 0x%p\n",
+		       c->id, &_idt_ptr));
 }
 
 static void cpu_ctor(struct cpu *c, cpu_id_t id, int state)
@@ -75,13 +76,16 @@ static void cpu_ctor(struct cpu *c, cpu_id_t id, int state)
 /* Dump information of the specified CPU */
 void dump_cpu(struct cpu *c)
 {
-	DEBUG(DL_DBG, ("CPU %d detail information:\n", c->id));
+	DEBUG(DL_DBG, ("CPU(%d) detail information:\n", c->id));
 	DEBUG(DL_DBG, ("vendor: %s\n", c->arch.vendor_str));
 	DEBUG(DL_DBG, ("cpu step(%d), phys_bits(%d), virt_bits(%d)\n",
 		       c->arch.cpu_step, c->arch.max_phys_bits,
 		       c->arch.max_virt_bits));
+	DEBUG(DL_DBG, ("cycles per microseconds(%d), cpu frequency(%d)\n",
+		       c->arch.cycles_per_us, c->arch.cpu_freq));
 	if (lapic_enabled()) {
-		DEBUG(DL_DBG, ("lapic frequency(%lld)\n", c->arch.lapic_freq));
+		DEBUG(DL_DBG, ("lapic frequency(%d), lapic timer conversion factor(%d)\n",
+			       c->arch.lapic_freq, c->arch.lapic_timer_cv));
 	}
 }
 
@@ -156,37 +160,37 @@ uint64_t calculate_cpu_freq()
 	uint64_t start, end, cycles;
 
 	/* Set the PIT to rate generator mode */
-	/* outportb(0x43, 0x34); */
-	/* outportb(0x40, 0xFF); */
-	/* outportb(0x40, 0xFF); */
+	outportb(0x43, 0x34);
+	outportb(0x40, 0xFF);
+	outportb(0x40, 0xFF);
 
-	/* /\* Wait for the cycle to begin *\/ */
-	/* do { */
-	/* 	outportb(0x43, 0x00); */
-	/* 	slo = inportb(0x40); */
-	/* 	shi = inportb(0x40); */
-	/* } while(shi != 0xFF); */
+	/* Wait for the cycle to begin */
+	do {
+		outportb(0x43, 0x00);
+		slo = inportb(0x40);
+		shi = inportb(0x40);
+	} while(shi != 0xFF);
 
-	/* /\* Get the start TSC value *\/ */
-	/* start = x86_rdtsc(); */
+	/* Get the start TSC value */
+	start = x86_rdtsc();
 
-	/* /\* Wait for the high byte to decrease to 128 *\/ */
-	/* do { */
-	/* 	outportb(0x43, 0x00); */
-	/* 	elo = inportb(0x40); */
-	/* 	ehi = inportb(0x40); */
-	/* } while(ehi > 0x80); */
+	/* Wait for the high byte to decrease to 128 */
+	do {
+		outportb(0x43, 0x00);
+		elo = inportb(0x40);
+		ehi = inportb(0x40);
+	} while(ehi > 0x80);
 
-	/* /\* Get the end TSC value *\/ */
-	/* end = x86_rdtsc(); */
+	/* Get the end TSC value */
+	end = x86_rdtsc();
 
-	/* /\* Calculate the differences between the values *\/ */
-	/* cycles = end - start; */
-	/* ticks = ((ehi << 8) | elo) - ((shi << 8) | slo); */
+	/* Calculate the differences between the values */
+	cycles = end - start;
+	ticks = ((ehi << 8) | elo) - ((shi << 8) | slo);
 
-	/* kprintf("base freq: %d, ticks: %d\n", PIT_BASE_FREQUENCY, ticks); */
 	/* Calculate frequency */
-	return /*cycles * (PIT_BASE_FREQUENCY / ticks)*/0;
+	ASSERT(PIT_BASE_FREQUENCY > ticks);
+	return cycles * (PIT_BASE_FREQUENCY / ticks);
 }
 
 static void arch_preinit_per_cpu(struct cpu *c)
@@ -238,12 +242,12 @@ static void arch_preinit_per_cpu(struct cpu *c)
 
 	/* Get the CPU frequency */
 	if (c == &_boot_cpu)
-		c->arch.cpu_freq = 0;
+		c->arch.cpu_freq = calculate_cpu_freq();
 	else
 		c->arch.cpu_freq = _boot_cpu.arch.cpu_freq;
 
 	/* Work out the cycles per us */
-	//c->arch.cycles_per_us = c->arch.cpu_freq / 1000000;
+	c->arch.cycles_per_us = ((uint32_t)c->arch.cpu_freq / 1000000);
 	
 	/* Initialize the TSC target */
 	init_tsc_target();

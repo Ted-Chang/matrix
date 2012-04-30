@@ -66,10 +66,10 @@ uint32_t lapic_id()
 	return _lapic_mapping ? (lapic_read(LAPIC_REG_APIC_ID) >> 24) : 0;
 }
 
-static uint64_t calculate_lapic_freq()
+static uint32_t calculate_lapic_freq()
 {
 	uint16_t shi, slo, ehi, elo, pticks;
-	uint64_t end, lticks;
+	uint32_t end, lticks;
 		
 	/* Set PIT channel 0 to single-shot mode */
 	outportb(0x43, 0x34);
@@ -94,7 +94,7 @@ static uint64_t calculate_lapic_freq()
 	} while (ehi > 0x80);
 
 	/* Get current timer value */
-	end = lapic_read(LAPIC_REG_TIMER_CURRENT);
+	end = (uint32_t)lapic_read(LAPIC_REG_TIMER_CURRENT);
 
 	/* LAPIC ticks */
 	lticks = 0xFFFFFFFF - end;
@@ -102,10 +102,8 @@ static uint64_t calculate_lapic_freq()
 	pticks = ((ehi << 8) | elo) - ((shi << 8) | slo);
 
 	/* Calculate frequency */
-	lticks = (lticks * 8 * PIT_BASE_FREQUENCY);
-
-	do_div(lticks, pticks);
-	return lticks;
+	ASSERT(PIT_BASE_FREQUENCY > pticks);
+	return lticks * 8 * (PIT_BASE_FREQUENCY / pticks);
 }
 
 /**
@@ -173,14 +171,13 @@ void init_lapic()
 	}
 
 	/* Figure out the timer conversion factor */
-	temp = ((CURR_CPU->arch.lapic_freq / 8) << 32);
+	temp = ((uint64_t)(CURR_CPU->arch.lapic_freq / 8)) << 32;
 	do_div(temp, 1000000);
 	CURR_CPU->arch.lapic_timer_cv = temp;
-	temp = CURR_CPU->arch.lapic_freq;
-	do_div(temp, 1000000);
 	
-	DEBUG(DL_DBG, ("timer conversion factor for CPU(%d):%ld, frequency(%ld MHz)\n",
-		       CURR_CPU->id, CURR_CPU->arch.lapic_timer_cv, temp));
+	DEBUG(DL_DBG, ("timer conversion factor for CPU(%d):%d, frequency(%d MHz)\n",
+		       CURR_CPU->id, CURR_CPU->arch.lapic_timer_cv,
+		       CURR_CPU->arch.lapic_freq / 1000000));
 	
 	/* Accept all interrupts */
 	lapic_write(LAPIC_REG_TPR, lapic_read(LAPIC_REG_TPR) & 0xFFFFFF00);

@@ -43,14 +43,10 @@ struct timer *_timers = NULL;
 
 useconds_t system_time()
 {
-	uint64_t value;
-
 	ASSERT(CURR_CPU->arch.cycles_per_us != 0);
 	
-	value = x86_rdtsc() - CURR_CPU->arch.system_time_offset;
-	do_div(value, CURR_CPU->arch.cycles_per_us);
-	
-	return (useconds_t)value;
+	return (useconds_t)((uint32_t)(x86_rdtsc() - CURR_CPU->arch.system_time_offset) /
+			    CURR_CPU->arch.cycles_per_us);
 }
 
 void init_tsc_target()
@@ -116,5 +112,5 @@ void init_clock()
 {
 	/* Initialize the boot time */
 	_boot_time = platform_time_from_cmos() - system_time();
-	DEBUG(DL_DBG, ("Boot time: %u64ld useconds\n", _boot_time));
+	DEBUG(DL_DBG, ("Boot time: %ld microseconds\n", _boot_time));
 }

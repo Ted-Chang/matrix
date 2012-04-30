@@ -231,13 +231,13 @@ struct arch_cpu {
 	void *double_fault_stack;	// Pointer to the stack for double faults
 
 	/* Time conversion factors */
-	uint64_t cycles_per_us;		// CPU cycles per us
-	uint64_t lapic_timer_cv;	// LAPIC timer conversion factor
+	uint32_t cycles_per_us;		// CPU cycles per us
+	uint32_t lapic_timer_cv;	// LAPIC timer conversion factor
 	int64_t system_time_offset;	// Value to subtract from TSC value for system_time()
 
 	/* CPU information */
-	uint64_t cpu_freq;		// CPU frequency in Hz
-	uint64_t lapic_freq;		// LAPIC timer frequency in Hz
+	uint32_t cpu_freq;		// CPU frequency in Hz
+	uint32_t lapic_freq;		// LAPIC timer frequency in Hz
 	char vendor_str[64];		// Vendor string
 	uint8_t cpu_step;		// CPU Step
 	uint8_t max_phys_bits;		// Maximum physical address bits

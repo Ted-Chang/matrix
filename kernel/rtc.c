@@ -53,7 +53,5 @@ useconds_t platform_time_from_cmos()
 
 	spinlock_release(&_rtc_lock);
 
-	DEBUG(DL_DBG, ("%d-%d-%d, %d:%d:%d\n", year, mon, day, hour, min, sec));
-	
 	return time_to_unix(year, mon, day, hour, min, sec);
 }
