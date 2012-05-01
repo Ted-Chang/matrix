@@ -167,7 +167,6 @@ void mmu_unlock_ctx(struct mmu_ctx *ctx)
 status_t mmu_map_page(struct mmu_ctx *ctx, uint32_t virt, phys_addr_t phys,
 		     boolean_t write, boolean_t execute, int mmflag)
 {
-	uint32_t pte, pde;
 	struct page *page;
 
 	/* Find the page table for the virtual address */

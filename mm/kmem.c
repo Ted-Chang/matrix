@@ -129,7 +129,7 @@ failed:
 		mmu_unmap_page(&_kernel_mmu_ctx, ret + (i - PAGE_SIZE), TRUE, NULL);
 	
 	mmu_unlock_ctx(&_kernel_mmu_ctx);
-	kmem_raw_free(ret, size);
+	kmem_raw_free((void *)ret, size);
 	
 	return NULL;
 }

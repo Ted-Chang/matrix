@@ -267,7 +267,7 @@ struct cpu {
 };
 typedef struct cpu cpu_t;
 
-#define CURR_CPU	((struct cpu *)cpu_get_pointer())
+#define CURR_CPU	(cpu_get_pointer())
 
 extern struct cpu _boot_cpu;
 extern size_t _highest_cpu_id;

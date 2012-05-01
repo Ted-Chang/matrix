@@ -94,7 +94,6 @@ static void detect_cpu_features(struct cpu *c, struct cpu_features *f)
 {
 	uint32_t eax, ebx, ecx, edx;
 	uint32_t *ptr;
-	size_t i, j;
 	char *str;
 
 	/* Get the highest supported standard level */

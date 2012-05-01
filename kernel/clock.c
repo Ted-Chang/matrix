@@ -2,11 +2,11 @@
 #include <stddef.h>
 #include <time.h>
 #include "matrix/matrix.h"
+#include "matrix/debug.h"
+#include "list.h"
 #include "hal/isr.h"
 #include "hal/hal.h"
 #include "pit.h"
-#include "proc/sched.h"
-#include "matrix/debug.h"
 #include "tsc.h"
 #include "cpu.h"
 #include "clock.h"
@@ -107,16 +107,25 @@ boolean_t do_clocktick()
 	 * callback function
 	 */
 	LIST_FOR_EACH_SAFE(iter, n, &CURR_CPU->timers) {
+		/* Since the timer list is ordered we break if the current timer
+		 * has not expired.
+		 */
 		t = LIST_ENTRY(iter, struct timer, header);
+		if (time < t->target)
+			break;
+
+		/* Remove the timer from list if it has expired */
+		list_del(&t->header);
 	}
 
 	switch (_timer_dev->type) {
 	case TIMER_DEV_ONESHOT:
 		/* Prepare for the next tick if there is still a timer in the list */
-		/* if (!LIST_EMPTY(&(CURR_CPU->timers))) { */
-		/* 	t = LIST_ENTRY(&CURR_CPU->timers.next, struct timer, header); */
-		/* 	timer_dev_prepare(t); */
-		/* } */
+		iter = &CURR_CPU->timers;
+		if (!list_empty(iter)) {
+			t = LIST_ENTRY(iter->next, struct timer, header);
+			timer_dev_prepare(t);
+		}
 		break;
 	case TIMER_DEV_PERIODIC:
 		break;

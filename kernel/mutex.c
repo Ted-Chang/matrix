@@ -32,7 +32,7 @@ void mutex_release(struct mutex *lock)
 		PANIC("Release a mutex which no one held it");
 
 	if (atomic_get(&lock->value) == 1) {
-		if (!LIST_EMPTY(&lock->threads)) {
+		if (!list_empty(&lock->threads)) {
 			;
 		} else {
 			atomic_dec(&lock->value);

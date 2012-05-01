@@ -15,9 +15,6 @@ typedef struct list list_t;
 #define LIST_ENTRY(entry, type, member) \
 	(type *)((char *)entry - offsetof(type, member))
 
-#define LIST_EMPTY(list) \
-	(((list)->prev == (list)) && ((list)->next == (list)))
-
 #define LIST_INIT(list) \
 	(((list)->prev) = ((list)->next) = (list))
 
@@ -26,6 +23,11 @@ typedef struct list list_t;
 
 #define LIST_FOR_EACH_SAFE(pos, n, head) \
 	for (pos = (head)->next, n = pos->next; pos != head; pos = n, n = pos->next)
+
+static INLINE int list_empty(const struct list *head)
+{
+	return (head->next == head) && (head->prev == head);
+}
 
 static INLINE void __list_add(struct list *new, struct list *prev,
 			      struct list *next)
@@ -58,6 +60,9 @@ static INLINE void __list_del(struct list *prev, struct list *next)
 	prev->next = next;
 }
 
+/**
+ * Delete the specified entry from the list
+ */
 static INLINE void list_del(struct list *entry)
 {
 	__list_del(entry->prev, entry->next);

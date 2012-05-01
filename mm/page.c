@@ -117,7 +117,7 @@ void init_page()
 
 	/* Detect the amount of physical memory by parse the memory map entry */
 	mem_size = 0;
-	for (mmap = _mbi->mmap_addr;
+	for (mmap = (struct multiboot_mmap_entry *)_mbi->mmap_addr;
 	     (u_long)mmap < (_mbi->mmap_addr + _mbi->mmap_length);
 	     mmap = (struct multiboot_mmap_entry *)
 		     ((u_long)mmap + mmap->size + sizeof(mmap->size))) {

@@ -37,6 +37,7 @@ struct timer {
 	const char *name;	// Name of the timer
 };
 
+extern useconds_t platform_time_from_cmos();
 extern useconds_t time_to_unix(uint32_t year, uint32_t mon, uint32_t day,
 			       uint32_t hour, uint32_t min, uint32_t sec);
 extern useconds_t sys_time();
