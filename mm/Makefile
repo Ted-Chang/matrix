@@ -20,5 +20,8 @@ all: $(TARGETOBJ)
 $(OBJ)/%.o: %.c
 	$(CC) -m32 -D_X86_ -g -I../include $(CFLAGS_global) -c -o $@ $<
 
+$(OBJ)/phys.o:
+	nasm $(ASFLAGS) -o $(OBJ)/phys.o phys.s
+
 clean:
 	$(RM) $(TARGETOBJ)

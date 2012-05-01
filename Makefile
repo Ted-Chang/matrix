@@ -63,7 +63,7 @@ tests_module:
 	@cd tests && $(MAKE) $(MAKEFLAGS)
 
 clean:
-	for d in $(MODULES); do (cd $$d; $(MAKE) clean); done; $(RM) $(TARGET) bin/matrix.map
+	for d in $(MODULES); do (cd $$d; $(MAKE) clean); done; $(RM) $(TARGET) bin/matrix.map bin/matrix.sym
 
 help:
 	@echo "Available make targets:"

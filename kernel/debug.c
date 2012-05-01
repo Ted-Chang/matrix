@@ -4,8 +4,6 @@
 #include "hal/hal.h"
 #include "hal/lirq.h"
 #include "matrix/debug.h"
-#include "matrix/global.h"
-#include "proc/task.h"
 
 uint32_t _debug_level = DL_DBG;
 
@@ -22,42 +20,3 @@ void panic_assert(const char *file, uint32_t line, const char *desc)
 	kprintf("ASSERTION FAILED[%s:%d] %s\n", file, line, desc);
 	for (; ; ) ;
 }
-
-#ifdef _DEBUG_SCHED
-
-void check_runqueues(char *when)
-{
-	int q;
-	struct task *tp;
-
-	for (q = 0; q < NR_SCHED_QUEUES; q++) {
-		if (_ready_head[q] && !_ready_tail[q]) {
-			kprintf("head but no tail, priority(%d): %s\n", q, when);
-			PANIC("Scheduling error!");
-		}
-
-		if (!_ready_head[q] && _ready_tail[q]) {
-			kprintf("tail but no head, priority(%d): %s\n", q, when);
-			PANIC("Scheduling error!");
-		}
-
-		if (_ready_tail[q] && _ready_tail[q]->next != NULL) {
-			kprintf("tail and tail->next not null, priority(%d): %s\n",
-				q, when);
-			PANIC("Scheduling error!");
-		}
-
-		for (tp = _ready_head[q]; tp != NULL; tp = tp->next) {
-			if (tp->priority != q) {
-				kprintf("wrong priority: %s\n", when);
-				PANIC("Scheduling error!");
-			}
-			if ((tp->next == NULL) && (_ready_tail[q] != tp)) {
-				kprintf("last element not tail: %s\n", when);
-				PANIC("Scheduling error!");
-			}
-		}
-	}
-}
-
-#endif	/* _DEBUG_SCHED */

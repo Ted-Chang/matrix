@@ -4,10 +4,10 @@
 #include "list.h"
 #include "cpu.h"
 #include "hal/hal.h"
+#include "mm/mlayout.h"
 #include "mm/page.h"
 #include "mm/kmem.h"
 #include "exceptn.h"
-#include "proc/task.h"
 #include "matrix/debug.h"
 #include "hal/lapic.h"
 #include "kd.h"			// Kernel Debugger

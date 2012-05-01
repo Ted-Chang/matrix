@@ -23,8 +23,8 @@ all: $(TARGETOBJ)
 $(OBJ)/%.o: %.c
 	$(CC) -DBITS_PER_LONG=32 -D_X86_ -g -m32 -I../include $(CFLAGS_global) -c -o $@ $<
 
-$(OBJ)/process.o:
-	nasm $(ASFLAGS) -o $(OBJ)/process.o process.s
+#$(OBJ)/process.o:
+#	nasm $(ASFLAGS) -o $(OBJ)/process.o process.s
 
 clean:
 	$(RM) $(TARGETOBJ)

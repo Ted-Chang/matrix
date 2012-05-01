@@ -2,12 +2,9 @@
 #include <stddef.h>
 #include <time.h>
 #include "matrix/matrix.h"
-#include "matrix/const.h"
-#include "matrix/global.h"
 #include "hal/isr.h"
 #include "hal/hal.h"
 #include "pit.h"
-#include "proc/task.h"
 #include "proc/sched.h"
 #include "matrix/debug.h"
 #include "tsc.h"

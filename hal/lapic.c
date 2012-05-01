@@ -6,7 +6,6 @@
 #include "div64.h"
 #include "mm/mm.h"
 #include "mm/page.h"
-#include "mm/phys.h"
 #include "cpu.h"
 #include "time.h"
 #include "pit.h"
