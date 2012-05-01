@@ -1,6 +1,7 @@
 #ifndef __MUTEX_H__
 #define __MUTEX_H__
 
+#include "list.h"
 #include "atomic.h"
 #include "hal/spinlock.h"
 

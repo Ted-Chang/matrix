@@ -233,7 +233,7 @@ struct arch_cpu {
 	/* Time conversion factors */
 	uint32_t cycles_per_us;		// CPU cycles per us
 	uint32_t lapic_timer_cv;	// LAPIC timer conversion factor
-	int64_t system_time_offset;	// Value to subtract from TSC value for system_time()
+	useconds_t sys_time_offset;	// Value to subtract from TSC value for sys_time()
 
 	/* CPU information */
 	uint32_t cpu_freq;		// CPU frequency in Hz
@@ -351,7 +351,7 @@ static INLINE struct cpu *cpu_get_pointer()
 {
 	uint32_t addr;
 	//asm ("mov %%gs:0, %0" : "=r"(addr));
-	addr = x86_read_msr(X86_MSR_GS_BASE);
+	addr = (uint32_t)x86_read_msr(X86_MSR_GS_BASE);
 	return (struct cpu *)addr;
 }
 

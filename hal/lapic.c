@@ -12,6 +12,7 @@
 #include "pit.h"
 #include "hal/lapic.h"
 #include "hal/hal.h"
+#include "clock.h"
 
 /* Local APIC mapping. If NULL the LAPIC is not present */
 static volatile uint32_t *_lapic_mapping = NULL;
@@ -22,7 +23,6 @@ static uint32_t _lapic_base = 0;
 /* Spurious IRQ hook and timer IRQ hook */
 static struct irq_hook _lapic_spurious_hook;
 static struct irq_hook _lapic_timer_hook;
-
 
 static INLINE uint32_t lapic_read(unsigned reg)
 {
@@ -44,16 +44,23 @@ static void lapic_spurious_callback(struct intr_frame *frame)
 	DEBUG(DL_DBG, ("lapic_spurious_callback: spurious interrupt received.\n"));
 }
 
-static void lapic_timer_init(useconds_t us)
+static void lapic_timer_prepare(useconds_t us)
 {
 	uint32_t count = (uint32_t)((CURR_CPU->arch.lapic_timer_cv * us) >> 32);
 	lapic_write(LAPIC_REG_TIMER_INITIAL, (count == 0 && us != 0) ? 1 : count);
 }
 
+/* Local APIC timer device */
+static struct timer_dev _lapic_timer_dev = {
+	.name = "LAPIC",
+	.type = TIMER_DEV_ONESHOT,
+	.prepare = lapic_timer_prepare
+};
+
 static void lapic_timer_callback(struct intr_frame *frame)
 {
 	do_clocktick();
-	lapic_eoi();
+	lapic_eoi();		// Send an End Of Interrupt
 }
 
 boolean_t lapic_enabled()
@@ -145,6 +152,9 @@ void init_lapic()
 		DEBUG(DL_DBG, ("lapic: physical location 0x%016lx, mapped to 0x%x\n",
 			       base, _lapic_mapping));
 
+		/* Install the LAPIC timer device */
+		set_timer_dev(&_lapic_timer_dev);
+		
 		/* Install interrupt vector handlers */
 		register_irq_handler(LAPIC_VECT_SPURIOUS, &_lapic_spurious_hook,
 				     lapic_spurious_callback);
@@ -172,8 +182,7 @@ void init_lapic()
 
 	/* Figure out the timer conversion factor */
 	temp = ((uint64_t)(CURR_CPU->arch.lapic_freq / 8)) << 32;
-	do_div(temp, 1000000);
-	CURR_CPU->arch.lapic_timer_cv = temp;
+	CURR_CPU->arch.lapic_timer_cv = ((uint32_t)temp) / 1000000;
 	
 	DEBUG(DL_DBG, ("timer conversion factor for CPU(%d):%d, frequency(%d MHz)\n",
 		       CURR_CPU->id, CURR_CPU->arch.lapic_timer_cv,

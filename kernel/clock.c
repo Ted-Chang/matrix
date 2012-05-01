@@ -39,20 +39,20 @@ static int _days_before_month[] = {
 static useconds_t _boot_time;
 
 /* Hardware timer devices */
-struct timer *_timers = NULL;
+struct timer_dev *_timer_dev = NULL;
 
-useconds_t system_time()
+useconds_t sys_time()
 {
 	ASSERT(CURR_CPU->arch.cycles_per_us != 0);
 	
-	return (useconds_t)((uint32_t)(x86_rdtsc() - CURR_CPU->arch.system_time_offset) /
-			    CURR_CPU->arch.cycles_per_us);
+	return (((useconds_t)x86_rdtsc()) - CURR_CPU->arch.sys_time_offset) /
+		CURR_CPU->arch.cycles_per_us;
 }
 
 void init_tsc_target()
 {
 	if (CURR_CPU == &_boot_cpu)
-		CURR_CPU->arch.system_time_offset = x86_rdtsc();
+		CURR_CPU->arch.sys_time_offset = (useconds_t)x86_rdtsc();
 }
 
 useconds_t time_to_unix(uint32_t year, uint32_t mon, uint32_t day,
@@ -82,16 +82,26 @@ useconds_t time_to_unix(uint32_t year, uint32_t mon, uint32_t day,
 	return SECS2USECS(seconds);
 }
 
+static void timer_dev_prepare(struct timer *t)
+{
+	useconds_t len = t->target - sys_time();
+
+	_timer_dev->prepare((len > 0) ? len : 1);
+}
+
 boolean_t do_clocktick()
 {
 	useconds_t time;
 	struct list *iter, *n;
 	boolean_t preempt;
+	struct timer *t;
+
+	ASSERT(_timer_dev);
 	
 	if (!CURR_CPU->timer_enabled)
 		return FALSE;
 
-	time = system_time();
+	time = sys_time();
 	preempt = FALSE;
 	
 	spinlock_acquire(&CURR_CPU->timer_lock);
@@ -100,17 +110,41 @@ boolean_t do_clocktick()
 	 * callback function
 	 */
 	LIST_FOR_EACH_SAFE(iter, n, &CURR_CPU->timers) {
-		;
+		t = LIST_ENTRY(iter, struct timer, header);
 	}
 
+	switch (_timer_dev->type) {
+	case TIMER_DEV_ONESHOT:
+		/* Prepare for the next tick if there is still a timer in the list */
+		/* if (!LIST_EMPTY(&(CURR_CPU->timers))) { */
+		/* 	t = LIST_ENTRY(&CURR_CPU->timers.next, struct timer, header); */
+		/* 	timer_dev_prepare(t); */
+		/* } */
+		break;
+	case TIMER_DEV_PERIODIC:
+		break;
+	}
+	
 	spinlock_release(&CURR_CPU->timer_lock);
 
 	return preempt;
 }
 
+void set_timer_dev(struct timer_dev *dev)
+{
+	ASSERT(!_timer_dev);
+
+	_timer_dev = dev;
+	if (_timer_dev->type == TIMER_DEV_ONESHOT) {
+		CURR_CPU->timer_enabled = TRUE;
+	}
+
+	DEBUG(DL_DBG, ("activated timer device: %s\n", dev->name));
+}
+
 void init_clock()
 {
 	/* Initialize the boot time */
-	_boot_time = platform_time_from_cmos() - system_time();
+	_boot_time = platform_time_from_cmos() - sys_time();
 	DEBUG(DL_DBG, ("Boot time: %ld microseconds\n", _boot_time));
 }
