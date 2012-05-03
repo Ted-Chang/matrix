@@ -17,11 +17,13 @@
 #include "mm/mmu.h"
 #include "mm/kmem.h"
 #include "mm/malloc.h"
+#include "mm/vaspace.h"
 #include "time.h"
 #include "pit.h"
 #include "clock.h"
 #include "proc/process.h"
 #include "proc/thread.h"
+#include "proc/sched.h"
 #include "fs.h"
 #include "initrd.h"
 #include "syscall.h"
@@ -83,13 +85,19 @@ int kmain(u_long addr, uint32_t initial_stk)
 	/* Initialize the kernel process */
 	init_process();
 	init_thread();
+	init_sched_per_cpu();
+	init_sched();
 
-	/* /\* Initialize the initial ramdisk and set it as the root filesystem *\/ */
-	/* root_node = init_initrd(initrd_location); */
+	DEBUG(DL_DBG, ("Kernel process initialization complete!\n"));
 
-	/* kprintf("Initial ramdisk mounted, location(0x%x), end(0x%x).\n", */
-	/* 	initrd_location, initrd_end); */
+	/* Bring up the virtual memory system */
+	init_va();
 
+	/* Create the initialization thread */
+	//...
+
+	sched_enter();
+	
 	/* init_syscalls(); */
 
 	/* kprintf("System call initialized.\n"); */

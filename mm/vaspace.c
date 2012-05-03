@@ -1,5 +1,8 @@
 #include <types.h>
 #include <stddef.h>
+#include "hal/lirq.h"
+#include "mutex.h"
+#include "matrix/debug.h"
 #include "mm/vaspace.h"
 
 void va_space_switch(struct va_space *space)
@@ -26,9 +29,9 @@ struct va_space *va_space_create()
 {
 	struct va_space *space;
 
-	space = kmalloc(sizeof(struct va_space));
+	space = kmem_alloc(sizeof(struct va_space));
 	space->mmu = mmu_create_ctx();
-	mutex_init(&space->lock);
+	mutex_init(&space->lock, "vaspace_mutex", 0);
 
 	return space;
 }
@@ -37,9 +40,9 @@ struct va_space *va_space_clone(struct va_space *src)
 {
 	struct va_space *space;
 
-	space = kmalloc(sizeof(struct va_space));
+	space = kmem_alloc(sizeof(struct va_space));
 	space->mmu = mmu_create_ctx();
-	mutex_init(&space->lock);
+	mutex_init(&space->lock, "vaspace_mutex", 0);
 
 	mutex_acquire(&src->lock);
 

@@ -260,6 +260,7 @@ struct cpu {
 	} state;
 
 	struct scheduler *sched;	// Scheduler of this CPU
+	struct thread *thread;		// Current running thread of this CPU
 	struct va_space *space;		// Address space currently in use
 
 	/* Timer related structures */

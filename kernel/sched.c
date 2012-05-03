@@ -21,6 +21,11 @@ struct scheduler {
 /* Total number of running or ready threads across all CPUs */
 static atomic_t _nr_running_threads = 0;
 
+static boolean_t sched_timer_func(void *ctx)
+{
+	kprintf("sched_timer_func\n");
+}
+
 /* Initialize the scheduler for the current cpu */
 void init_sched_per_cpu()
 {
@@ -31,18 +36,24 @@ void init_sched_per_cpu()
 	CURR_CPU->sched = kmem_alloc(sizeof(struct scheduler));
 
 	/* Create the idle thread */
-	rc = STATUS_SUCCESS;
+	//...
 
 	/* Create the preemption timer */
 	init_timer(&CURR_CPU->sched->timer, "sched_timer", 0);
 
-	/* Initialize queues */
+	/* Initialize the schedule queues */
 	for (i = 0; i < 2; i++) {
 		;
 	}
 }
 
+void sched_enter()
+{
+	set_timer(&CURR_CPU->sched->timer, 1000000, sched_timer_func, NULL);
+}
+
 void init_sched()
 {
+	/* Create the reaper thread */
 	;
 }
