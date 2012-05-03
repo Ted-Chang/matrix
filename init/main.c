@@ -21,6 +21,7 @@
 #include "pit.h"
 #include "clock.h"
 #include "proc/process.h"
+#include "proc/thread.h"
 #include "fs.h"
 #include "initrd.h"
 #include "syscall.h"
@@ -81,6 +82,7 @@ int kmain(u_long addr, uint32_t initial_stk)
 
 	/* Initialize the kernel process */
 	init_process();
+	init_thread();
 
 	/* /\* Initialize the initial ramdisk and set it as the root filesystem *\/ */
 	/* root_node = init_initrd(initrd_location); */

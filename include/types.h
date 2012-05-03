@@ -33,6 +33,6 @@ typedef uint32_t phys_size_t;
 typedef int ptrdiff_t;
 
 /* Micro second type definition */
-typedef int32_t useconds_t;
+typedef int64_t useconds_t;
 
 #endif	/* __TYPES_H__ */

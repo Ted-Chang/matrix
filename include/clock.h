@@ -45,8 +45,8 @@ extern boolean_t do_clocktick();
 
 extern void set_timer_dev(struct timer_dev *dev);
 
-extern void init_timer(struct timer *t);
-extern void set_timer(struct timer *t, clock_t exp_time, timer_func_t callback);
+extern void init_timer(struct timer *t, const char *name, uint32_t flags);
+extern void set_timer(struct timer *t, useconds_t exp_time, timer_func_t func, void *ctx);
 extern void cancel_timer(struct timer *t);
 
 extern void init_clock();

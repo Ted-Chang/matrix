@@ -218,6 +218,7 @@ typedef struct cpu_features cpu_features_t;
 
 extern struct cpu_features _cpu_features;
 
+struct scheduler;
 struct va_space;
 struct cpu;
 
@@ -233,7 +234,7 @@ struct arch_cpu {
 	/* Time conversion factors */
 	uint32_t cycles_per_us;		// CPU cycles per us
 	uint32_t lapic_timer_cv;	// LAPIC timer conversion factor
-	useconds_t sys_time_offset;	// Value to subtract from TSC value for sys_time()
+	int64_t sys_time_offset;	// Value to subtract from TSC value for sys_time()
 
 	/* CPU information */
 	uint32_t cpu_freq;		// CPU frequency in Hz
@@ -258,6 +259,7 @@ struct cpu {
 		CPU_RUNNING,
 	} state;
 
+	struct scheduler *sched;	// Scheduler of this CPU
 	struct va_space *space;		// Address space currently in use
 
 	/* Timer related structures */

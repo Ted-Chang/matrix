@@ -14,6 +14,9 @@ TARGETOBJ := $(OBJ)/debug.o \
 	$(OBJ)/process.o \
 	$(OBJ)/clock.o \
 	$(OBJ)/rtc.o \
+	$(OBJ)/timer.o \
+	$(OBJ)/sched.o \
+	$(OBJ)/thread.o \
 
 
 .PHONY: clean help

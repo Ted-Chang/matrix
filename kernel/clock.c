@@ -40,10 +40,14 @@ struct timer_dev *_timer_dev = NULL;
 
 useconds_t sys_time()
 {
-	ASSERT(CURR_CPU->arch.cycles_per_us != 0);
+	uint64_t value;
 	
-	return (((useconds_t)x86_rdtsc()) - CURR_CPU->arch.sys_time_offset) /
-		CURR_CPU->arch.cycles_per_us;
+	ASSERT(CURR_CPU->arch.cycles_per_us != 0);
+
+	value = x86_rdtsc() - CURR_CPU->arch.sys_time_offset;
+	do_div(value, CURR_CPU->arch.cycles_per_us);
+	
+	return (useconds_t)value;
 }
 
 void init_tsc_target()
@@ -79,7 +83,7 @@ useconds_t time_to_unix(uint32_t year, uint32_t mon, uint32_t day,
 	return SECS2USECS(seconds);
 }
 
-static void timer_dev_prepare(struct timer *t)
+void timer_dev_prepare(struct timer *t)
 {
 	useconds_t len = t->target - sys_time();
 
