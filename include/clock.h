@@ -32,10 +32,16 @@ struct timer {
 	timer_func_t func;	// Callback function of this timer
 	void *ctx;		// Context for this timer
 	uint32_t flags;		// Flags for the timer
-	uint32_t mode;		// Mode of the timer
+	enum {			// Type of the timer, oneshot or periodic
+		TIMER_ONESHOT,
+		TIMER_PERIODIC,
+	} type;
 	useconds_t initial;	// Initial time (for periodic timers)
 	const char *name;	// Name of the timer
 };
+
+/* Flags for timer */
+#define TIMER_THREAD		(1<<0)	// Run the handler in thread (DPC) context
 
 extern useconds_t platform_time_from_cmos();
 extern useconds_t time_to_unix(uint32_t year, uint32_t mon, uint32_t day,
@@ -45,7 +51,7 @@ extern boolean_t do_clocktick();
 
 extern void set_timer_dev(struct timer_dev *dev);
 
-extern void init_timer(struct timer *t, const char *name, uint32_t flags);
+extern void init_timer(struct timer *t, const char *name, uint32_t flags, uint32_t type);
 extern void set_timer(struct timer *t, useconds_t exp_time, timer_func_t func, void *ctx);
 extern void cancel_timer(struct timer *t);
 

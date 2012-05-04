@@ -53,14 +53,14 @@ static void lapic_timer_prepare(useconds_t us)
 /* Local APIC timer device */
 static struct timer_dev _lapic_timer_dev = {
 	.name = "LAPIC",
-	.type = TIMER_DEV_ONESHOT,
+	.type = TIMER_DEV_ONESHOT,	// Oneshot timer
 	.prepare = lapic_timer_prepare
 };
 
 static void lapic_timer_callback(struct intr_frame *frame)
 {
 	do_clocktick();
-	lapic_eoi();		// Send an End Of Interrupt
+	lapic_eoi();			// Send an End Of Interrupt
 }
 
 boolean_t lapic_enabled()

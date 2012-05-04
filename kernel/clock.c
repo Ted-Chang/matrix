@@ -15,6 +15,8 @@
 #define LEAPYEAR(y)	(((y) % 4) == 0 && (((y) % 100) != 0 || ((y) % 400) == 0))
 #define DAYS(y)		(LEAPYEAR(y) ? 366 : 365)
 
+extern void tmrs_settimer(struct timer *t);
+
 /* Table containing number of days before a month */
 static int _days_before_month[] = {
 	0,
@@ -120,6 +122,17 @@ boolean_t do_clocktick()
 
 		/* Remove the timer from list if it has expired */
 		list_del(&t->header);
+
+		/* Perform its timeout operation */
+		if (FLAG_ON(t->flags, TIMER_THREAD))
+			;
+		else
+			if (t->func(t->ctx))
+				preempt = TRUE;
+
+		/* If the timer is periodic, restart it */
+		if (t->type == TIMER_PERIODIC)
+			tmrs_settimer(t);
 	}
 
 	switch (_timer_dev->type) {

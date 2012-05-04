@@ -9,7 +9,7 @@ extern void timer_dev_prepare(struct timer *t);
 
 extern struct timer_dev *_timer_dev;
 
-static void tmrs_settimer(struct timer *t)
+void tmrs_settimer(struct timer *t)
 {
 	struct timer *tmr;
 	struct list *pos;
@@ -31,11 +31,12 @@ static void tmrs_settimer(struct timer *t)
 	list_add(&t->header, pos->prev);
 }
 
-void init_timer(struct timer *t, const char *name, uint32_t flags)
+void init_timer(struct timer *t, const char *name, uint32_t flags, uint32_t type)
 {
 	LIST_INIT(&t->header);
 	t->name = name;
 	t->flags = flags;
+	t->type = type;
 }
 
 void set_timer(struct timer *t, useconds_t exp_time, timer_func_t func, void *ctx)
@@ -49,7 +50,7 @@ void set_timer(struct timer *t, useconds_t exp_time, timer_func_t func, void *ct
 
 	spinlock_acquire(&CURR_CPU->timer_lock);
 
-	/* Add the timer to the list */
+	/* Add the timer to the timer list of the current CPU */
 	tmrs_settimer(t);
 
 	switch (_timer_dev->type) {
@@ -64,6 +65,7 @@ void set_timer(struct timer *t, useconds_t exp_time, timer_func_t func, void *ct
 		}
 		break;
 	case TIMER_DEV_PERIODIC:
+		/* Enable the timer device */
 		break;
 	}
 	
@@ -81,7 +83,11 @@ void cancel_timer(struct timer *t)
 
 		first = LIST_ENTRY(t->cpu->timers.next, struct timer, header);
 		list_del(&t->header);
-		
+
+		/* If the timer is running on this CPU, adjust the tick length or
+		 * disable the device if required. If the timer is on another CPU,
+		 * the tick handler is able to handle unexpected ticks.
+		 */
 		if (t->cpu == CURR_CPU) {
 			switch (_timer_dev->type) {
 			case TIMER_DEV_ONESHOT:
@@ -92,6 +98,10 @@ void cancel_timer(struct timer *t)
 				}
 				break;
 			case TIMER_DEV_PERIODIC:
+				if (list_empty(&CURR_CPU->timers)) {
+					/* Disable the timer device */
+					;
+				}
 				break;
 			}
 		}

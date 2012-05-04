@@ -39,7 +39,7 @@ void init_sched_per_cpu()
 	//...
 
 	/* Create the preemption timer */
-	init_timer(&CURR_CPU->sched->timer, "sched_timer", 0);
+	init_timer(&CURR_CPU->sched->timer, "sched_timer", 0, TIMER_PERIODIC);
 
 	/* Initialize the schedule queues */
 	for (i = 0; i < 2; i++) {
