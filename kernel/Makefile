@@ -17,6 +17,8 @@ TARGETOBJ := $(OBJ)/debug.o \
 	$(OBJ)/timer.o \
 	$(OBJ)/sched.o \
 	$(OBJ)/thread.o \
+	$(OBJ)/idmgr.o \
+	$(OBJ)/bitmap.o \
 
 
 .PHONY: clean help

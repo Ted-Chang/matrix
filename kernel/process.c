@@ -12,6 +12,10 @@
 #include "matrix/debug.h"
 #include "mm/kmem.h"
 #include "proc/process.h"
+#include "idmgr.h"
+
+/* Process ID manager */
+static struct id_mgr _process_id_mgr;
 
 /* Process containing all kernel-mode threads */
 struct process *_kernel_proc = NULL;
@@ -38,7 +42,10 @@ static status_t process_alloc(const char *name, int flags, int priority,
 	 * always give it an ID of 0.
 	 */
 	if (_kernel_proc) {
-		;
+		proc->id = id_mgr_alloc(&_process_id_mgr);
+		if (proc->id < 0) {
+			return STATUS_PROCESS_LIMIT;
+		}
 	} else {
 		proc->id = 0;
 	}
@@ -49,6 +56,9 @@ static status_t process_alloc(const char *name, int flags, int priority,
 	proc->state = PROCESS_RUNNING;
 	proc->status = 0;
 
+	DEBUG(DL_DBG, ("Process %s created at address(%p), id(%d)\n",
+		       proc->name, proc->id, proc));
+	
 	*procp = proc;
 
 	return STATUS_SUCCESS;
@@ -59,4 +69,17 @@ static status_t process_alloc(const char *name, int flags, int priority,
  */
 void init_process()
 {
+	status_t rc;
+	
+	/* Initialize the process ID manager. We reserve ID 0 as the kernel
+	 * process ID
+	 */
+	id_mgr_init(&_process_id_mgr, 65535, 0);
+	id_mgr_reserve(&_process_id_mgr, 0);
+
+	/* Create the system process */
+	rc = process_alloc("system", 0, 0, NULL, NULL, &_kernel_proc);
+	if (rc != STATUS_SUCCESS) {
+		PANIC("Create system process failed!");
+	}
 }
