@@ -52,16 +52,38 @@ static status_t process_alloc(const char *name, int flags, int priority,
 
 	proc->flags = flags;
 	proc->priority = priority;
+	proc->state = PROCESS_RUNNING;
+	
+	proc->name = kmem_alloc(strlen(name) + 1);
+	strcpy(proc->name, name);
+
 	proc->aspace = aspace;
 	proc->state = PROCESS_RUNNING;
 	proc->status = 0;
 
-	DEBUG(DL_DBG, ("Process %s created at address(%p), id(%d)\n",
-		       proc->name, proc->id, proc));
+	DEBUG(DL_DBG, ("Process(%s) created at address(%p), id(%d)\n",
+		       proc->name, proc, proc->id));
 	
 	*procp = proc;
 
 	return STATUS_SUCCESS;
+}
+
+void process_attach(struct process *p, struct thread *t)
+{
+	t->owner = p;
+
+	mutex_acquire(&p->lock);
+
+	ASSERT(p->state != PROCESS_DEAD);
+	list_add_tail(&t->owner_link, &p->threads);
+	
+	mutex_release(&p->lock);
+}
+
+void process_detach(struct thread *t)
+{
+	;
 }
 
 /**

@@ -25,7 +25,6 @@ static uint32_t rdrtc(int addr)
 useconds_t platform_time_from_cmos()
 {
 	uint32_t year, mon, day, hour, min, sec;
-	uint8_t tmp;
 
 	spinlock_acquire(&_rtc_lock);
 

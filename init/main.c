@@ -37,13 +37,14 @@ struct multiboot_info *_mbi;
 
 static void announce();
 static void dump_mbi(struct multiboot_info *mbi);
+static void init_thread_func(void *arg);
 
 /**
  * The entry point of the matrix kernel.
  */
 int kmain(u_long addr, uint32_t initial_stk)
 {
-	int i, rc;
+	status_t rc;
 
 	_mbi = (struct multiboot_info *)addr;
 
@@ -94,7 +95,10 @@ int kmain(u_long addr, uint32_t initial_stk)
 	init_va();
 
 	/* Create the initialization thread */
-	//...
+	rc = create_thread(NULL, 0, init_thread_func, NULL, NULL);
+	if (rc != STATUS_SUCCESS) {
+		PANIC("Could not create initialization thread");
+	}
 
 	sched_enter();
 	
@@ -113,23 +117,14 @@ int kmain(u_long addr, uint32_t initial_stk)
 	/* Print the banner */
 	announce();
 
-	/* parent_pid = getpid(); */
-
-	/* /\* Run all boot tasks *\/ */
-	/* for (i = 0; i < NR_BOOT_TASKS; i++) { */
-	/* 	tp = images[i]; */
-	/* 	rc = fork(); */
-	/* 	/\* Fork a new task and execute the specified boot task if it */
-	/* 	 * was the child task */
-	/* 	 *\/ */
-	/* 	if (getpid() != parent_pid) { */
-	/* 		tp(); */
-	/* 	} */
-	/* } */
-
-	/* init_task(); */
-
 	return rc;
+}
+
+static void init_thread_func(void *arg)
+{
+	while (TRUE) {
+		kprintf("enter init thread.\n");
+	}
 }
 
 void announce()
@@ -164,7 +159,7 @@ void dump_mbi(struct multiboot_info *mbi)
 		kprintf("mbi->mmap_length: 0x%x\n", mbi->mmap_length);
 		kprintf("mbi->mmap_addr: 0x%x\n", mbi->mmap_addr);
 	}
-	for (mmap = _mbi->mmap_addr;
+	for (mmap = (struct multiboot_mmap_entry *)_mbi->mmap_addr;
 	     (u_long)mmap < (_mbi->mmap_addr + _mbi->mmap_length);
 	     mmap = (struct multiboot_mmap_entry *)
 		     ((u_long)mmap + mmap->size + sizeof(mmap->size))) {
