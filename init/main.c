@@ -94,6 +94,8 @@ int kmain(u_long addr, uint32_t initial_stk)
 	/* Bring up the virtual memory system */
 	init_va();
 
+	DEBUG(DL_DBG, ("Virtual memory system initialization complete!\n"));
+
 	/* Create the initialization thread */
 	rc = create_thread(NULL, 0, init_thread_func, NULL, NULL);
 	if (rc != STATUS_SUCCESS) {

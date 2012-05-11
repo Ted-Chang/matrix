@@ -37,6 +37,7 @@ static status_t process_alloc(const char *name, int flags, int priority,
 
 	/* Allocate a new process structure */
 	proc = kmem_alloc(sizeof(struct process));
+	process_ctor(proc);
 
 	/* Attempt to allocate a process ID. If creating the kernel process,
 	 * always give it an ID of 0.

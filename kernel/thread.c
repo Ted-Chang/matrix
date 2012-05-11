@@ -23,7 +23,11 @@ void init_arch_thread(struct thread *t, void *stack)
 
 static void thread_ctor(void *obj)
 {
-	;
+	struct thread *t = (struct thread *)obj;
+
+	spinlock_init(&t->lock, "thread_lock");
+	LIST_INIT(&t->runq_link);
+	LIST_INIT(&t->owner_link);
 }
 
 void run_thread(struct thread *t)
@@ -43,11 +47,13 @@ status_t create_thread(struct process *owner, uint32_t flags,
 	status_t rc;
 	struct thread *t;
 
+	/* If no owner provided, then the kernel process is its owner */
 	if (!owner)
 		owner = _kernel_proc;
 
 	/* Allocate the thread structure */
 	t = kmem_alloc(sizeof(struct thread));
+	thread_ctor(t);
 	t->id = id_mgr_alloc(&_thread_id_mgr);
 	if (t->id < 0) {
 		kmem_free(t);
