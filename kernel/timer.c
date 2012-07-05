@@ -42,7 +42,7 @@ void init_timer(struct timer *t, const char *name, uint32_t flags, uint32_t type
 void set_timer(struct timer *t, useconds_t exp_time, timer_func_t func, void *ctx)
 {
 	struct timer *tmr;
-	
+
 	t->cpu = CURR_CPU;
 	t->initial = exp_time;
 	t->func = func;
@@ -66,6 +66,7 @@ void set_timer(struct timer *t, useconds_t exp_time, timer_func_t func, void *ct
 		break;
 	case TIMER_DEV_PERIODIC:
 		/* Enable the timer device */
+		DEBUG(DL_DBG, ("TIMER_DEV_PERIODIC!!\n"));
 		break;
 	}
 	

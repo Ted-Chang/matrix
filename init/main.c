@@ -103,18 +103,10 @@ int kmain(u_long addr, uint32_t initial_stk)
 	}
 
 	sched_enter();
-	
+
 	/* init_syscalls(); */
 
 	/* kprintf("System call initialized.\n"); */
-
-	/* init_keyboard(); */
-
-	/* kprintf("Keyboard driver initialized.\n"); */
-
-	/* init_floppy(); */
-
-	/* kprintf("Floppy driver initialized.\n"); */
 
 	/* Print the banner */
 	announce();

@@ -92,6 +92,18 @@ void sched_insert_thread(struct thread *t)
 	spinlock_release(&sched->lock);
 }
 
+static void sched_idle_thread(void *arg)
+{
+	/* We run the loop with interrupts disabled. The cpu_idle() function
+	 * is expected to re-enable interrupts as required.
+	 */
+	irq_disable();
+
+	while (TRUE) {
+		;
+	}
+}
+
 /* Initialize the scheduler for the current cpu */
 void init_sched_per_cpu()
 {
@@ -100,22 +112,36 @@ void init_sched_per_cpu()
 
 	/* Create the per-CPU information structure */
 	CURR_CPU->sched = kmem_alloc(sizeof(struct scheduler));
+	spinlock_init(&CURR_CPU->sched->lock, "sched_lock");
+	CURR_CPU->sched->total = 0;
+	CURR_CPU->sched->active = &CURR_CPU->sched->queues[0];
+	CURR_CPU->sched->expired = &CURR_CPU->sched->queues[1];
 
 	/* Create the idle thread */
-	//...
+	rc = create_thread(NULL, 0, sched_idle_thread, NULL, NULL);
+	if (rc != STATUS_SUCCESS) {
+		PANIC("Could not create idle thread.");
+	}
+
+	CURR_CPU->sched->prev_thread = NULL;
 
 	/* Create the preemption timer */
 	init_timer(&CURR_CPU->sched->timer, "sched_timer", 0, TIMER_PERIODIC);
 
 	/* Initialize the schedule queues */
 	for (i = 0; i < 2; i++) {
-		;
+		CURR_CPU->sched->queues[i].bitmap = 0;
+		for (j = 0; j < NR_PRIORITIES; j++) {
+			LIST_INIT(&CURR_CPU->sched->queues[i].threads[j]);
+		}
 	}
 }
 
 void sched_enter()
 {
-	//set_timer(&CURR_CPU->sched->timer, 1000000, sched_timer_func, NULL);
+	set_timer(&CURR_CPU->sched->timer, 10000000, sched_timer_func, NULL);
+
+	DEBUG(DL_DBG, ("sched_enter() done!\n"));
 }
 
 void init_sched()

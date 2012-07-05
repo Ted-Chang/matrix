@@ -100,7 +100,7 @@ boolean_t do_clocktick()
 	struct timer *t;
 
 	ASSERT(_timer_dev);
-	
+
 	if (!CURR_CPU->timer_enabled)
 		return FALSE;
 
