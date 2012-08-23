@@ -32,14 +32,14 @@ int strncmp(const char *str1, const char *str2, size_t num)
 	return res;
 }
 
-char * strcpy(char *dst, const char *src)
+char *strcpy(char *dst, const char *src)
 {
 	char *cp = dst;
 	while (*(cp++) = *(src++));
 	return (dst);
 }
 
-char * strncpy(char *dst, const char *src, size_t num)
+char *strncpy(char *dst, const char *src, size_t num)
 {
 	char *cp = dst;
 	while (num-- && (*(cp++) = *(src++)));
@@ -50,10 +50,17 @@ size_t strlen(const char *str)
 {
 	size_t len = 0;
 	while (str[len++]);
-	return len;
+	return len - 1;
 }
 
-char * strchr(const char *str, int ch)
+size_t strnlen(const char *str, size_t num)
+{
+	size_t len = 0;
+	while (str[len++] && (len <= num));
+	return len - 1;
+}
+
+char *strchr(const char *str, int ch)
 {
 	while (*str && *str != (char)ch)
 		str++;
@@ -62,14 +69,14 @@ char * strchr(const char *str, int ch)
 	return NULL;
 }
 
-void * memset(void *dst, char val, size_t count)
+void *memset(void *dst, char val, size_t count)
 {
 	unsigned char *temp = (unsigned char *)dst;
 	for (; count != 0; count--, temp[count] = val);
 	return dst;
 }
 
-void * memcpy(void *dst, const void *src, size_t count)
+void *memcpy(void *dst, const void *src, size_t count)
 {
 	const char *sp = (const char *)src;
 	char *dp = (char *)dst;

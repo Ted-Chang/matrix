@@ -24,4 +24,15 @@ typedef char boolean_t;
 typedef unsigned long u_long;
 typedef unsigned char u_char;
 
+/* Physical address type definition */
+typedef uint32_t phys_addr_t;
+
+/* Physical memory size definition */
+typedef uint32_t phys_size_t;
+
+typedef int ptrdiff_t;
+
+/* Micro second type definition */
+typedef int64_t useconds_t;
+
 #endif	/* __TYPES_H__ */

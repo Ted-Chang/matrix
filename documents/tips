@@ -1,4 +1,4 @@
-Debugging tips:
+[Debugging tips]
 
 * set a lenear address executive break point
 lb 0x1040ea
@@ -10,8 +10,10 @@ NOTE: no space between the expression
 * disassemble the instruction at give address
 u /10
 
+* logging 
+edit the bochsrc.bxrc, set the log option to a file
 
-Debugging process:
+* Debugging process:
 lb 0x104008
 c
 s
@@ -25,4 +27,57 @@ vb 0x08:0x1015f9
 lb 0x101d23
 (print the stack when you got a panic)
 print-stack 10
+(check the value control registers)
+creg
+(check the page by the virtual address)
+page 0xe007ffff
+
+* Debugging APIC
+boot your operating system and press the config button in bochs emulator
+9. Log options for individual devices
+then
+28. [APIC0]
+choose
+ask
+for all the actions
+
+
+
+[Debugging with GDB+QEMU]
+
+usage: qemu [options] [disk_image]
+
+Note that if you are using GDB of x86_64 platform, you should change the qemu to qemu-system-x86_64.
+
+* compile with debugging symbols using "-g" option
+
+* put all of the debugging information in a separate file
+objcopy --only-keep-debug matrix matrix.sym
+
+* strip your executable of debugging information
+objcopy --strip-debug matrix
+
+* start qemu with your floppy image
+qemu -s -S -drive file=~/vm/matrix/matrix.img,index=0,if=floppy
+* start the gdbserver in your virtual machine
+in your virtual machine
+Ctrl + Alt + 2
+gdbserver tcp::2012
+* start gdb in another console
+gdb
+(gdb) file ~/sources/matrix/bin/matrix
+Reading symbols from /home/ted/sources/matrix/bin/matrix...(no debugging symbols found)...done.
+(gdb) target remote :2012
+Remote debugging using :2012
+(gdb) symbol-file ~/sources/matrix/bin/matrix.sym
+Reading symbols from /home/ted/sources/matrix/bin/matrix.sym...done.
+(gdb) break kmain
+Breakpoint 1 at 0x10503c: file main.c, line 40.
+(gdb) continue
+Continuing.
+
+Breakpoint 1, kmain (addr=can't compute CFA for this frame
+) at main.c:40
+40	{
+(gdb)
 

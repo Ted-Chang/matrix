@@ -14,5 +14,6 @@
 #define toupper(c)	((c) - 0x20 * (((c) >= 'a') && ((c) <= 'z')))
 #define tolower(c)	((c) + 0x20 * (((c) >= 'A') && ((c) <= 'Z')))
 #define toascii(c)	((unsigned)(c) & 0x7F)
+#define isalnum(c)	(isalpha(c) || isdigit(c))
 
 #endif	/* __CTYPE_H__ */
