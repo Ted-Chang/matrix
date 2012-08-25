@@ -1,3 +1,6 @@
+/*
+ * syscall.c
+ */
 #include <types.h>
 #include "hal.h"
 #include "syscall.h"
@@ -6,16 +9,44 @@
 
 static void syscall_handler(struct registers *regs);
 
-/* Define your system call here */
-DEFN_SYSCALL1(putstr, 0, const char *);
-/* End of the system call definition */
-
-static void *_syscalls[3] = {
-	putstr,
-};
-
-uint32_t _nr_syscalls = 1;
 static struct irq_hook _syscall_hook;
+
+int open(const char *file, int flags, int mode)
+{
+	int fd = -1;
+
+	return fd;
+}
+
+int close(int fd)
+{
+	int rc = -1;
+	
+	return -1;
+}
+
+int read(int fd, char *buf, int len)
+{
+	uint32_t out = -1;
+
+	return out;
+}
+
+int write(int fd, char *buf, int len)
+{
+	uint32_t out = -1;
+	
+	return out;
+}
+
+uint32_t _nr_syscalls = 5;
+static void *_syscalls[] = {
+	putstr,
+	open,
+	read,
+	write,
+	close,
+};
 
 void init_syscalls()
 {

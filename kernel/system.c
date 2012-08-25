@@ -36,10 +36,17 @@ void sys_task()
 	switch_to_user_mode();
 	
 	while (TRUE) {
+		int fd = 0;
 		uint32_t count;
 		
 		count = 20000;
 		syscall_putstr("sys.");
+
+		fd = syscall_open("/etc/sys", 0, 0);
+		if (fd == -1) {
+			syscall_putstr("open sys-file failed.\n");
+			continue;
+		}
 		
 		/* Wait for a little while */
 		while (count--);
@@ -51,10 +58,17 @@ void init_task()
 	switch_to_user_mode();
 
 	while (TRUE) {
+		int fd = 0;
 		uint32_t count;
 
 		count = 20000;
 		syscall_putstr("init.");
+
+		fd = syscall_open("/etc/init", 0, 0);
+		if (fd == -1) {
+			syscall_putstr("open init-file failed.\n");
+			continue;
+		}
 
 		/* Wait for a little while */
 		while (count--);

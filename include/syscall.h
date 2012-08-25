@@ -51,7 +51,11 @@
 	}
 
 /* Declare your system call here */
-DECL_SYSCALL1(putstr, const char *)
+DECL_SYSCALL1(putstr, const char *);
+DECL_SYSCALL3(open, const char *, int, int);
+DECL_SYSCALL3(read, int, char *, int);
+DECL_SYSCALL3(write, int, char *, int);
+DECL_SYSCALL1(close, int);
 /* System call declaration end */
 
 void init_syscalls();
