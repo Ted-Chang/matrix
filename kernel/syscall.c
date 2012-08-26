@@ -2,10 +2,12 @@
  * syscall.c
  */
 #include <types.h>
+#include <stddef.h>
 #include "hal.h"
 #include "syscall.h"
 #include "isr.h"	// register_interrupt_handler
 #include "util.h"	// putstr
+#include "proc/task.h"
 
 static void syscall_handler(struct registers *regs);
 
@@ -21,6 +23,11 @@ int open(const char *file, int flags, int mode)
 int close(int fd)
 {
 	int rc = -1;
+
+	if (fd >= _curr_task->fds->len || fd < 0)
+		return -1;
+	if (_curr_task->fds->nodes[fd] == NULL)
+		return -1;
 	
 	return -1;
 }
@@ -29,6 +36,11 @@ int read(int fd, char *buf, int len)
 {
 	uint32_t out = -1;
 
+	if (fd >= _curr_task->fds->len || fd < 0)
+		return -1;
+	if (_curr_task->fds->nodes[fd] == NULL)
+		return -1;
+
 	return out;
 }
 
@@ -36,16 +48,27 @@ int write(int fd, char *buf, int len)
 {
 	uint32_t out = -1;
 	
+	if (fd >= _curr_task->fds->len || fd < 0)
+		return -1;
+	if (_curr_task->fds->nodes[fd] == NULL)
+		return -1;
+	
 	return out;
 }
 
-uint32_t _nr_syscalls = 5;
+int exit(int rc)
+{
+	return rc;
+}
+
+uint32_t _nr_syscalls = 6;
 static void *_syscalls[] = {
 	putstr,
 	open,
 	read,
 	write,
 	close,
+	exit,
 };
 
 void init_syscalls()

@@ -56,6 +56,7 @@ DECL_SYSCALL3(open, const char *, int, int);
 DECL_SYSCALL3(read, int, char *, int);
 DECL_SYSCALL3(write, int, char *, int);
 DECL_SYSCALL1(close, int);
+DECL_SYSCALL1(exit, int);
 /* System call declaration end */
 
 void init_syscalls();

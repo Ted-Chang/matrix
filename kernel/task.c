@@ -3,6 +3,7 @@
  */
 
 #include <types.h>
+#include <stddef.h>
 #include "string.h"
 #include "matrix/matrix.h"
 #include "matrix/global.h"
@@ -115,6 +116,12 @@ static void task_ctor(void *obj, struct pd *dir)
 	t->arch.ebp = 0;
 	t->arch.eip = 0;
 	t->arch.kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
+
+	/* Initialize the file descriptor table */
+	t->fds = (fd_table_t *)kmalloc(sizeof(fd_table_t));
+	t->fds->ref_count = 1;
+	t->fds->len = 0;
+	t->fds->nodes = (struct vfs_node **)NULL;
 }
 
 /**

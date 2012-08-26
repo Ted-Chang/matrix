@@ -10,9 +10,9 @@ struct task *_ready_head[NR_SCHED_QUEUES];
 struct task *_ready_tail[NR_SCHED_QUEUES];
 
 /* Pointer to our various task */
-struct task *_next_task = NULL;
-struct task *_prev_task = NULL;
-struct task *_curr_task = NULL;				// Current running task
+volatile struct task *_next_task = NULL;
+volatile struct task *_prev_task = NULL;
+volatile struct task *_curr_task = NULL;			// Current running task
 
 static void sched(struct task *tp, int *queue, boolean_t *front);
 

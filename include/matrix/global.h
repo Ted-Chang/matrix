@@ -4,7 +4,6 @@
 #include <types.h>
 #include "proc/task.h"
 
-extern struct task *_curr_task;
 extern struct task *_next_task;
 extern struct task *_prev_task;
 
