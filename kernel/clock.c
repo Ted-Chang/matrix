@@ -54,22 +54,22 @@ static void clock_callback(struct registers *regs)
 	_real_time += ticks;
 
 	/* If multitask was not initialized, just return */
-	if (!_curr_task) return;
+	if (!CURR_PROC) return;
 
 	/* Update user and system accounting times. Charge the current process for
 	 * user time. If the current process is not billable, that is, if a non-user
 	 * process is running, charge the billable process for system time as well.
 	 * Thus the unbillable process' user time is the billable user's system time.
 	 */
-	_curr_task->usr_time += ticks;
-	if (FLAG_ON(_curr_task->priv.flags, PREEMPTIBLE)) {
-		_curr_task->ticks_left -= ticks;	// Consume the quantum
+	CURR_PROC->usr_time += ticks;
+	if (FLAG_ON(CURR_PROC->priv.flags, PREEMPTIBLE)) {
+		CURR_PROC->ticks_left -= ticks;	// Consume the quantum
 	}
 	
 	/* Check if do_clocktick() must be called. Done for alarms and scheduling.
 	 */
-	if ((_next_timeout <= _real_time) || (_curr_task->ticks_left <= 0)) {
-		_prev_task = _curr_task;		// Store running task
+	if ((_next_timeout <= _real_time) || (CURR_PROC->ticks_left <= 0)) {
+		_prev_task = CURR_PROC;		// Store running task
 		do_clocktick();
 	}
 }

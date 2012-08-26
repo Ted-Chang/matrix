@@ -96,9 +96,11 @@ void move_stack(void *new_stack, uint32_t size)
 /**
  * Construct a task
  */
-static void task_ctor(void *obj, struct pd *dir)
+static void task_ctor(void *obj, struct task *parent, struct pd *dir)
 {
 	struct task *t = (struct task *)obj;
+	size_t nodes_len, i;
+	
 	t->next = NULL;
 	t->page_dir = dir;
 	t->id = _next_pid++;
@@ -115,13 +117,24 @@ static void task_ctor(void *obj, struct pd *dir)
 	t->arch.esp = 0;
 	t->arch.ebp = 0;
 	t->arch.eip = 0;
-	t->arch.kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
+	t->arch.kstack = kmalloc_a(KSTACK_SIZE);
 
 	/* Initialize the file descriptor table */
 	t->fds = (fd_table_t *)kmalloc(sizeof(fd_table_t));
 	t->fds->ref_count = 1;
-	t->fds->len = 0;
-	t->fds->nodes = (struct vfs_node **)NULL;
+	if (!parent) {
+		t->fds->len = 3;
+	} else {
+		t->fds->len = parent->fds->len;
+	}
+	nodes_len = t->fds->len * sizeof(struct vfs_node *);
+	t->fds->nodes = (struct vfs_node **)kmalloc(nodes_len);
+	if (parent) {			// Clone parent's file descriptors
+		for (i = 0; i < t->fds->len; i++) {
+			t->fds->nodes[i] = vfs_clone(parent->fds->nodes[i]);
+		}
+	}
+	memset(t->fds->nodes, 0, nodes_len);
 }
 
 /**
@@ -130,8 +143,9 @@ static void task_ctor(void *obj, struct pd *dir)
 static void task_dtor(void *obj)
 {
 	struct task *t = (struct task *)obj;
-	kfree((void *)t->arch.kernel_stack);
+	kfree((void *)t->arch.kstack);
 	// TODO: cleanup the page directory owned by this task
+	// TODO: close the file descriptors opened by this task
 }
 
 /**
@@ -149,13 +163,13 @@ void init_multitask()
 
 	/* Malloc the initial task and initialize it */
 	t = (struct task *)kmalloc(sizeof(struct task));
-	task_ctor(t, _current_dir);
+	task_ctor(t, NULL, _current_dir);
 	
 	/* Enqueue the new task */
 	sched_enqueue(t);
 
 	/* Update the current task pointer */
-	_curr_task = t;
+	CURR_PROC = t;
 }
 
 void switch_context()
@@ -184,20 +198,20 @@ void switch_context()
 	}
 
 	/* Save the current process context */
-	_curr_task->arch.eip = eip;
-	_curr_task->arch.esp = esp;
-	_curr_task->arch.ebp = ebp;
+	CURR_PROC->arch.eip = eip;
+	CURR_PROC->arch.esp = esp;
+	CURR_PROC->arch.ebp = ebp;
 
-	_curr_task = _next_task;
-	eip = _curr_task->arch.eip;
-	esp = _curr_task->arch.esp;
-	ebp = _curr_task->arch.ebp;
+	CURR_PROC = _next_task;
+	eip = CURR_PROC->arch.eip;
+	esp = CURR_PROC->arch.esp;
+	ebp = CURR_PROC->arch.ebp;
 
 	/* Make sure the memory manager knows we've changed the page directory */
-	_current_dir = _curr_task->page_dir;
+	_current_dir = CURR_PROC->page_dir;
 
 	/* Switch the kernel stack in TSS to the task's kernel stack */
-	set_kernel_stack(_curr_task->arch.kernel_stack + KERNEL_STACK_SIZE);
+	set_kernel_stack(CURR_PROC->arch.kstack + KSTACK_SIZE);
 
 	/* Here we:
 	 * [1] Disable interrupts so we don't get bothered.
@@ -235,14 +249,14 @@ int fork()
 	disable_interrupt();
 
 	/* Take a pointer to this process' task struct for later reference */
-	parent = (struct task *)_curr_task;
+	parent = (struct task *)CURR_PROC;
 	
 	/* Clone the parent(current)'s page directory */
 	dir = clone_pd(_current_dir);
 
 	/* Create a new task */
 	new_task = (struct task *)kmalloc(sizeof(struct task));
-	task_ctor(new_task, dir);
+	task_ctor(new_task, parent, dir);
 
 	/* Enqueue the forked new task */
 	sched_enqueue(new_task);
@@ -250,7 +264,7 @@ int fork()
 	eip = read_eip();
 
 	/* We could be the parent or the child here */
-	if (_curr_task == parent) {
+	if (CURR_PROC == parent) {
 
 		/* We are the parent, so setup the esp/ebp/eip for our child */
 		asm volatile("mov %%esp, %0" : "=r" (esp));
@@ -278,7 +292,7 @@ int fork()
 
 int getpid()
 {
-	return _curr_task->id;
+	return CURR_PROC->id;
 }
 
 void switch_to_user_mode()
@@ -286,7 +300,7 @@ void switch_to_user_mode()
 	/* Setup our kernel stack, note that the stack was grow from high address
 	 * to low address
 	 */
-	set_kernel_stack(_curr_task->arch.kernel_stack + KERNEL_STACK_SIZE);
+	set_kernel_stack(CURR_PROC->arch.kstack + KSTACK_SIZE);
 	
 	/* Setup a stack structure for switching to user mode.
 	 * The code firstly disables interrupts, as we're working on a critical

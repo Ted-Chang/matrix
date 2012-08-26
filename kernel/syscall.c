@@ -24,9 +24,9 @@ int close(int fd)
 {
 	int rc = -1;
 
-	if (fd >= _curr_task->fds->len || fd < 0)
+	if (fd >= CURR_PROC->fds->len || fd < 0)
 		return -1;
-	if (_curr_task->fds->nodes[fd] == NULL)
+	if (CURR_PROC->fds->nodes[fd] == NULL)
 		return -1;
 	
 	return -1;
@@ -36,9 +36,9 @@ int read(int fd, char *buf, int len)
 {
 	uint32_t out = -1;
 
-	if (fd >= _curr_task->fds->len || fd < 0)
+	if (fd >= CURR_PROC->fds->len || fd < 0)
 		return -1;
-	if (_curr_task->fds->nodes[fd] == NULL)
+	if (CURR_PROC->fds->nodes[fd] == NULL)
 		return -1;
 
 	return out;
@@ -48,9 +48,9 @@ int write(int fd, char *buf, int len)
 {
 	uint32_t out = -1;
 	
-	if (fd >= _curr_task->fds->len || fd < 0)
+	if (fd >= CURR_PROC->fds->len || fd < 0)
 		return -1;
-	if (_curr_task->fds->nodes[fd] == NULL)
+	if (CURR_PROC->fds->nodes[fd] == NULL)
 		return -1;
 	
 	return out;

@@ -1,5 +1,7 @@
+#include <stddef.h>
 #include "fs.h"
 #include "matrix/debug.h"
+#include "mm/mmgr.h"
 
 struct vfs_node *root_node = 0;
 
@@ -45,4 +47,17 @@ struct vfs_node *vfs_finddir(struct vfs_node *node, char *name)
 		return node->finddir(node, name);
 	else
 		return 0;
+}
+
+struct vfs_node *vfs_clone(struct vfs_node *src)
+{
+	struct vfs_node *node;
+	
+	if (!src)
+		return NULL;
+
+	node = kmalloc(sizeof(struct vfs_node));
+	memcpy(node, src, sizeof(struct vfs_node));
+
+	return node;
 }

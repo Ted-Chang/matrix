@@ -1,7 +1,7 @@
 #ifndef __FS_H__
 #define __FS_H__
 
-#include "types.h"
+#include <types.h>
 
 struct dirent {
 	char name[128];	// File name
@@ -43,5 +43,6 @@ void vfs_open(struct vfs_node *node);
 void vfs_close(struct vfs_node *node);
 struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index);
 struct vfs_node *vfs_finddir(struct vfs_node *node, char *name);
+struct vfs_node *vfs_clone(struct vfs_node *src);
 
 #endif	/* __FS_H__ */

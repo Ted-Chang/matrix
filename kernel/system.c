@@ -16,7 +16,7 @@ task_func_t images[] = {
 
 uint32_t _nr_boot_tasks = sizeof(images)/sizeof(images[0]);
 
-void idle_task()
+void idle_task(void *ctx)
 {
 	while (TRUE) {
 		uint32_t count;
@@ -30,7 +30,7 @@ void idle_task()
 	}
 }
 
-void sys_task()
+void sys_task(void *ctx)
 {
 	/* Our system task will run in user mode */
 	switch_to_user_mode();
@@ -53,7 +53,7 @@ void sys_task()
 	}
 }
 
-void init_task()
+void init_task(void *ctx)
 {
 	switch_to_user_mode();
 

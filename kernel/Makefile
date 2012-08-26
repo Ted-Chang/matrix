@@ -11,7 +11,6 @@ TARGETOBJ := $(OBJ)/debug.o \
 	$(OBJ)/timer.o \
 	$(OBJ)/initrd.o \
 	$(OBJ)/syscall.o \
-	$(OBJ)/fs.o \
 	$(OBJ)/clock.o \
 	$(OBJ)/sched.o \
 	$(OBJ)/system.o \

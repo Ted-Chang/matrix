@@ -8,14 +8,14 @@
 
 
 /* Our kernel stack size is 4096 bytes */
-#define KERNEL_STACK_SIZE 4096
+#define KSTACK_SIZE 4096
 
 /* Definition of the architecture specific task structure */
 struct arch_task {
 	uint32_t esp;		// Stack pointer
 	uint32_t ebp;		// Base pointer
 	uint32_t eip;		// Instruction pointer
-	uint32_t kernel_stack;	// Kernel stack location
+	uint32_t kstack;	// Kernel stack location
 };
 typedef struct arch_task arch_task_t;
 
@@ -55,6 +55,9 @@ struct task {
 #define USER_Q			7
 #define MIN_USER_Q		14
 #define IDLE_Q			15
+
+/* Macro that retrieve the pointer of the current process */
+#define CURR_PROC	(_curr_task)
 
 /* Pointer to the current task in the system */
 extern volatile struct task *_curr_task;

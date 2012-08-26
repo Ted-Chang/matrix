@@ -1,7 +1,7 @@
 #ifndef __SYSTEM_H__
 #define __SYSTEM_H__
 
-typedef void (*task_func_t)(void);
+typedef void (*task_func_t)(void *);
 
 extern task_func_t images[];
 
