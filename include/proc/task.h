@@ -1,7 +1,7 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
-#include <time.h>
+#include <sys/time.h>
 #include "matrix/const.h"
 #include "priv.h"
 #include "fs.h"

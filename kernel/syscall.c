@@ -3,11 +3,13 @@
  */
 #include <types.h>
 #include <stddef.h>
+#include <sys/time.h>
 #include "hal.h"
 #include "syscall.h"
 #include "isr.h"	// register_interrupt_handler
 #include "util.h"	// putstr
 #include "proc/task.h"
+#include "div64.h"	// do_div
 
 static void syscall_handler(struct registers *regs);
 
@@ -61,7 +63,29 @@ int exit(int rc)
 	return rc;
 }
 
-uint32_t _nr_syscalls = 6;
+int gettimeofday(struct timeval *tv, struct timezone *tz)
+{
+	struct tm t;
+	useconds_t usecs;
+
+	get_cmostime(&t);
+	tv->tv_sec = 0;
+	tv->tv_usec = 0;
+
+	usecs = time_to_unix(t.tm_year, t.tm_mon, t.tm_mday,
+			     t.tm_hour, t.tm_min, t.tm_sec);
+	tv->tv_sec = do_div(usecs, 1000000);
+	tv->tv_usec = 0;
+	
+	return 0;
+}
+
+int settimeofday(const struct timeval *tv, const struct timezone *tz)
+{
+	return 0;
+}
+
+uint32_t _nr_syscalls = 8;
 static void *_syscalls[] = {
 	putstr,
 	open,
@@ -69,6 +93,8 @@ static void *_syscalls[] = {
 	write,
 	close,
 	exit,
+	gettimeofday,
+	settimeofday,
 };
 
 void init_syscalls()

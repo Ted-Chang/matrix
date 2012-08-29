@@ -22,7 +22,7 @@ TARGETOBJ := $(OBJ)/debug.o \
 all: $(TARGETOBJ)
 
 $(OBJ)/%.o: %.c
-	$(CC) -D_DEBUG_SCHED -m32 -I../include $(CFLAGS_global) -c -o $@ $<
+	$(CC) -D_DEBUG_SCHED -DBITS_PER_LONG=32 -m32 -I../include $(CFLAGS_global) -c -o $@ $<
 
 $(OBJ)/process.o:
 	nasm $(ASFLAGS) -o $(OBJ)/process.o process.s

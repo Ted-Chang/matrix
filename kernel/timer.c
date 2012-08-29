@@ -1,6 +1,6 @@
 #include <types.h>
 #include <stddef.h>
-#include <time.h>
+#include <sys/time.h>
 #include "timer.h"
 
 extern clock_t _next_timeout;

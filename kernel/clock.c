@@ -1,6 +1,6 @@
 #include <types.h>
 #include <stddef.h>
-#include <time.h>
+#include <sys/time.h>
 #include "matrix/matrix.h"
 #include "matrix/const.h"
 #include "matrix/global.h"
@@ -10,6 +10,9 @@
 #include "proc/task.h"
 #include "proc/sched.h"
 #include "matrix/debug.h"
+
+#define LEAPYEAR(y)	(((y) % 4) == 0 && ((y) % 100) != 0 || (((y) % 400) == 0))
+#define DAYS(y)		(LEAPYEAR(y) ? 366 : 365)
 
 #define TIMER_FREQ	1193182L	// clock frequency for timer in PC and AT
 
@@ -21,6 +24,50 @@ uint32_t _lost_ticks = 0;
 clock_t _real_time = 0;
 clock_t _next_timeout = 0;
 static struct irq_hook _clock_hook;
+
+/* Table containing number of days before a month */
+static int _days_before_month[] = {
+	0,
+	0,
+	31,
+	31 + 28,
+	31 + 28 + 31,
+	31 + 28 + 31 + 30,
+	31 + 28 + 31 + 30 + 31,
+	31 + 28 + 31 + 30 + 31 + 30,
+	31 + 28 + 31 + 30 + 31 + 30 + 31,
+	31 + 28 + 31 + 30 + 31 + 30 + 31 + 31,
+	31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30,
+	31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31,
+	31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30,
+};
+
+useconds_t time_to_unix(uint32_t year, uint32_t mon, uint32_t day,
+			uint32_t hour, uint32_t min, uint32_t sec)
+{
+	uint32_t seconds = 0;
+	uint32_t i;
+
+	seconds += sec;
+	seconds += min * 60;
+	seconds += hour * 60 * 60;
+	seconds += (day - 1) * 24 * 60 * 60;
+
+	/* Convert the month into seconds */
+	seconds += _days_before_month[mon] * 24 * 60 * 60;
+
+	/* If this is a leap year and we've past February, we need to
+	 * add another day.
+	 */
+	if (mon > 2 && LEAPYEAR(year))
+		seconds += 24 * 60 * 60;
+
+	/* Add the days in each year before this year from 1970 */
+	for (i = 1970; i < year; i++)
+		seconds += DAYS(i) * 24 * 60 * 60;
+
+	return SECS2USECS(seconds);
+}
 
 void do_clocktick()
 {

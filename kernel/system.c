@@ -1,6 +1,7 @@
 #include <types.h>
 #include <stddef.h>
-#include <time.h>
+#include <sys/time.h>
+#include <stdarg.h>
 #include "util.h"
 #include "proc/task.h"
 #include "syscall.h"
@@ -23,7 +24,7 @@ void idle_task(void *ctx)
 	
 		count = 20000;
 		
-		kprintf("idle.");
+		kprintf("idle.\n");
 
 		/* Wait for a little while */
 		while (count--);
@@ -40,7 +41,7 @@ void sys_task(void *ctx)
 		uint32_t count;
 		
 		count = 20000;
-		syscall_putstr("sys.");
+		syscall_putstr("sys.\n");
 
 		fd = syscall_open("/etc/sys", 0, 0);
 		if (fd == -1) {
@@ -55,14 +56,28 @@ void sys_task(void *ctx)
 
 void init_task(void *ctx)
 {
+	int rc = 0;
+	
 	switch_to_user_mode();
 
 	while (TRUE) {
 		int fd = 0;
 		uint32_t count;
+		struct timeval tv;
+		char buf[256] = {0};
 
 		count = 20000;
-		syscall_putstr("init.");
+		syscall_putstr("init.\n");
+
+		memset(&tv, 0, sizeof(struct timeval));
+		rc = gettimeofday(&tv, NULL);
+		if (rc != 0) {
+			syscall_putstr("gettimeofday failed.\n");
+		} else {
+			//vsprintf(buf, "timeval.tv_sec(%d\n), timeval.tv_usec(%d)\n",
+			//	 tv.tv_sec, tv.tv_usec);
+			syscall_putstr("gettimeofday successfully.\n");
+		}
 
 		fd = syscall_open("/etc/init", 0, 0);
 		if (fd == -1) {
