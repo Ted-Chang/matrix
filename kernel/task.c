@@ -251,7 +251,7 @@ int fork()
 	parent = (struct task *)CURRENT_PROC;
 	
 	/* Clone the parent(current)'s page directory */
-	ctx = kmalloc_ap(sizeof(struct mmu_ctx), &phys_addr);
+	ctx = mmu_create_ctx();
 	mmu_copy_ctx(ctx, _current_mmu_ctx);
 
 	/* Create a new task */

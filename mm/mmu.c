@@ -56,7 +56,7 @@ static struct ptbl *clone_ptbl(struct ptbl *src, uint32_t *phys_addr)
 	struct ptbl *ptbl;
 	
 	/* Make a new page table, which is page aligned */
-	ptbl = (struct pt *)kmalloc_ap(sizeof(struct ptbl), phys_addr);
+	ptbl = (struct ptbl *)kmalloc_ap(sizeof(struct ptbl), phys_addr);
 	
 	/* Clear the content of the new page table */
 	memset(ptbl, 0, sizeof(struct ptbl));
@@ -95,8 +95,8 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t make,
 	pdir = ctx->pdir;
 
 	/* Calculate the page table index and page directory index */
-	dir_idx = (virt / PAGE_SIZE) % 1024;
-	tbl_idx = (virt / PAGE_SIZE) / 1024;
+	tbl_idx = (virt / PAGE_SIZE) % 1024;
+	dir_idx = (virt / PAGE_SIZE) / 1024;
 
 	if (pdir->ptbl[dir_idx]) {	// The page table already assigned
 		return &pdir->ptbl[dir_idx]->pte[tbl_idx];
@@ -183,6 +183,7 @@ void mmu_switch_ctx(struct mmu_ctx *ctx)
 
 	ASSERT((ctx->pdbr % 4096) == 0);
 
+	/* Update the current mmu context */
 	_current_mmu_ctx = ctx;
 	
 	DEBUG(DL_DBG, ("switch context to 0x%08x, pdbr(0x%08x)\n", ctx, ctx->pdbr));
@@ -277,9 +278,6 @@ struct mmu_ctx *mmu_create_ctx()
 	ctx->pdbr = pdbr;
 	memset(ctx->pdir, 0, sizeof(struct pdir));
 
-	/* Get the kernel mappings into the new page directory */
-	mmu_copy_ctx(ctx, &_kernel_mmu_ctx);
-
 	return ctx;
 }
 
@@ -308,11 +306,11 @@ void init_mmu()
 	 * but not page_alloc. this cause the page tables to be created when necessary.
 	 * We can't allocate page yet because they need to be identity mapped first.
 	 */
-	for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i+=PAGE_SIZE)
+	for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i += PAGE_SIZE)
 		mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
 
 	/* Do identity map (physical addr == virtual addr) for the memory we used. */
-	for (i = 0; i < (_placement_addr+PAGE_SIZE); i+=PAGE_SIZE) {
+	for (i = 0; i < (_placement_addr+PAGE_SIZE); i += PAGE_SIZE) {
 		/* Kernel code is readable but not writable from user-mode */
 		page = mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
 		page_alloc(page, FALSE, FALSE);

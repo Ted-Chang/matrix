@@ -38,8 +38,9 @@ void *kmalloc_int(size_t size, int align, uint32_t *phys)
 	if (_kheap) {	// The heap manager was initialized
 		void *addr = alloc(_kheap, size, (uint8_t)align);
 		if (phys) {
-			struct page *page = mmu_get_page(&_kernel_mmu_ctx, (uint32_t)addr,
-							 FALSE, 0);
+			struct page *page;
+
+			page = mmu_get_page(&_kernel_mmu_ctx, (uint32_t)addr, FALSE, 0);
 			*phys = page->frame * 0x1000 + ((uint32_t)addr & 0xFFF);
 		}
 		return addr;
@@ -59,7 +60,8 @@ void *kmalloc_int(size_t size, int align, uint32_t *phys)
 
 		tmp = _placement_addr;
 		_placement_addr += size;
-		return tmp;
+		
+		return (void *)tmp;
 	}
 }
 
@@ -445,20 +447,16 @@ void kfree(void *p)
 
 void init_kmem()
 {
-	uint32_t phys_addr;
 	struct mmu_ctx *ctx;
 	
 	/* Create kernel heap */
 	_kheap = create_heap(KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE,
 			     0xCFFFF000, FALSE, FALSE);
 
-	/* Clone the kernel page directory and switch to it, this make the kernel
-	 * page directory clean
+	/* Clone the page directory and switch to it. This makes the kernel page
+	 * directory clean.
 	 */
-	ctx = kmalloc_ap(sizeof(struct mmu_ctx), &phys_addr);
-	mmu_copy_ctx(ctx, _kernel_mmu_ctx);
-	
-	_current_mmu_ctx = ctx;
-
-	mmu_switch_ctx(_current_mmu_ctx);
+	ctx = mmu_create_ctx();
+	mmu_copy_ctx(ctx, &_kernel_mmu_ctx);
+	mmu_switch_ctx(ctx);
 }

@@ -25,11 +25,10 @@
 #include "floppy.h"
 #include "system.h"
 
-extern uint32_t _placement_addr;
-extern struct irq_hook *_interrupt_handlers[];
-
 uint32_t _initial_esp;
 struct multiboot_info *_mbi;
+
+extern struct irq_hook *_interrupt_handlers[];
 
 extern void init_task();
 
@@ -62,11 +61,9 @@ int kmain(u_long addr, uint32_t initial_stack)
 	init_gdt();
 	init_idt();
 	memset(&_interrupt_handlers[0], 0, sizeof(struct irq_hook *)*256);
-
 	kprintf("Gdt and idt installed.\n");
 
 	init_exception_handlers();
-
 	kprintf("Exception handlers installed.\n");
 
 	/* Enable interrupt so our timer can work */
@@ -74,7 +71,6 @@ int kmain(u_long addr, uint32_t initial_stack)
 
 	/* Initialize our timer */
 	init_clock();
-
 	kprintf("System PIT initialized.\n");
 
 	/* Find the location of our initial ramdisk */
@@ -83,32 +79,30 @@ int kmain(u_long addr, uint32_t initial_stack)
 
 	/* Initialize our memory manager */
 	init_page();
+	DEBUG(DL_DBG, ("Page initialization done.\n"));
 	init_mmu();
+	DEBUG(DL_DBG, ("MMU initialization done.\n"));
 	init_kmem();
+	DEBUG(DL_DBG, ("Kernel memory manager initialization done.\n"));
 
 	kprintf("Memory manager initialized.\n");
 
 	/* Start multitasking now */
 	init_multitask();
-
 	kprintf("Multitask initialized.\n");
 
 	/* Initialize the initial ramdisk and set it as the root filesystem */
 	root_node = init_initrd(initrd_location);
-
 	kprintf("Initial ramdisk mounted, location(0x%x), end(0x%x).\n",
 		initrd_location, initrd_end);
 
 	init_syscalls();
-
 	kprintf("System call initialized.\n");
 
 	init_keyboard();
-
 	kprintf("Keyboard driver initialized.\n");
 
 	init_floppy();
-
 	kprintf("Floppy driver initialized.\n");
 
 	/* Print the banner */

@@ -55,6 +55,8 @@ static uint32_t first_frame()
 
 void page_alloc(struct page *p, boolean_t kernel, boolean_t write)
 {
+	ASSERT(p != NULL);
+	
 	if (p->frame != 0) {
 		DEBUG(DL_DBG, ("page_alloc: page(0x%x), frame(0x%x), kernel(%d), write(%d)\n",
 			       p, p->frame, kernel, write));
@@ -62,6 +64,7 @@ void page_alloc(struct page *p, boolean_t kernel, boolean_t write)
 	} else {
 		/* Get the first free frame from our global frame set */
 		uint32_t idx = first_frame();
+
 		if (idx == (uint32_t)(-1)) {
 			PANIC("No free frames!\n");
 		}
@@ -80,6 +83,8 @@ void page_free(struct page *p)
 {
 	uint32_t frame;
 
+	ASSERT(p != NULL);
+	
 	if (!(frame = p->frame)) {
 		return;
 	} else {
@@ -97,6 +102,8 @@ void init_page()
 	 * where our placement address begins
 	 */
 	_placement_addr = *((uint32_t *)(_mbi->mods_addr + 4));
+	
+	DEBUG(DL_DBG, ("Placement address: 0x%x\n", _placement_addr));
 
 	/* Detect the amount of physical memory by parse the memory map entry */
 	for (mmap = (struct multiboot_mmap_entry *)_mbi->mmap_addr;
@@ -106,8 +113,7 @@ void init_page()
 		mem_size += mmap->len;
 	}
 
-	DEBUG(DL_DBG, ("Detected physical memory size: %uMB.\n",
-		       mem_size / (1024 * 1024)));
+	DEBUG(DL_DBG, ("Detected physical memory size: %uMB.\n", mem_size/(1024*1024)));
 
 	_nr_total_pages = mem_size / PAGE_SIZE;
 
