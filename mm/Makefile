@@ -5,8 +5,10 @@ include ../Makefile.inc
 OBJ := ../bin/obji386
 
 TARGETOBJ := $(OBJ)/vector.o \
-	$(OBJ)/mmgr.o \
-	$(OBJ)/kheap.o
+	$(OBJ)/mmu.o \
+	$(OBJ)/kmem.o \
+	$(OBJ)/page.o \
+
 
 .PHONY: clean help
 

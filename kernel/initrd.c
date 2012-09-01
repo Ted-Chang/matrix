@@ -1,6 +1,6 @@
 #include <types.h>
-#include "string.h"
-#include "mm/mmgr.h"
+#include <string.h>
+#include "mm/mmu.h"
 #include "initrd.h"
 #include "matrix/debug.h"
 

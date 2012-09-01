@@ -13,8 +13,8 @@
 #include "util.h"
 #include "hal.h"
 #include "isr.h"
-#include "mm/kheap.h"
-#include "mm/mmgr.h"
+#include "mm/kmem.h"
+#include "mm/mmu.h"
 #include "timer.h"
 #include "fs.h"
 #include "initrd.h"
@@ -81,16 +81,12 @@ int kmain(u_long addr, uint32_t initial_stack)
 	initrd_location = *((uint32_t *)_mbi->mods_addr);
 	initrd_end = *(uint32_t *)(_mbi->mods_addr + 4);
 
-	/* Don't trample our module with placement address */
-	_placement_addr = initrd_end;
+	/* Initialize our memory manager */
+	init_page();
+	init_mmu();
+	init_kmem();
 
-	/* Upper memory start from 1MB and in kilo bytes */
-	mem_end_page = (_mbi->mem_upper + _mbi->mem_lower) * 1024;
-	
-	/* Enable paging now */
-	init_paging(mem_end_page);
-
-	kprintf("Memory paging enabled, physical memory: %d bytes.\n", mem_end_page);
+	kprintf("Memory manager initialized.\n");
 
 	/* Start multitasking now */
 	init_multitask();

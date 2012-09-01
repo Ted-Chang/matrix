@@ -33,7 +33,7 @@ typedef struct fd_table fd_table_t;
 struct task {
 	struct task *next;	// Next task
 	struct priv priv;	// System privileges structure
-	struct pd *page_dir;	// Page directory
+	struct mmu_ctx *mmu_ctx;// MMU context
 	task_id_t id;		// Task ID
 	struct arch_task arch;	// Architecture task implementation
 	struct fd_table *fds;	// File descriptor table
@@ -56,11 +56,11 @@ struct task {
 #define MIN_USER_Q		14
 #define IDLE_Q			15
 
-/* Macro that retrieve the pointer of the current process */
-#define CURR_PROC	(_curr_task)
-
 /* Pointer to the current task in the system */
-extern volatile struct task *_curr_task;
+extern volatile struct task *_current_task;
+
+/* Macro that retrieve the pointer of the current process */
+#define CURRENT_PROC	(_current_task)
 
 void init_multitask();
 

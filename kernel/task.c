@@ -4,21 +4,19 @@
 
 #include <types.h>
 #include <stddef.h>
-#include "string.h"
+#include <string.h>
 #include "matrix/matrix.h"
 #include "matrix/global.h"
 #include "matrix/const.h"
 #include "hal.h"
-#include "mm/mmgr.h"
-#include "mm/kheap.h"
+#include "mm/page.h"
+#include "mm/mmu.h"
+#include "mm/kmem.h"
 #include "proc/task.h"
 #include "matrix/debug.h"
 #include "proc/sched.h"
 
 task_id_t _next_pid = 1;
-
-extern struct pd *_kernel_dir;
-extern struct pd *_current_dir;
 
 extern uint32_t _initial_esp;
 
@@ -39,9 +37,9 @@ void move_stack(void *new_stack, uint32_t size)
 	     i -= 0x1000) {
 
 		/* General purpose stack is in user-mode */
-		struct pte *page = get_pte(i, TRUE, _current_dir);
+		struct page *page = mmu_get_page(_current_mmu_ctx, i, TRUE, 0);
 		/* Associate the pte with a physical page */
-		alloc_frame(page, FALSE, TRUE);
+		page_alloc(page, FALSE, TRUE);
 	}
 
 	/* Flush the TLB by reading and writing the page directory address again */
@@ -96,13 +94,13 @@ void move_stack(void *new_stack, uint32_t size)
 /**
  * Construct a task
  */
-static void task_ctor(void *obj, struct task *parent, struct pd *dir)
+static void task_ctor(void *obj, struct task *parent, struct mmu_ctx *ctx)
 {
 	struct task *t = (struct task *)obj;
 	size_t nodes_len, i;
 	
 	t->next = NULL;
-	t->page_dir = dir;
+	t->mmu_ctx = ctx;
 	t->id = _next_pid++;
 	t->priority = USER_Q;		// Default priority
 	t->max_priority = TASK_Q;	// Max priority for the task
@@ -163,13 +161,13 @@ void init_multitask()
 
 	/* Malloc the initial task and initialize it */
 	t = (struct task *)kmalloc(sizeof(struct task));
-	task_ctor(t, NULL, _current_dir);
+	task_ctor(t, NULL, _current_mmu_ctx);
 	
 	/* Enqueue the new task */
 	sched_enqueue(t);
 
 	/* Update the current task pointer */
-	CURR_PROC = t;
+	CURRENT_PROC = t;
 }
 
 void switch_context()
@@ -198,20 +196,20 @@ void switch_context()
 	}
 
 	/* Save the current process context */
-	CURR_PROC->arch.eip = eip;
-	CURR_PROC->arch.esp = esp;
-	CURR_PROC->arch.ebp = ebp;
+	CURRENT_PROC->arch.eip = eip;
+	CURRENT_PROC->arch.esp = esp;
+	CURRENT_PROC->arch.ebp = ebp;
 
-	CURR_PROC = _next_task;
-	eip = CURR_PROC->arch.eip;
-	esp = CURR_PROC->arch.esp;
-	ebp = CURR_PROC->arch.ebp;
+	CURRENT_PROC = _next_task;
+	eip = CURRENT_PROC->arch.eip;
+	esp = CURRENT_PROC->arch.esp;
+	ebp = CURRENT_PROC->arch.ebp;
 
 	/* Make sure the memory manager knows we've changed the page directory */
-	_current_dir = CURR_PROC->page_dir;
+	_current_mmu_ctx = CURRENT_PROC->mmu_ctx;
 
 	/* Switch the kernel stack in TSS to the task's kernel stack */
-	set_kernel_stack(CURR_PROC->arch.kstack + KSTACK_SIZE);
+	set_kernel_stack(CURRENT_PROC->arch.kstack + KSTACK_SIZE);
 
 	/* Here we:
 	 * [1] Disable interrupts so we don't get bothered.
@@ -230,7 +228,7 @@ void switch_context()
 	asm volatile ("mov %0, %%ecx" :: "r"(eip));
 	asm volatile ("mov %0, %%esp" :: "r"(esp));
 	asm volatile ("mov %0, %%ebp" :: "r"(ebp));
-	asm volatile ("mov %0, %%cr3" :: "r"(_current_dir->physical_addr));
+	asm volatile ("mov %0, %%cr3" :: "r"(_current_mmu_ctx->pdbr));
 	asm volatile ("mov $0x12345678, %eax");
 	asm volatile ("sti");
 	asm volatile ("jmp *%ecx");
@@ -241,7 +239,8 @@ int fork()
 	task_id_t pid = 0;
 	struct task *parent;
 	struct task *new_task;
-	struct pd *dir;
+	struct mmu_ctx *ctx;
+	uint32_t phys_addr;
 	uint32_t eip;
 	uint32_t esp;
 	uint32_t ebp;
@@ -249,14 +248,15 @@ int fork()
 	disable_interrupt();
 
 	/* Take a pointer to this process' task struct for later reference */
-	parent = (struct task *)CURR_PROC;
+	parent = (struct task *)CURRENT_PROC;
 	
 	/* Clone the parent(current)'s page directory */
-	dir = clone_pd(_current_dir);
+	ctx = kmalloc_ap(sizeof(struct mmu_ctx), &phys_addr);
+	mmu_copy_ctx(ctx, _current_mmu_ctx);
 
 	/* Create a new task */
 	new_task = (struct task *)kmalloc(sizeof(struct task));
-	task_ctor(new_task, parent, dir);
+	task_ctor(new_task, parent, ctx);
 
 	/* Enqueue the forked new task */
 	sched_enqueue(new_task);
@@ -264,7 +264,7 @@ int fork()
 	eip = read_eip();
 
 	/* We could be the parent or the child here */
-	if (CURR_PROC == parent) {
+	if (CURRENT_PROC == parent) {
 
 		/* We are the parent, so setup the esp/ebp/eip for our child */
 		asm volatile("mov %%esp, %0" : "=r" (esp));
@@ -279,7 +279,7 @@ int fork()
 		DEBUG(DL_DBG, ("fork: new task forked, pid %d\n"
 			       "- esp(0x%x), ebp(0x%x), eip(0x%x), page_dir(0x%x)\n",
 			       new_task->id, new_task->arch.esp, new_task->arch.ebp,
-			       new_task->arch.eip, new_task->page_dir));
+			       new_task->arch.eip, new_task->mmu_ctx));
 		
 		enable_interrupt();
 	} else {
@@ -292,7 +292,7 @@ int fork()
 
 int getpid()
 {
-	return CURR_PROC->id;
+	return CURRENT_PROC->id;
 }
 
 void switch_to_user_mode()
@@ -300,7 +300,7 @@ void switch_to_user_mode()
 	/* Setup our kernel stack, note that the stack was grow from high address
 	 * to low address
 	 */
-	set_kernel_stack(CURR_PROC->arch.kstack + KSTACK_SIZE);
+	set_kernel_stack(CURRENT_PROC->arch.kstack + KSTACK_SIZE);
 	
 	/* Setup a stack structure for switching to user mode.
 	 * The code firstly disables interrupts, as we're working on a critical

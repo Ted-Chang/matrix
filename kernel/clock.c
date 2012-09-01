@@ -11,7 +11,7 @@
 #include "proc/sched.h"
 #include "matrix/debug.h"
 
-#define LEAPYEAR(y)	(((y) % 4) == 0 && ((y) % 100) != 0 || (((y) % 400) == 0))
+#define LEAPYEAR(y)	(((y) % 4) == 0 && (((y) % 100) != 0 || ((y) % 400) == 0))
 #define DAYS(y)		(LEAPYEAR(y) ? 366 : 365)
 
 #define TIMER_FREQ	1193182L	// clock frequency for timer in PC and AT
@@ -101,22 +101,22 @@ static void clock_callback(struct registers *regs)
 	_real_time += ticks;
 
 	/* If multitask was not initialized, just return */
-	if (!CURR_PROC) return;
+	if (!CURRENT_PROC) return;
 
 	/* Update user and system accounting times. Charge the current process for
 	 * user time. If the current process is not billable, that is, if a non-user
 	 * process is running, charge the billable process for system time as well.
 	 * Thus the unbillable process' user time is the billable user's system time.
 	 */
-	CURR_PROC->usr_time += ticks;
-	if (FLAG_ON(CURR_PROC->priv.flags, PREEMPTIBLE)) {
-		CURR_PROC->ticks_left -= ticks;	// Consume the quantum
+	CURRENT_PROC->usr_time += ticks;
+	if (FLAG_ON(CURRENT_PROC->priv.flags, PREEMPTIBLE)) {
+		CURRENT_PROC->ticks_left -= ticks;	// Consume the quantum
 	}
 	
 	/* Check if do_clocktick() must be called. Done for alarms and scheduling.
 	 */
-	if ((_next_timeout <= _real_time) || (CURR_PROC->ticks_left <= 0)) {
-		_prev_task = CURR_PROC;		// Store running task
+	if ((_next_timeout <= _real_time) || (CURRENT_PROC->ticks_left <= 0)) {
+		_prev_task = CURRENT_PROC;		// Store running task
 		do_clocktick();
 	}
 }

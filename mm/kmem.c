@@ -1,9 +1,24 @@
 #include <types.h>
+#include <stddef.h>
 #include "util.h"
 #include "vector.h"
-#include "mm/kheap.h"
-#include "mm/mmgr.h"
+#include "mm/mmu.h"
+#include "mm/kmem.h"
 #include "matrix/debug.h"
+
+/*
+ * Size information for a block
+ */
+struct header {
+	uint32_t magic;		// magic number, used for sanity check
+	uint32_t size;
+	uint8_t is_hole;
+};
+
+struct footer {
+	uint32_t magic;		// magic number, same as in header
+	struct header *hdr;
+};
 
 struct heap {
 	struct vector index;
@@ -14,23 +29,20 @@ struct heap {
 	uint8_t readonly;
 };
 
-extern uint32_t end;	// end is defined in linker scripts
-
-extern struct pd *_kernel_dir;
-
-uint32_t _placement_addr = (uint32_t)&end;
-
 struct heap *_kheap = NULL;
 
-uint32_t kmalloc_int(size_t size, int align, uint32_t *phys)
+void *alloc(struct heap *heap, size_t size, uint8_t page_align);
+
+void *kmalloc_int(size_t size, int align, uint32_t *phys)
 {
 	if (_kheap) {	// The heap manager was initialized
 		void *addr = alloc(_kheap, size, (uint8_t)align);
 		if (phys) {
-			struct pte *page = get_pte((uint32_t)addr, 0, _kernel_dir);
+			struct page *page = mmu_get_page(&_kernel_mmu_ctx, (uint32_t)addr,
+							 FALSE, 0);
 			*phys = page->frame * 0x1000 + ((uint32_t)addr & 0xFFF);
 		}
-		return (uint32_t)addr;
+		return addr;
 	} else {	// The heap manager was not initialized
 		uint32_t tmp;
 
@@ -51,22 +63,22 @@ uint32_t kmalloc_int(size_t size, int align, uint32_t *phys)
 	}
 }
 
-uint32_t kmalloc(size_t size)
+void *kmalloc(size_t size)
 {
 	return kmalloc_int(size, 0, 0);
 }
 
-uint32_t kmalloc_a(size_t size)
+void *kmalloc_a(size_t size)
 {
 	return kmalloc_int(size, 1, 0);
 }
 
-uint32_t kmalloc_p(size_t size, uint32_t *phys)
+void *kmalloc_p(size_t size, uint32_t *phys)
 {
 	return kmalloc_int(size, 0, phys);
 }
 
-uint32_t kmalloc_ap(size_t size, uint32_t *phys)
+void *kmalloc_ap(size_t size, uint32_t *phys)
 {
 	return kmalloc_int(size, 1, phys);
 }
@@ -92,9 +104,9 @@ static void expand(struct heap *heap, size_t new_size)
 	i = old_size;
 
 	while (i < new_size) {
-		alloc_frame(get_pte(heap->start_addr + i, 1, _kernel_dir),
+		page_alloc(mmu_get_page(&_kernel_mmu_ctx, heap->start_addr + i, TRUE, 0),
 			    heap->supervisor ? 1 : 0, heap->readonly ? 0 : 1);
-		i += 0x1000;	/* Page size */
+		i += PAGE_SIZE;
 	}
 	
 	heap->end_addr = heap->start_addr + new_size;
@@ -107,9 +119,9 @@ static uint32_t contract(struct heap *heap, size_t new_size)
 	/* Sanity check */
 	ASSERT(new_size < (heap->end_addr - heap->start_addr));
 
-	if (new_size & 0x1000) {
-		new_size &= 0x1000;
-		new_size += 0x1000;
+	if (new_size & PAGE_SIZE) {
+		new_size &= PAGE_SIZE;
+		new_size += PAGE_SIZE;
 	}
 
 	/* Don't contract too much */
@@ -117,11 +129,11 @@ static uint32_t contract(struct heap *heap, size_t new_size)
 		new_size = HEAP_MIN_SIZE;
 
 	old_size = heap->end_addr - heap->start_addr;
-	i = old_size - 0x1000;
+	i = old_size - PAGE_SIZE;
 
 	while (new_size < i) {
-		free_frame(get_pte(heap->start_addr + i, 0, _kernel_dir));
-		i -= 0x1000;
+		page_free(mmu_get_page(&_kernel_mmu_ctx, heap->start_addr + i, FALSE, 0));
+		i -= PAGE_SIZE;
 	}
 
 	heap->end_addr = heap->start_addr + new_size;
@@ -429,4 +441,24 @@ void free(struct heap *heap, void *p)
 void kfree(void *p)
 {
 	free(_kheap, p);
+}
+
+void init_kmem()
+{
+	uint32_t phys_addr;
+	struct mmu_ctx *ctx;
+	
+	/* Create kernel heap */
+	_kheap = create_heap(KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE,
+			     0xCFFFF000, FALSE, FALSE);
+
+	/* Clone the kernel page directory and switch to it, this make the kernel
+	 * page directory clean
+	 */
+	ctx = kmalloc_ap(sizeof(struct mmu_ctx), &phys_addr);
+	mmu_copy_ctx(ctx, _kernel_mmu_ctx);
+	
+	_current_mmu_ctx = ctx;
+
+	mmu_switch_ctx(_current_mmu_ctx);
 }

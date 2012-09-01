@@ -12,7 +12,7 @@ struct task *_ready_tail[NR_SCHED_QUEUES];
 /* Pointer to our various task */
 volatile struct task *_next_task = NULL;
 volatile struct task *_prev_task = NULL;
-volatile struct task *_curr_task = NULL;			// Current running task
+volatile struct task *_current_task = NULL;		// Current running task
 
 static void sched(struct task *tp, int *queue, boolean_t *front);
 
@@ -117,7 +117,7 @@ void sched_dequeue(struct task *tp)
 			*xpp = (*xpp)->next;		// Replace with the next in chain
 			if (tp == _ready_tail[q])	// Queue tail removed
 				_ready_tail[q] = prev_ptr; // Set new tail
-			if ((tp == _curr_task) || (tp == _next_task)) // Active task removed
+			if ((tp == _current_task) || (tp == _next_task)) // Active task removed
 				pick_task();		// Pick a new task to run
 			break;				// Break out the for loop
 		}
