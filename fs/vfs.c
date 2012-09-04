@@ -57,7 +57,7 @@ struct vfs_node *vfs_clone(struct vfs_node *src)
 	if (!src)
 		return NULL;
 
-	node = (struct vfs_node *)kmalloc(sizeof(struct vfs_node));
+	node = (struct vfs_node *)kmem_alloc(sizeof(struct vfs_node));
 	memcpy(node, src, sizeof(struct vfs_node));
 
 	return node;

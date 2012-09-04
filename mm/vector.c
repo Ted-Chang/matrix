@@ -16,7 +16,7 @@ struct vector create_vector(uint32_t max_size, compare_t compare)
 {
 	struct vector to_ret;
 
-	to_ret.array = (void *)kmalloc(max_size * sizeof(type_t));
+	to_ret.array = (void *)kmem_alloc(max_size * sizeof(type_t));
 	memset(to_ret.array, 0, max_size * sizeof(type_t));
 	to_ret.size = 0;
 	to_ret.max_size = max_size;

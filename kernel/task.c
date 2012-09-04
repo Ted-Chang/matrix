@@ -115,10 +115,10 @@ static void task_ctor(void *obj, struct task *parent, struct mmu_ctx *ctx)
 	t->arch.esp = 0;
 	t->arch.ebp = 0;
 	t->arch.eip = 0;
-	t->arch.kstack = kmalloc_a(KSTACK_SIZE);
+	t->arch.kstack = kmem_alloc_a(KSTACK_SIZE);
 
 	/* Initialize the file descriptor table */
-	t->fds = (fd_table_t *)kmalloc(sizeof(fd_table_t));
+	t->fds = (fd_table_t *)kmem_alloc(sizeof(fd_table_t));
 	t->fds->ref_count = 1;
 	if (!parent) {
 		t->fds->len = 3;
@@ -126,7 +126,7 @@ static void task_ctor(void *obj, struct task *parent, struct mmu_ctx *ctx)
 		t->fds->len = parent->fds->len;
 	}
 	nodes_len = t->fds->len * sizeof(struct vfs_node *);
-	t->fds->nodes = (struct vfs_node **)kmalloc(nodes_len);
+	t->fds->nodes = (struct vfs_node **)kmem_alloc(nodes_len);
 	if (parent) {			// Clone parent's file descriptors
 		for (i = 0; i < t->fds->len; i++) {
 			t->fds->nodes[i] = vfs_clone(parent->fds->nodes[i]);
@@ -141,7 +141,7 @@ static void task_ctor(void *obj, struct task *parent, struct mmu_ctx *ctx)
 static void task_dtor(void *obj)
 {
 	struct task *t = (struct task *)obj;
-	kfree((void *)t->arch.kstack);
+	kmem_free((void *)t->arch.kstack);
 	// TODO: cleanup the page directory owned by this task
 	// TODO: close the file descriptors opened by this task
 }
@@ -160,7 +160,7 @@ void init_multitask()
 	move_stack((void *)0xE0000000, 0x2000);
 
 	/* Malloc the initial task and initialize it */
-	t = (struct task *)kmalloc(sizeof(struct task));
+	t = (struct task *)kmem_alloc(sizeof(struct task));
 	task_ctor(t, NULL, _current_mmu_ctx);
 	
 	/* Enqueue the new task */
@@ -255,7 +255,7 @@ int fork()
 	mmu_copy_ctx(ctx, _current_mmu_ctx);
 
 	/* Create a new task */
-	new_task = (struct task *)kmalloc(sizeof(struct task));
+	new_task = (struct task *)kmem_alloc(sizeof(struct task));
 	task_ctor(new_task, parent, ctx);
 
 	/* Enqueue the forked new task */

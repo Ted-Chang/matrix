@@ -43,7 +43,6 @@ int kmain(u_long addr, uint32_t initial_stack)
 	int i, rc, parent_pid;
 	uint32_t initrd_location;
 	uint32_t initrd_end;
-	uint64_t mem_end_page;
 	task_func_t tp;
 
 	/* Clear the screen */

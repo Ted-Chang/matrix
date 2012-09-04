@@ -56,7 +56,7 @@ static struct ptbl *clone_ptbl(struct ptbl *src, uint32_t *phys_addr)
 	struct ptbl *ptbl;
 	
 	/* Make a new page table, which is page aligned */
-	ptbl = (struct ptbl *)kmalloc_ap(sizeof(struct ptbl), phys_addr);
+	ptbl = (struct ptbl *)kmem_alloc_ap(sizeof(struct ptbl), phys_addr);
 	
 	/* Clear the content of the new page table */
 	memset(ptbl, 0, sizeof(struct ptbl));
@@ -104,7 +104,7 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t make,
 		uint32_t tmp;
 		
 		/* Allocate a new page table */
-		pdir->ptbl[dir_idx] = (struct ptbl *)kmalloc_ap(sizeof(struct ptbl), &tmp);
+		pdir->ptbl[dir_idx] = (struct ptbl *)kmem_alloc_ap(sizeof(struct ptbl), &tmp);
 		
 		/* Clear the content of the page table */
 		memset(pdir->ptbl[dir_idx], 0, sizeof(struct ptbl));
@@ -266,13 +266,13 @@ struct mmu_ctx *mmu_create_ctx()
 	struct mmu_ctx *ctx;
 	uint32_t pdbr;
 
-	ctx = kmalloc(sizeof(struct mmu_ctx));
+	ctx = kmem_alloc(sizeof(struct mmu_ctx));
 	if (!ctx)
 		return NULL;
 
-	ctx->pdir = kmalloc_ap(sizeof(struct pdir), &pdbr);
+	ctx->pdir = kmem_alloc_ap(sizeof(struct pdir), &pdbr);
 	if (!ctx->pdir) {
-		kfree(ctx);
+		kmem_free(ctx);
 		return NULL;
 	}
 	ctx->pdbr = pdbr;
@@ -285,8 +285,8 @@ void mmu_destroy_ctx(struct mmu_ctx *ctx)
 {
 	ASSERT(!IS_KERNEL_CTX(ctx));
 
-	kfree(ctx->pdir);
-	kfree(ctx);
+	kmem_free(ctx->pdir);
+	kmem_free(ctx);
 }
 
 void init_mmu()
@@ -295,7 +295,7 @@ void init_mmu()
 	struct page *page;
 
 	/* Initialize the kernel MMU context structure */
-	_kernel_mmu_ctx.pdir = kmalloc_ap(sizeof(struct pdir), &pdbr);
+	_kernel_mmu_ctx.pdir = kmem_alloc_ap(sizeof(struct pdir), &pdbr);
 	_kernel_mmu_ctx.pdbr = pdbr;
 	memset(_kernel_mmu_ctx.pdir, 0, sizeof(struct pdir));
 	

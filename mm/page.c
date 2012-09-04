@@ -118,6 +118,6 @@ void init_page()
 	_nr_total_pages = mem_size / PAGE_SIZE;
 
 	/* Allocate the bitmap for the physical pages */
-	_pages = kmalloc(_nr_total_pages/(4*8));
+	_pages = kmem_alloc(_nr_total_pages/(4*8));
 	memset(_pages, 0, _nr_total_pages/(4*8));
 }
