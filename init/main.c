@@ -18,7 +18,7 @@
 #include "timer.h"
 #include "fs.h"
 #include "initrd.h"
-#include "proc/task.h"
+#include "proc/process.h"
 #include "exceptn.h"
 #include "syscall.h"
 #include "keyboard.h"
@@ -87,7 +87,7 @@ int kmain(u_long addr, uint32_t initial_stack)
 	kprintf("Memory manager initialized.\n");
 
 	/* Start multitasking now */
-	init_multitask();
+	init_process();
 	kprintf("Multitask initialized.\n");
 
 	/* Initialize the initial ramdisk and set it as the root filesystem */

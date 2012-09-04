@@ -2,8 +2,9 @@
 #include <stddef.h>
 #include <sys/time.h>
 #include <stdarg.h>
+#include <string.h>
 #include "util.h"
-#include "proc/task.h"
+#include "proc/process.h"
 #include "syscall.h"
 #include "system.h"
 

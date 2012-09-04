@@ -8,7 +8,7 @@
 #include "syscall.h"
 #include "isr.h"	// register_interrupt_handler
 #include "util.h"	// putstr
-#include "proc/task.h"
+#include "proc/process.h"
 #include "div64.h"	// do_div
 
 static void syscall_handler(struct registers *regs);
@@ -37,10 +37,10 @@ int close(int fd)
 {
 	int rc = -1;
 
-	if (fd >= CURRENT_PROC->fds->len || fd < 0)
+	if (fd >= CURR_PROC->fds->len || fd < 0)
 		return -1;
 
-	vfs_close(CURRENT_PROC->fds->nodes[fd]);
+	vfs_close(CURR_PROC->fds->nodes[fd]);
 	
 	return 0;
 }
@@ -49,9 +49,9 @@ int read(int fd, char *buf, int len)
 {
 	uint32_t out = -1;
 
-	if (fd >= CURRENT_PROC->fds->len || fd < 0)
+	if (fd >= CURR_PROC->fds->len || fd < 0)
 		return -1;
-	if (CURRENT_PROC->fds->nodes[fd] == NULL)
+	if (CURR_PROC->fds->nodes[fd] == NULL)
 		return -1;
 
 	return out;
@@ -61,9 +61,9 @@ int write(int fd, char *buf, int len)
 {
 	uint32_t out = -1;
 	
-	if (fd >= CURRENT_PROC->fds->len || fd < 0)
+	if (fd >= CURR_PROC->fds->len || fd < 0)
 		return -1;
-	if (CURRENT_PROC->fds->nodes[fd] == NULL)
+	if (CURR_PROC->fds->nodes[fd] == NULL)
 		return -1;
 	
 	return out;

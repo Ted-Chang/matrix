@@ -7,7 +7,7 @@
 #include "isr.h"
 #include "hal.h"
 #include "timer.h"
-#include "proc/task.h"
+#include "proc/process.h"
 #include "proc/sched.h"
 #include "matrix/debug.h"
 
@@ -72,11 +72,11 @@ useconds_t time_to_unix(uint32_t year, uint32_t mon, uint32_t day,
 void do_clocktick()
 {
 	/* We will not switch task if the task didn't use up a full quantum. */
-	if ((_prev_task->ticks_left <= 0) &&
-	    (FLAG_ON(_prev_task->priv.flags, PREEMPTIBLE))) {
+	if ((_prev_proc->ticks_left <= 0) &&
+	    (FLAG_ON(_prev_proc->priv.flags, PREEMPTIBLE))) {
 
-		sched_dequeue(_prev_task);
-		sched_enqueue(_prev_task);
+		sched_dequeue(_prev_proc);
+		sched_enqueue(_prev_proc);
 		
 		/* Task scheduling was done, then do context switch */
 		switch_context();
@@ -101,22 +101,22 @@ static void clock_callback(struct registers *regs)
 	_real_time += ticks;
 
 	/* If multitask was not initialized, just return */
-	if (!CURRENT_PROC) return;
+	if (!CURR_PROC) return;
 
 	/* Update user and system accounting times. Charge the current process for
 	 * user time. If the current process is not billable, that is, if a non-user
 	 * process is running, charge the billable process for system time as well.
 	 * Thus the unbillable process' user time is the billable user's system time.
 	 */
-	CURRENT_PROC->usr_time += ticks;
-	if (FLAG_ON(CURRENT_PROC->priv.flags, PREEMPTIBLE)) {
-		CURRENT_PROC->ticks_left -= ticks;	// Consume the quantum
+	CURR_PROC->usr_time += ticks;
+	if (FLAG_ON(CURR_PROC->priv.flags, PREEMPTIBLE)) {
+		CURR_PROC->ticks_left -= ticks;	// Consume the quantum
 	}
 	
 	/* Check if do_clocktick() must be called. Done for alarms and scheduling.
 	 */
-	if ((_next_timeout <= _real_time) || (CURRENT_PROC->ticks_left <= 0)) {
-		_prev_task = CURRENT_PROC;		// Store running task
+	if ((_next_timeout <= _real_time) || (CURR_PROC->ticks_left <= 0)) {
+		_prev_proc = CURR_PROC;		// Store running task
 		do_clocktick();
 	}
 }

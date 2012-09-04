@@ -3,8 +3,8 @@
 
 #define HZ		60	// Clock frequence
 
-#define TASK_QUANTUM	32	// Default task quantum for each task
+#define P_QUANTUM	32	// Default task quantum for each process
 
-#define T_NAME_LEN	32	// Maximum length of the task name
+#define P_NAME_LEN	32	// Maximum length of the process name
 
 #endif	/* __CONST_H__ */

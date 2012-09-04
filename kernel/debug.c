@@ -3,7 +3,7 @@
 #include "hal.h"
 #include "matrix/debug.h"
 #include "matrix/global.h"
-#include "proc/task.h"
+#include "proc/process.h"
 
 uint32_t _debug_level = DL_DBG;
 
@@ -25,8 +25,8 @@ void panic_assert(const char *file, uint32_t line, const char *desc)
 
 void check_runqueues(char *when)
 {
-	int q, l;
-	struct task *tp;
+	int q;
+	struct process *p;
 
 	for (q = 0; q < NR_SCHED_QUEUES; q++) {
 		if (_ready_head[q] && !_ready_tail[q]) {
@@ -45,12 +45,12 @@ void check_runqueues(char *when)
 			PANIC("Scheduling error!");
 		}
 
-		for (tp = _ready_head[q]; tp != NULL; tp = tp->next) {
-			if (tp->priority != q) {
+		for (p = _ready_head[q]; p != NULL; p = p->next) {
+			if (p->priority != q) {
 				kprintf("wrong priority: %s\n", when);
 				PANIC("Scheduling error!");
 			}
-			if ((tp->next == NULL) && (_ready_tail[q] != tp)) {
+			if ((p->next == NULL) && (_ready_tail[q] != p)) {
 				kprintf("last element not tail: %s\n", when);
 				PANIC("Scheduling error!");
 			}

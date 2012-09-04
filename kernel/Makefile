@@ -7,7 +7,7 @@ OBJ := ../bin/obji386
 TARGETOBJ := $(OBJ)/debug.o \
 	$(OBJ)/exceptn.o \
 	$(OBJ)/process.o \
-	$(OBJ)/task.o \
+	$(OBJ)/misc.o \
 	$(OBJ)/timer.o \
 	$(OBJ)/initrd.o \
 	$(OBJ)/syscall.o \
@@ -24,8 +24,8 @@ all: $(TARGETOBJ)
 $(OBJ)/%.o: %.c
 	$(CC) -D_DEBUG_SCHED -DBITS_PER_LONG=32 -m32 -I../include $(CFLAGS_global) -c -o $@ $<
 
-$(OBJ)/process.o:
-	nasm $(ASFLAGS) -o $(OBJ)/process.o process.s
+$(OBJ)/misc.o:
+	nasm $(ASFLAGS) -o $(OBJ)/misc.o misc.s
 
 clean:
 	$(RM) $(TARGETOBJ)

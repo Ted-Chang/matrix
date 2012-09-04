@@ -1,5 +1,5 @@
 /*
- * task.c
+ * process.c
  */
 
 #include <types.h>
@@ -12,11 +12,11 @@
 #include "mm/page.h"
 #include "mm/mmu.h"
 #include "mm/kmem.h"
-#include "proc/task.h"
+#include "proc/process.h"
 #include "matrix/debug.h"
 #include "proc/sched.h"
 
-task_id_t _next_pid = 1;
+process_id_t _next_pid = 1;
 
 extern uint32_t _initial_esp;
 
@@ -92,82 +92,58 @@ void move_stack(void *new_stack, uint32_t size)
 }
 
 /**
- * Construct a task
+ * Construct a process
  */
-static void task_ctor(void *obj, struct task *parent, struct mmu_ctx *ctx)
+static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 {
-	struct task *t = (struct task *)obj;
+	struct process *p = (struct process *)obj;
 	size_t nodes_len, i;
 	
-	t->next = NULL;
-	t->mmu_ctx = ctx;
-	t->id = _next_pid++;
-	t->priority = USER_Q;		// Default priority
-	t->max_priority = TASK_Q;	// Max priority for the task
-	t->quantum = TASK_QUANTUM;
-	t->ticks_left = 0;		// Initial ticks is 0
-	t->priv.flags = PREEMPTIBLE;
-	t->usr_time = 0;
-	t->sys_time = 0;
-	t->name[0] = '\0';
+	p->next = NULL;
+	p->mmu_ctx = ctx;
+	p->id = _next_pid++;
+	p->priority = USER_Q;		// Default priority
+	p->max_priority = PROCESS_Q;	// Max priority for the process
+	p->quantum = P_QUANTUM;
+	p->ticks_left = 0;		// Initial ticks is 0
+	p->priv.flags = PREEMPTIBLE;
+	p->usr_time = 0;
+	p->sys_time = 0;
+	p->name[0] = '\0';
 
 	/* Initialize the architecture specific fields */
-	t->arch.esp = 0;
-	t->arch.ebp = 0;
-	t->arch.eip = 0;
-	t->arch.kstack = kmem_alloc_a(KSTACK_SIZE);
+	p->arch.esp = 0;
+	p->arch.ebp = 0;
+	p->arch.eip = 0;
+	p->arch.kstack = kmem_alloc_a(KSTACK_SIZE);
 
 	/* Initialize the file descriptor table */
-	t->fds = (fd_table_t *)kmem_alloc(sizeof(fd_table_t));
-	t->fds->ref_count = 1;
+	p->fds = (fd_table_t *)kmem_alloc(sizeof(fd_table_t));
+	p->fds->ref_count = 1;
 	if (!parent) {
-		t->fds->len = 3;
+		p->fds->len = 3;
 	} else {
-		t->fds->len = parent->fds->len;
+		p->fds->len = parent->fds->len;
 	}
-	nodes_len = t->fds->len * sizeof(struct vfs_node *);
-	t->fds->nodes = (struct vfs_node **)kmem_alloc(nodes_len);
+	nodes_len = p->fds->len * sizeof(struct vfs_node *);
+	p->fds->nodes = (struct vfs_node **)kmem_alloc(nodes_len);
 	if (parent) {			// Clone parent's file descriptors
-		for (i = 0; i < t->fds->len; i++) {
-			t->fds->nodes[i] = vfs_clone(parent->fds->nodes[i]);
+		for (i = 0; i < p->fds->len; i++) {
+			p->fds->nodes[i] = vfs_clone(parent->fds->nodes[i]);
 		}
 	}
-	memset(t->fds->nodes, 0, nodes_len);
+	memset(p->fds->nodes, 0, nodes_len);
 }
 
 /**
- * Destruct a task
+ * Destruct a process
  */
-static void task_dtor(void *obj)
+static void process_dtor(void *obj)
 {
-	struct task *t = (struct task *)obj;
-	kmem_free((void *)t->arch.kstack);
-	// TODO: cleanup the page directory owned by this task
-	// TODO: close the file descriptors opened by this task
-}
-
-/**
- * Start our kernel at top half
- */
-void init_multitask()
-{
-	struct task *t;
-
-	/* Initialize the scheduler */
-	sched_init();
-	
-	/* Relocate the stack so we know where it is, the stack size is 8KB */
-	move_stack((void *)0xE0000000, 0x2000);
-
-	/* Malloc the initial task and initialize it */
-	t = (struct task *)kmem_alloc(sizeof(struct task));
-	task_ctor(t, NULL, _current_mmu_ctx);
-	
-	/* Enqueue the new task */
-	sched_enqueue(t);
-
-	/* Update the current task pointer */
-	CURRENT_PROC = t;
+	struct process *p = (struct process *)obj;
+	kmem_free((void *)p->arch.kstack);
+	// TODO: cleanup the page directory owned by this process
+	// TODO: close the file descriptors opened by this process
 }
 
 void switch_context()
@@ -180,7 +156,7 @@ void switch_context()
 	/* Read the instruction pointer. We do some cunning logic here:
 	 * One of the two things could have happened when this function exits
 	 *   (a) We called the function and it returned the EIP as requested.
-	 *   (b) We have just switched tasks, and because the saved EIP is
+	 *   (b) We have just switched processes, and because the saved EIP is
 	 *       essentially the instruction after read_eip(), it will seem as
 	 *       if read_eip has just returned.
 	 * In the second case we need to return immediately. To detect it we put
@@ -190,34 +166,34 @@ void switch_context()
 	 */
 	eip = read_eip();
 	
-	/* If we have just switched tasks, do nothing */
+	/* If we have just switched processes, do nothing */
 	if (eip == 0x12345678) {
 		return;
 	}
 
 	/* Save the current process context */
-	CURRENT_PROC->arch.eip = eip;
-	CURRENT_PROC->arch.esp = esp;
-	CURRENT_PROC->arch.ebp = ebp;
+	CURR_PROC->arch.eip = eip;
+	CURR_PROC->arch.esp = esp;
+	CURR_PROC->arch.ebp = ebp;
 
-	CURRENT_PROC = _next_task;
-	eip = CURRENT_PROC->arch.eip;
-	esp = CURRENT_PROC->arch.esp;
-	ebp = CURRENT_PROC->arch.ebp;
+	CURR_PROC = _next_proc;
+	eip = CURR_PROC->arch.eip;
+	esp = CURR_PROC->arch.esp;
+	ebp = CURR_PROC->arch.ebp;
 
 	/* Make sure the memory manager knows we've changed the page directory */
-	_current_mmu_ctx = CURRENT_PROC->mmu_ctx;
+	_current_mmu_ctx = CURR_PROC->mmu_ctx;
 
-	/* Switch the kernel stack in TSS to the task's kernel stack */
-	set_kernel_stack(CURRENT_PROC->arch.kstack + KSTACK_SIZE);
+	/* Switch the kernel stack in TSS to the process's kernel stack */
+	set_kernel_stack(CURR_PROC->arch.kstack + KSTACK_SIZE);
 
 	/* Here we:
 	 * [1] Disable interrupts so we don't get bothered.
 	 * [2] Temporarily puts the new EIP location in ECX.
-	 * [3] Loads the stack and base pointers from the new task struct.
+	 * [3] Loads the stack and base pointers from the new process struct.
 	 * [4] Changes page directory to the physical address of the new directory.
 	 * [5] Puts a magic number (0x12345678) in EAX so that above we can recognize
-	 *     that we've just switched task.
+	 *     that we've just switched process.
 	 * [6] Enable interrupts. The STI instruction has a delay - it doesn't take
 	 *     effect until after the next instruction
 	 * [7] Jumps to the location in ECX (remember we put the new EIP in there)
@@ -236,9 +212,9 @@ void switch_context()
 
 int fork()
 {
-	task_id_t pid = 0;
-	struct task *parent;
-	struct task *new_task;
+	process_id_t pid = 0;
+	struct process *parent;
+	struct process *new_process;
 	struct mmu_ctx *ctx;
 	uint32_t phys_addr;
 	uint32_t eip;
@@ -247,39 +223,39 @@ int fork()
 	
 	disable_interrupt();
 
-	/* Take a pointer to this process' task struct for later reference */
-	parent = (struct task *)CURRENT_PROC;
+	/* Take a pointer to this process' process struct for later reference */
+	parent = (struct process *)CURR_PROC;
 	
 	/* Clone the parent(current)'s page directory */
 	ctx = mmu_create_ctx();
 	mmu_copy_ctx(ctx, _current_mmu_ctx);
 
-	/* Create a new task */
-	new_task = (struct task *)kmem_alloc(sizeof(struct task));
-	task_ctor(new_task, parent, ctx);
+	/* Create a new process */
+	new_process = (struct process *)kmem_alloc(sizeof(struct process));
+	process_ctor(new_process, parent, ctx);
 
-	/* Enqueue the forked new task */
-	sched_enqueue(new_task);
+	/* Enqueue the forked new process */
+	sched_enqueue(new_process);
 	
 	eip = read_eip();
 
 	/* We could be the parent or the child here */
-	if (CURRENT_PROC == parent) {
+	if (CURR_PROC == parent) {
 
 		/* We are the parent, so setup the esp/ebp/eip for our child */
 		asm volatile("mov %%esp, %0" : "=r" (esp));
 		asm volatile("mov %%ebp, %0" : "=r" (ebp));
 
-		new_task->arch.esp = esp;
-		new_task->arch.ebp = ebp;
-		new_task->arch.eip = eip;
+		new_process->arch.esp = esp;
+		new_process->arch.ebp = ebp;
+		new_process->arch.eip = eip;
 
-		pid = new_task->id;
+		pid = new_process->id;
 
-		DEBUG(DL_DBG, ("fork: new task forked, pid %d\n"
+		DEBUG(DL_DBG, ("fork: new process forked, pid %d\n"
 			       "- esp(0x%x), ebp(0x%x), eip(0x%x), page_dir(0x%x)\n",
-			       new_task->id, new_task->arch.esp, new_task->arch.ebp,
-			       new_task->arch.eip, new_task->mmu_ctx));
+			       new_process->id, new_process->arch.esp, new_process->arch.ebp,
+			       new_process->arch.eip, new_process->mmu_ctx));
 		
 		enable_interrupt();
 	} else {
@@ -292,7 +268,7 @@ int fork()
 
 int getpid()
 {
-	return CURRENT_PROC->id;
+	return CURR_PROC->id;
 }
 
 void switch_to_user_mode()
@@ -300,7 +276,7 @@ void switch_to_user_mode()
 	/* Setup our kernel stack, note that the stack was grow from high address
 	 * to low address
 	 */
-	set_kernel_stack(CURRENT_PROC->arch.kstack + KSTACK_SIZE);
+	set_kernel_stack(CURR_PROC->arch.kstack + KSTACK_SIZE);
 	
 	/* Setup a stack structure for switching to user mode.
 	 * The code firstly disables interrupts, as we're working on a critical
@@ -330,4 +306,28 @@ void switch_to_user_mode()
 		     push $1f; \
 		     iret; \
 		     1: ");
+}
+
+/**
+ * Start our kernel at top half
+ */
+void init_process()
+{
+	struct process *p;
+
+	/* Initialize the scheduler */
+	init_sched();
+	
+	/* Relocate the stack so we know where it is, the stack size is 8KB */
+	move_stack((void *)0xE0000000, 0x2000);
+
+	/* Malloc the initial process and initialize it */
+	p = (struct process *)kmem_alloc(sizeof(struct process));
+	process_ctor(p, NULL, _current_mmu_ctx);
+	
+	/* Enqueue the new process */
+	sched_enqueue(p);
+
+	/* Update the current process pointer */
+	CURR_PROC = p;
 }
