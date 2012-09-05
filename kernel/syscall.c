@@ -9,7 +9,9 @@
 #include "isr.h"	// register_interrupt_handler
 #include "util.h"	// putstr
 #include "proc/process.h"
+#include "matrix/matrix.h"
 #include "div64.h"	// do_div
+#include "matrix/debug.h"
 
 static void syscall_handler(struct registers *regs);
 
@@ -17,18 +19,25 @@ static struct irq_hook _syscall_hook;
 
 int open(const char *file, int flags, int mode)
 {
-	int fd = -1;
+	int fd = -1, rc = 0;
 	struct vfs_node *n;
 
-	/* n = ; */
-	/* if (!n && FLAG_ON(flags, 0x600)) { */
-	/* 	; */
-	/* } */
+	/* Lookup file system node */
+	n = vfs_lookup(file, 0);
+	if (!n && FLAG_ON(flags, 0x600)) {
+		/* The file was not found, make one */
+		rc = vfs_create(file, VFS_FILE, &n);
+		if (rc != 0) {
+			DEBUG(DL_WRN, ("vfs_create failed, path:%s, error:%d\n",
+				       file, rc));
+		}
+	}
 	
-	/* if (!n) */
-	/* 	return -1; */
+	if (!n)
+		return -1;
 
-	/* fd = ; */
+	/* Attach the file descriptor to the process */
+	fd = fd_attach((struct process *)CURR_PROC, n);
 
 	return fd;
 }

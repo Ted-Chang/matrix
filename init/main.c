@@ -91,7 +91,7 @@ int kmain(u_long addr, uint32_t initial_stack)
 	kprintf("Multitask initialized.\n");
 
 	/* Initialize the initial ramdisk and set it as the root filesystem */
-	root_node = init_initrd(initrd_location);
+	_root_node = init_initrd(initrd_location);
 	kprintf("Initial ramdisk mounted, location(0x%x), end(0x%x).\n",
 		initrd_location, initrd_end);
 

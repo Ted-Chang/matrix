@@ -4,7 +4,7 @@
 #include "matrix/debug.h"
 #include "mm/mmu.h"
 
-struct vfs_node *root_node = 0;
+struct vfs_node *_root_node = 0;
 
 uint32_t vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer)
 {
@@ -25,13 +25,13 @@ uint32_t vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_
 void vfs_open(struct vfs_node *node)
 {
 	if (node->open != 0)
-		return node->open(node);
+		node->open(node);
 }
 
 void vfs_close(struct vfs_node *node)
 {
 	if (node->close != 0)
-		return node->close(node);
+		node->close(node);
 }
 
 struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index)
@@ -61,4 +61,34 @@ struct vfs_node *vfs_clone(struct vfs_node *src)
 	memcpy(node, src, sizeof(struct vfs_node));
 
 	return node;
+}
+
+struct vfs_node *vfs_lookup(const char *path, int flags)
+{
+	struct vfs_node *n = NULL;
+	
+	if (!_root_node || !path || !path[0])
+		goto out;
+
+	/* Start from the current directory if the path is relative */
+	if (path[0] != '/'); {
+		;
+	}
+
+	/* We'are going to get the root node */
+	if ((path[0] == '/') && (strlen(path) == 1)) {
+		n = (struct vfs_node *)kmem_alloc(sizeof(struct vfs_node));
+		if (n) {
+			memcpy(n, _root_node, sizeof(struct vfs_node));
+		}
+		goto out;
+	}
+
+out:
+	return n;
+}
+
+int vfs_create(char *path, int type, struct vfs_node **node)
+{
+	return -1;
 }

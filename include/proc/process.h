@@ -5,7 +5,7 @@
 #include "matrix/const.h"
 #include "priv.h"
 #include "fs.h"
-
+#include "fd.h"			// File descriptors
 
 /* Our kernel stack size is 4096 bytes */
 #define KSTACK_SIZE 4096
@@ -20,14 +20,6 @@ struct arch_process {
 typedef struct arch_process arch_process_t;
 
 typedef int process_id_t;
-
-/* Definition of the file descriptor table structure */
-struct fd_table {
-	size_t len;		// Length of this table
-	size_t ref_count;	// Reference count of this table
-	struct vfs_node **nodes;// Pointer to the VFS nodes
-};
-typedef struct fd_table fd_table_t;
 
 /* Definition of the process structure */
 struct process {
@@ -45,6 +37,7 @@ struct process {
 	int8_t quantum;		// Quantum in ticks
 	char name[P_NAME_LEN];	// Name of the process, include `\0'
 };
+typedef struct process process_t;
 
 /* Scheduling priority for our processes. Value must start at zero (highest
  * priority) and increment.

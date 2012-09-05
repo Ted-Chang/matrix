@@ -16,13 +16,17 @@
 #include "matrix/debug.h"
 #include "proc/sched.h"
 
-process_id_t _next_pid = 1;
+static process_id_t _next_pid = 1;
 
 extern uint32_t _initial_esp;
 
 extern uint32_t read_eip();
-
 extern void sched_init();
+
+static process_id_t id_alloc()
+{
+	return _next_pid++;
+}
 
 void move_stack(void *new_stack, uint32_t size)
 {
@@ -96,12 +100,12 @@ void move_stack(void *new_stack, uint32_t size)
  */
 static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 {
-	struct process *p = (struct process *)obj;
-	size_t nodes_len, i;
-	
+	struct process *p;
+
+	p = (struct process *)obj;
 	p->next = NULL;
 	p->mmu_ctx = ctx;
-	p->id = _next_pid++;
+	p->id = id_alloc();		// Allocate an ID for the process
 	p->priority = USER_Q;		// Default priority
 	p->max_priority = PROCESS_Q;	// Max priority for the process
 	p->quantum = P_QUANTUM;
@@ -118,21 +122,7 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	p->arch.kstack = kmem_alloc_a(KSTACK_SIZE);
 
 	/* Initialize the file descriptor table */
-	p->fds = (fd_table_t *)kmem_alloc(sizeof(fd_table_t));
-	p->fds->ref_count = 1;
-	if (!parent) {
-		p->fds->len = 3;
-	} else {
-		p->fds->len = parent->fds->len;
-	}
-	nodes_len = p->fds->len * sizeof(struct vfs_node *);
-	p->fds->nodes = (struct vfs_node **)kmem_alloc(nodes_len);
-	if (parent) {			// Clone parent's file descriptors
-		for (i = 0; i < p->fds->len; i++) {
-			p->fds->nodes[i] = vfs_clone(parent->fds->nodes[i]);
-		}
-	}
-	memset(p->fds->nodes, 0, nodes_len);
+	p->fds = fd_table_create(parent ? parent->fds : NULL);
 }
 
 /**
@@ -140,10 +130,13 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
  */
 static void process_dtor(void *obj)
 {
-	struct process *p = (struct process *)obj;
+	struct process *p;
+
+	p = (struct process *)obj;
+	
 	kmem_free((void *)p->arch.kstack);
 	// TODO: cleanup the page directory owned by this process
-	// TODO: close the file descriptors opened by this process
+	fd_table_destroy(p->fds);
 }
 
 void switch_context()

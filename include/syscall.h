@@ -57,6 +57,8 @@ DECL_SYSCALL3(read, int, char *, int);
 DECL_SYSCALL3(write, int, char *, int);
 DECL_SYSCALL1(close, int);
 DECL_SYSCALL1(exit, int);
+DECL_SYSCALL2(gettimeofday, void *, void *);
+DECL_SYSCALL2(settimeofday, const void *, const void *);
 /* System call declaration end */
 
 void init_syscalls();

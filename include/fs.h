@@ -35,7 +35,7 @@ struct vfs_node {
 #define VFS_SYMLINK	0x06
 #define VFS_MOUNTPOINT	0x08
 
-extern struct vfs_node *root_node;
+extern struct vfs_node *_root_node;
 
 uint32_t vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer);
 uint32_t vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer);
@@ -44,5 +44,7 @@ void vfs_close(struct vfs_node *node);
 struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index);
 struct vfs_node *vfs_finddir(struct vfs_node *node, char *name);
 struct vfs_node *vfs_clone(struct vfs_node *src);
+struct vfs_node *vfs_lookup(const char *path, int flags);
+int vfs_create(char *path, int type, struct vfs_node **node);
 
 #endif	/* __FS_H__ */

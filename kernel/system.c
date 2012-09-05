@@ -62,10 +62,11 @@ void init_task(void *ctx)
 	switch_to_user_mode();
 
 	while (TRUE) {
-		int fd = 0;
+		int fd = 0, root_fd = 0;
 		uint32_t count;
 		struct timeval tv;
 		char buf[256] = {0};
+		boolean_t root_opened = FALSE;
 
 		count = 20000;
 		syscall_putstr("init.\n");
@@ -78,6 +79,16 @@ void init_task(void *ctx)
 			//vsprintf(buf, "timeval.tv_sec(%d\n), timeval.tv_usec(%d)\n",
 			//	 tv.tv_sec, tv.tv_usec);
 			syscall_putstr("gettimeofday successfully.\n");
+		}
+
+		if (!root_opened) {
+			root_fd = syscall_open("/", 0, 0);
+			if (root_fd == -1) {
+				syscall_putstr("open root failed.\n");
+			} else {
+				syscall_putstr("open root successfully.\n");
+				root_opened = TRUE;
+			}
 		}
 
 		fd = syscall_open("/etc/init", 0, 0);
