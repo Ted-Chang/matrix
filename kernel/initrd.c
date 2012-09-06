@@ -75,14 +75,13 @@ struct vfs_node *init_initrd(uint32_t location)
 		(location + sizeof(struct initrd_header));
 
 	/* Initialize the root directory */
-	initrd_root = (struct vfs_node *)kmem_alloc(sizeof(struct vfs_node));
+	initrd_root = vfs_node_alloc(VFS_DIRECTORY);
 	strcpy(initrd_root->name, "initrd");
 	initrd_root->mask = initrd_root->uid =
 		initrd_root->gid =
 		initrd_root->inode =
 		initrd_root->length =
 		0;
-	initrd_root->flags = VFS_DIRECTORY;
 	initrd_root->read = 0;
 	initrd_root->write = 0;
 	initrd_root->open = 0;
@@ -93,14 +92,13 @@ struct vfs_node *init_initrd(uint32_t location)
 	initrd_root->impl = 0;
 
 	/* Initialize the dev directory */
-	initrd_dev = (struct vfs_node *)kmem_alloc(sizeof(struct vfs_node));
+	initrd_dev = vfs_node_alloc(VFS_DIRECTORY);
 	strcpy(initrd_dev->name, "dev");
 	initrd_dev->mask = initrd_dev->uid =
 		initrd_dev->gid =
 		initrd_dev->inode =
 		initrd_dev->length =
 		0;
-	initrd_dev->flags = VFS_DIRECTORY;
 	initrd_dev->read = 0;
 	initrd_dev->write = 0;
 	initrd_dev->open = 0;
@@ -120,10 +118,11 @@ struct vfs_node *init_initrd(uint32_t location)
 
 		/* Create a new file node */
 		strcpy(root_nodes[i].name, (const char *)&file_hdrs[i].name);
+		root_nodes[i].ref_count = 1;
 		root_nodes[i].mask = root_nodes[i].uid = root_nodes[i].gid = 0;
 		root_nodes[i].length = file_hdrs[i].length;
 		root_nodes[i].inode = i;
-		root_nodes[i].flags = VFS_FILE;
+		root_nodes[i].type = VFS_FILE;
 		root_nodes[i].read = initrd_read;
 		root_nodes[i].write = 0;
 		root_nodes[i].open = 0;

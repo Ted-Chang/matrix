@@ -10,7 +10,8 @@ struct dirent {
 
 struct vfs_node {
 	char name[128];
-	uint32_t flags;
+	int ref_count;
+	uint32_t type;
 	uint32_t mask;
 	uint32_t uid;
 	uint32_t gid;
@@ -37,6 +38,8 @@ struct vfs_node {
 
 extern struct vfs_node *_root_node;
 
+int vfs_node_refer(struct vfs_node *node);
+int vfs_node_deref(struct vfs_node *node);
 uint32_t vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer);
 uint32_t vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer);
 void vfs_open(struct vfs_node *node);

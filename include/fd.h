@@ -7,7 +7,7 @@ struct process;
 struct fd_table {
 	size_t len;		// Length of this table
 	size_t slots_count;	// Count of the slots in this table
-	size_t ref_count;	// Reference count of this table
+	int ref_count;		// Reference count of this table
 	struct vfs_node **nodes;// Pointer to the VFS nodes
 };
 typedef struct fd_table fd_table_t;
