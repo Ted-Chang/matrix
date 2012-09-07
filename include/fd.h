@@ -3,6 +3,7 @@
 
 struct process;
 
+// FixMe: replace the array with list or other data structure
 /* Definition of the file descriptor table structure */
 struct fd_table {
 	size_t len;		// Length of this table

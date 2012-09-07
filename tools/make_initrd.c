@@ -14,11 +14,10 @@ static void usage();
 
 void main(int argc, char **argv)
 {
-	int rc = 0;
+	int rc = 0, i;
 	int nr_headers = (argc - 1)/2;
 	struct initrd_header headers[64];
 	unsigned int off = sizeof(struct initrd_header)*64 + sizeof(int);
-	int i;
 	FILE *wfp;
 	unsigned char *data;
 

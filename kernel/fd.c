@@ -4,6 +4,7 @@
 #include "fd.h"
 #include "fs.h"
 #include "proc/process.h"
+#include "matrix/debug.h"
 
 int fd_attach(struct process *p, struct vfs_node *n)
 {
@@ -11,6 +12,9 @@ int fd_attach(struct process *p, struct vfs_node *n)
 	size_t slots_count;
 	
 	if (p->fds->len == p->fds->slots_count) {
+		
+		DEBUG(DL_DBG, ("fd_attach: expand fd slots.\n"));
+		
 		slots_count = p->fds->slots_count * 2;
 		new_slots = (struct vfs_node **)
 			kmem_alloc(slots_count * sizeof(struct vfs_node *));
@@ -19,7 +23,10 @@ int fd_attach(struct process *p, struct vfs_node *n)
 		
 		/* Copy the original nodes to the new slots */
 		memcpy(new_slots, p->fds->nodes, p->fds->len * sizeof(struct vfs_node *));
-		kmem_free(p->fds->nodes);		// Free the original nodes
+		
+		// FixMe: Here we have a problem to free the original nodes as
+		// They may not be allocated from the kernel heap
+		kmem_free(p->fds->nodes);
 		p->fds->nodes = new_slots;
 		p->fds->slots_count = slots_count;
 	}

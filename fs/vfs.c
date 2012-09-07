@@ -16,6 +16,8 @@ struct vfs_node *vfs_node_alloc(uint32_t type)
 		n->ref_count = 1;
 		n->type = type;
 	}
+
+	return n;
 }
 
 void vfs_node_free(struct vfs_node *node)
@@ -125,6 +127,9 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 		n = _root_node;
 		vfs_node_refer(n);
 
+		if (n->type != VFS_DIRECTORY) {
+			DEBUG(DL_DBG, ("path:%s\n", path));
+		}
 		ASSERT(n->type == VFS_DIRECTORY);
 
 		/* Return the root node if the end of the path has been reached */
@@ -166,6 +171,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 		/* Look up this name within the directory */
 		v = vfs_finddir(n, tok);
 		if (!v) {
+			DEBUG(DL_DBG, ("vfs_finddir: %s not found.\n", tok));
 			vfs_node_deref(n);
 			return NULL;
 		}
@@ -175,7 +181,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 	}
 }
 
-struct vfs_node *vfs_lookup(const char *path, int flags)
+struct vfs_node *vfs_lookup(const char *path, int type)
 {
 	struct vfs_node *n = NULL, *c = NULL;
 	char *dup = NULL;
@@ -192,16 +198,22 @@ struct vfs_node *vfs_lookup(const char *path, int flags)
 
 	/* Duplicate path so that vfs_lookup_internal can modify it */
 	len = strlen(path) + 1;
-	dup = kmem_alloc(len);
+	dup = (char *)kmem_alloc(len);
 	if (!dup)
 		goto out;
 	strcpy(dup, path);
 
-	n = vfs_lookup_internal(c, path);
+	/* Look up the path string */
+	n = vfs_lookup_internal(c, dup);
+	if (n) {
+		if ((type >= 0) && (n->type != type)) {
+			vfs_node_deref(n);
+			n = NULL;
+		}
+	}
 
 out:
-	if (dup)
-		kmem_free(dup);
+	if (dup) kmem_free(dup);
 	return n;
 }
 

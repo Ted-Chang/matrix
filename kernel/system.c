@@ -7,6 +7,7 @@
 #include "proc/process.h"
 #include "syscall.h"
 #include "system.h"
+#include "matrix/debug.h"
 
 void idle_task();
 void sys_task();
@@ -22,11 +23,20 @@ void idle_task(void *ctx)
 {
 	while (TRUE) {
 		uint32_t count;
+		char *buf;
+		size_t buf_size;
 	
 		count = 20000;
-		
-		kprintf("idle.\n");
 
+		buf_size = 100;
+		buf = kmem_alloc(buf_size);
+		if (!buf) {
+			DEBUG(DL_ERR, ("kmem_alloc failed, buf_size(%d)\n", buf_size));
+		} else {
+			kmem_free(buf);
+			buf_size++;
+		}
+		
 		/* Wait for a little while */
 		while (count--);
 	}
@@ -41,13 +51,13 @@ void sys_task(void *ctx)
 		int fd = 0;
 		uint32_t count;
 		
-		count = 20000;
-		syscall_putstr("sys.\n");
+		count = 200000;
 
-		fd = syscall_open("/etc/sys", 0, 0);
+		fd = syscall_open("/test1.txt", 0, 0);
 		if (fd == -1) {
-			syscall_putstr("open sys-file failed.\n");
-			continue;
+			syscall_putstr("open /test1.txt failed.\n");
+		} else {
+			syscall_close(fd);
 		}
 		
 		/* Wait for a little while */
@@ -66,35 +76,13 @@ void init_task(void *ctx)
 		uint32_t count;
 		struct timeval tv;
 		char buf[256] = {0};
-		boolean_t root_opened = FALSE;
 
 		count = 20000;
-		syscall_putstr("init.\n");
 
 		memset(&tv, 0, sizeof(struct timeval));
 		rc = gettimeofday(&tv, NULL);
 		if (rc != 0) {
 			syscall_putstr("gettimeofday failed.\n");
-		} else {
-			//vsprintf(buf, "timeval.tv_sec(%d\n), timeval.tv_usec(%d)\n",
-			//	 tv.tv_sec, tv.tv_usec);
-			syscall_putstr("gettimeofday successfully.\n");
-		}
-
-		if (!root_opened) {
-			root_fd = syscall_open("/", 0, 0);
-			if (root_fd == -1) {
-				syscall_putstr("open root failed.\n");
-			} else {
-				syscall_putstr("open root successfully.\n");
-				root_opened = TRUE;
-			}
-		}
-
-		fd = syscall_open("/etc/init", 0, 0);
-		if (fd == -1) {
-			syscall_putstr("open init-file failed.\n");
-			continue;
 		}
 
 		/* Wait for a little while */

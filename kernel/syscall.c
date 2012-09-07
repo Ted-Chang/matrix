@@ -23,8 +23,11 @@ int open(const char *file, int flags, int mode)
 	struct vfs_node *n;
 
 	/* Lookup file system node */
-	n = vfs_lookup(file, 0);
+	n = vfs_lookup(file, VFS_FILE);
 	if (!n && FLAG_ON(flags, 0x600)) {
+
+		DEBUG(DL_DBG, ("%s not found, create it.\n", file));
+		
 		/* The file was not found, make one */
 		rc = vfs_create(file, VFS_FILE, &n);
 		if (rc != 0) {
@@ -50,6 +53,10 @@ int close(int fd)
 		return -1;
 
 	vfs_close(CURR_PROC->fds->nodes[fd]);
+
+	// FixMe: This is not right, you should remove the fd from the
+	// Current process's fd table.
+	CURR_PROC->fds->len--;
 	
 	return 0;
 }
