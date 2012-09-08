@@ -55,8 +55,18 @@ void sys_task(void *ctx)
 
 		fd = syscall_open("/test1.txt", 0, 0);
 		if (fd == -1) {
-			syscall_putstr("open /test1.txt failed.\n");
+			syscall_putstr("sys_task: open /test1.txt failed.\n");
 		} else {
+			int bytes = 0;
+			char buf[1024] = {0};
+			
+			bytes = syscall_read(fd, buf, 1024);
+			if (bytes != -1) {
+				syscall_putstr(buf);
+			} else {
+				syscall_putstr("sys_task: read /test1.txt failed.\n");
+			}
+			
 			syscall_close(fd);
 		}
 		

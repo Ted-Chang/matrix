@@ -6,7 +6,6 @@ struct process;
 // FixMe: replace the array with list or other data structure
 /* Definition of the file descriptor table structure */
 struct fd_table {
-	size_t len;		// Length of this table
 	size_t slots_count;	// Count of the slots in this table
 	int ref_count;		// Reference count of this table
 	struct vfs_node **nodes;// Pointer to the VFS nodes

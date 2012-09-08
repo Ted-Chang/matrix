@@ -8,33 +8,39 @@
 
 int fd_attach(struct process *p, struct vfs_node *n)
 {
-	struct vfs_node **new_slots;
-	size_t slots_count;
+	size_t i;
 	
-	if (p->fds->len == p->fds->slots_count) {
-		
-		DEBUG(DL_DBG, ("fd_attach: expand fd slots.\n"));
-		
-		slots_count = p->fds->slots_count * 2;
-		new_slots = (struct vfs_node **)
-			kmem_alloc(slots_count * sizeof(struct vfs_node *));
-		if (!new_slots)
-			return -1;
-		
-		/* Copy the original nodes to the new slots */
-		memcpy(new_slots, p->fds->nodes, p->fds->len * sizeof(struct vfs_node *));
-		
-		// FixMe: Here we have a problem to free the original nodes as
-		// They may not be allocated from the kernel heap
-		kmem_free(p->fds->nodes);
-		p->fds->nodes = new_slots;
-		p->fds->slots_count = slots_count;
+	for (i = 0; i < p->fds->slots_count; i++) {
+		if (p->fds->nodes[i] == NULL) {
+			p->fds->nodes[i] = n;
+			break;
+		}
 	}
 
-	p->fds->nodes[p->fds->len] = n;
-	p->fds->len++;
+	return (int)((i == p->fds->slots_count) ? -1 : i);
+}
 
-	return (int)p->fds->len - 1;
+int fd_detach(struct process *p, int fd)
+{
+	int rc = 0;
+
+	if (!p)
+		p = CURR_PROC;
+	
+	if (fd >= p->fds->slots_count) {
+		rc = -1;
+		goto out;
+	}
+	
+	if (!p->fds->nodes[fd]) {
+		rc = -1;
+		goto out;
+	}
+
+	p->fds->nodes[fd] = NULL;
+
+out:
+	return rc;
 }
 
 fd_table_t *fd_table_create(fd_table_t *parent)
@@ -48,10 +54,8 @@ fd_table_t *fd_table_create(fd_table_t *parent)
 	
 	t->ref_count = 1;
 	if (!parent) {
-		t->len = 3;
-		t->slots_count = 4;
+		t->slots_count = 10;
 	} else {
-		t->len = parent->len;
 		t->slots_count = parent->slots_count;
 	}
 	
@@ -66,10 +70,15 @@ fd_table_t *fd_table_create(fd_table_t *parent)
 	
 	/* Inherit all inheritable file descriptors in the parent table */
 	if (parent) {
-		for (i = 0; i < t->len; i++) {
+		for (i = 0; i < t->slots_count; i++) {
+			if (!parent->nodes[i])
+				continue;
+			
 			t->nodes[i] = vfs_clone(parent->nodes[i]);
 		}
 	}
+
+	DEBUG(DL_DBG, ("fd_table_create: parent(%x)", parent));
 
 out:
 	return t;
@@ -78,9 +87,12 @@ out:
 void fd_table_destroy(fd_table_t *table)
 {
 	size_t i;
+
+	DEBUG(DL_DBG, ("fd_table_destroy: table(%x)\n", table));
 	
-	for (i = 0; i < table->len; i++) {
-		//vfs_close(t->nodes[i]);
+	for (i = 0; i < table->slots_count; i++) {
+		if (table->nodes[i])
+			vfs_close(table->nodes[i]);
 	}
 	
 	if (table->nodes)
@@ -91,5 +103,5 @@ void fd_table_destroy(fd_table_t *table)
 
 fd_table_t *fd_table_clone(fd_table_t *src)
 {
-	;
+	return NULL;
 }

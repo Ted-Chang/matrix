@@ -110,7 +110,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 {
 	char *tok;
 	struct vfs_node *v;
-	
+
 	/* Check whether the path is absolute path */
 	if (path[0] == '/') {
 		/* Drop the node we were provided, if any */
@@ -128,7 +128,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 		vfs_node_refer(n);
 
 		if (n->type != VFS_DIRECTORY) {
-			DEBUG(DL_DBG, ("path:%s\n", path));
+			DEBUG(DL_DBG, ("path(%s)\n", path));
 		}
 		ASSERT(n->type == VFS_DIRECTORY);
 
@@ -151,7 +151,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 				path++;
 			}
 		}
-		
+
 		if (!tok) {
 			/* The last token was the last element of the path string,
 			 * return the current node we're currently on.
@@ -162,6 +162,8 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 			 * path string is trying to treat a non-directory as a
 			 * directory. Reject this.
 			 */
+			DEBUG(DL_DBG, ("vfs_lookup_internal: component(%s) type(0x%x)\n",
+				       n->name, n->type));
 			return NULL;
 		} else if (!tok[0]) {
 			/* Zero-length path component, do nothing */
@@ -213,7 +215,8 @@ struct vfs_node *vfs_lookup(const char *path, int type)
 	}
 
 out:
-	if (dup) kmem_free(dup);
+	if (dup)
+		kmem_free(dup);
 	return n;
 }
 

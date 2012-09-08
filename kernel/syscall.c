@@ -24,9 +24,10 @@ int open(const char *file, int flags, int mode)
 
 	/* Lookup file system node */
 	n = vfs_lookup(file, VFS_FILE);
+	DEBUG(DL_DBG, ("open: file(%s), n(0x%x)\n", file, n));
 	if (!n && FLAG_ON(flags, 0x600)) {
 
-		DEBUG(DL_DBG, ("%s not found, create it.\n", file));
+		DEBUG(DL_DBG, ("open: %s not found, create it.\n", file));
 		
 		/* The file was not found, make one */
 		rc = vfs_create(file, VFS_FILE, &n);
@@ -34,13 +35,12 @@ int open(const char *file, int flags, int mode)
 			DEBUG(DL_WRN, ("vfs_create failed, path:%s, error:%d\n",
 				       file, rc));
 		}
-	}
-	
-	if (!n)
-		return -1;
+	} 
 
-	/* Attach the file descriptor to the process */
-	fd = fd_attach((struct process *)CURR_PROC, n);
+	if (n) {
+		/* Attach the file descriptor to the process */
+		fd = fd_attach((struct process *)CURR_PROC, n);
+	}
 
 	return fd;
 }
@@ -49,26 +49,36 @@ int close(int fd)
 {
 	int rc = -1;
 
-	if (fd >= CURR_PROC->fds->len || fd < 0)
-		return -1;
+	if (fd >= CURR_PROC->fds->slots_count || fd < 0) {
+		rc = -1;
+		goto out;
+	}
 
+	if (!CURR_PROC->fds->nodes[fd]) {
+		rc = -1;
+		goto out;
+	}
+	
 	vfs_close(CURR_PROC->fds->nodes[fd]);
 
-	// FixMe: This is not right, you should remove the fd from the
-	// Current process's fd table.
-	CURR_PROC->fds->len--;
-	
-	return 0;
+	rc = fd_detach(NULL, fd);
+
+out:
+	return rc;
 }
 
 int read(int fd, char *buf, int len)
 {
 	uint32_t out = -1;
+	struct vfs_node *n;
 
-	if (fd >= CURR_PROC->fds->len || fd < 0)
+	if (fd >= CURR_PROC->fds->slots_count || fd < 0)
 		return -1;
-	if (CURR_PROC->fds->nodes[fd] == NULL)
+	n = CURR_PROC->fds->nodes[fd];
+	if (n == NULL)
 		return -1;
+
+	out = vfs_read(n, 0, len, buf);
 
 	return out;
 }
@@ -77,7 +87,7 @@ int write(int fd, char *buf, int len)
 {
 	uint32_t out = -1;
 	
-	if (fd >= CURR_PROC->fds->len || fd < 0)
+	if (fd >= CURR_PROC->fds->slots_count || fd < 0)
 		return -1;
 	if (CURR_PROC->fds->nodes[fd] == NULL)
 		return -1;
