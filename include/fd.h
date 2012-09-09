@@ -12,6 +12,7 @@ struct fd_table {
 };
 typedef struct fd_table fd_table_t;
 
+struct vfs_node *fd_2_vfs_node(struct process *p, int fd);
 int fd_attach(struct process *p, struct vfs_node *n);
 fd_table_t *fd_table_create(fd_table_t *parent);
 void fd_table_destroy(fd_table_t *table);

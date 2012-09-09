@@ -6,6 +6,17 @@
 #include "proc/process.h"
 #include "matrix/debug.h"
 
+struct vfs_node *fd_2_vfs_node(struct process *p, int fd)
+{
+	if (!p)
+		p = CURR_PROC;
+	
+	if (fd < 0 || fd > p->fds->slots_count)
+		return NULL;
+
+	return p->fds->nodes[fd];
+}
+
 int fd_attach(struct process *p, struct vfs_node *n)
 {
 	size_t i;

@@ -4,6 +4,7 @@
 #include <types.h>
 #include <stddef.h>
 #include <sys/time.h>
+#include <string.h>
 #include "hal.h"
 #include "syscall.h"
 #include "isr.h"	// register_interrupt_handler
@@ -23,7 +24,7 @@ int open(const char *file, int flags, int mode)
 	struct vfs_node *n;
 
 	/* Lookup file system node */
-	n = vfs_lookup(file, VFS_FILE);
+	n = vfs_lookup(file, 0);
 	DEBUG(DL_DBG, ("open: file(%s), n(0x%x)\n", file, n));
 	if (!n && FLAG_ON(flags, 0x600)) {
 
@@ -48,18 +49,15 @@ int open(const char *file, int flags, int mode)
 int close(int fd)
 {
 	int rc = -1;
+	struct vfs_node *n;
 
-	if (fd >= CURR_PROC->fds->slots_count || fd < 0) {
-		rc = -1;
-		goto out;
-	}
-
-	if (!CURR_PROC->fds->nodes[fd]) {
+	n = fd_2_vfs_node(CURR_PROC, fd);
+	if (!n) {
 		rc = -1;
 		goto out;
 	}
 	
-	vfs_close(CURR_PROC->fds->nodes[fd]);
+	vfs_close(n);
 
 	rc = fd_detach(NULL, fd);
 
@@ -72,10 +70,8 @@ int read(int fd, char *buf, int len)
 	uint32_t out = -1;
 	struct vfs_node *n;
 
-	if (fd >= CURR_PROC->fds->slots_count || fd < 0)
-		return -1;
-	n = CURR_PROC->fds->nodes[fd];
-	if (n == NULL)
+	n = fd_2_vfs_node(CURR_PROC, fd);
+	if (!n)
 		return -1;
 
 	out = vfs_read(n, 0, len, buf);
@@ -86,11 +82,13 @@ int read(int fd, char *buf, int len)
 int write(int fd, char *buf, int len)
 {
 	uint32_t out = -1;
-	
-	if (fd >= CURR_PROC->fds->slots_count || fd < 0)
+	struct vfs_node *n;
+
+	n = fd_2_vfs_node(CURR_PROC, fd);
+	if (!n)
 		return -1;
-	if (CURR_PROC->fds->nodes[fd] == NULL)
-		return -1;
+
+	out = vfs_write(n, 0, len, buf);
 	
 	return out;
 }
@@ -122,6 +120,37 @@ int settimeofday(const struct timeval *tv, const struct timezone *tz)
 	return 0;
 }
 
+int readdir(int fd, int index, struct dirent *entry)
+{
+	int rc = -1;
+	struct vfs_node *n;
+	struct dirent *e;
+
+	if (!entry)
+		goto out;
+	
+	n = fd_2_vfs_node(CURR_PROC, fd);
+	if (!n) {
+		DEBUG(DL_DBG, ("readdir: invalid fd(%d)\n", fd));
+		goto out;
+	}
+
+	e = vfs_readdir(n, index);
+	if (!e) {
+		DEBUG(DL_DBG, ("readdir: fd(%d), no entry\n", fd));
+		goto out;
+	}
+
+	memcpy(entry, e, sizeof(struct dirent));
+	rc = 0;
+
+	DEBUG(DL_DBG, ("readdir: index(%d), entry name(%s)\n", index, entry->name));
+	// TODO: Need to make a convention whether the directory entry
+	// will be freed by us.
+out:
+	return rc;
+}
+
 uint32_t _nr_syscalls = 8;
 static void *_syscalls[] = {
 	putstr,
@@ -132,6 +161,7 @@ static void *_syscalls[] = {
 	exit,
 	gettimeofday,
 	settimeofday,
+	readdir,
 };
 
 void init_syscalls()

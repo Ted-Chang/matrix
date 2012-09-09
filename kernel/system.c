@@ -8,6 +8,7 @@
 #include "syscall.h"
 #include "system.h"
 #include "matrix/debug.h"
+#include "fs.h"
 
 void idle_task();
 void sys_task();
@@ -67,6 +68,32 @@ void sys_task(void *ctx)
 				syscall_putstr("sys_task: read /test1.txt failed.\n");
 			}
 			
+			syscall_close(fd);
+		}
+
+		fd = syscall_open("/", 0, 0);
+		if (fd == -1) {
+			syscall_putstr("sys_task: open root failed.\n");
+		} else {
+			int rc = 0, index;
+			struct dirent d;
+
+			index = 0;
+			while (rc != -1) {
+				memset(&d, 0, sizeof(struct dirent));
+				rc = syscall_readdir(fd, index, &d);
+				index++;
+				if (rc != -1) {
+					syscall_putstr("sys_task: syscall_readdir success.\n");
+					syscall_putstr(d.name);
+				} else {
+					syscall_putstr("sys_task: syscall_readdir failed.\n");
+				}
+				if (index > 3) {
+					break;
+				}
+			}
+
 			syscall_close(fd);
 		}
 		

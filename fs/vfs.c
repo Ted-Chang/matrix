@@ -127,9 +127,6 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 		n = _root_node;
 		vfs_node_refer(n);
 
-		if (n->type != VFS_DIRECTORY) {
-			DEBUG(DL_DBG, ("path(%s)\n", path));
-		}
 		ASSERT(n->type == VFS_DIRECTORY);
 
 		/* Return the root node if the end of the path has been reached */
@@ -208,10 +205,10 @@ struct vfs_node *vfs_lookup(const char *path, int type)
 	/* Look up the path string */
 	n = vfs_lookup_internal(c, dup);
 	if (n) {
-		if ((type >= 0) && (n->type != type)) {
-			vfs_node_deref(n);
-			n = NULL;
-		}
+		/* if ((type >= 0) && (n->type != type)) { */
+		/* 	vfs_node_deref(n); */
+		/* 	n = NULL; */
+		/* } */
 	}
 
 out:
