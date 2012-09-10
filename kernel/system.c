@@ -84,13 +84,10 @@ void sys_task(void *ctx)
 				rc = syscall_readdir(fd, index, &d);
 				index++;
 				if (rc != -1) {
-					syscall_putstr("sys_task: syscall_readdir success.\n");
 					syscall_putstr(d.name);
+					syscall_putstr("\n");
 				} else {
-					syscall_putstr("sys_task: syscall_readdir failed.\n");
-				}
-				if (index > 3) {
-					break;
+					syscall_putstr("sys_task: no entry.\n");
 				}
 			}
 

@@ -144,14 +144,20 @@ int readdir(int fd, int index, struct dirent *entry)
 	memcpy(entry, e, sizeof(struct dirent));
 	rc = 0;
 
-	DEBUG(DL_DBG, ("readdir: index(%d), entry name(%s)\n", index, entry->name));
 	// TODO: Need to make a convention whether the directory entry
 	// will be freed by us.
 out:
 	return rc;
 }
 
-uint32_t _nr_syscalls = 8;
+/*
+ * NOTE: When adding a system call, please add the following items:
+ *   [1] _nr_syscalls - number of the system calls
+ *   [2] _syscalls - the array which contains pointers to the system calls
+ *   [3] define macro in /loader/syscalls.c
+ *   [4] define macro in /include/syscall.h
+ */
+uint32_t _nr_syscalls = 9;
 static void *_syscalls[] = {
 	putstr,
 	open,
