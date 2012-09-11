@@ -3,6 +3,13 @@
 
 #include <types.h>
 
+#define _IFCHR	0020000	// character special
+#define _IFDIR	0040000	// directory
+#define _IFBLK	0060000	// block special
+#define _IFREG	0100000	// regular
+#define _IFLNK	0120000	// symbolic link
+#define _IFIFO	0010000	// FIFO
+
 struct dirent {
 	char name[128];	// File name
 	uint32_t ino;	// Inode number
@@ -16,6 +23,7 @@ struct vfs_node {
 	uint32_t uid;
 	uint32_t gid;
 	uint32_t length;
+	uint32_t offset;
 	uint32_t inode;
 	uint32_t impl;
 	struct vfs_node *ptr;
@@ -35,6 +43,18 @@ struct vfs_node {
 #define VFS_PIPE	0x05
 #define VFS_SYMLINK	0x06
 #define VFS_MOUNTPOINT	0x08
+
+/* stat structure describe file descriptor */
+struct stat {
+	uint16_t st_dev;
+	uint16_t st_ino;
+	uint32_t st_mode;
+	uint16_t st_nlink;
+	uint16_t st_uid;
+	uint16_t st_gid;
+	uint16_t st_rdev;
+	uint32_t st_size;
+};
 
 extern struct vfs_node *_root_node;
 

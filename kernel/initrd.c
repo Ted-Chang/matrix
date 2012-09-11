@@ -109,7 +109,7 @@ struct vfs_node *init_initrd(uint32_t location)
 	initrd_dev->impl = 0;
 
 	root_nodes = (struct vfs_node *)
-		kmem_alloc(sizeof(struct vfs_node) * initrd_hdr->nr_files);
+		kmalloc(sizeof(struct vfs_node) * initrd_hdr->nr_files, 0);
 	nr_root_nodes = initrd_hdr->nr_files;
 
 	/* For each file in the root directory */

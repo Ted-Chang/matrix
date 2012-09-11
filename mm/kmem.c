@@ -439,7 +439,6 @@ void free(struct heap *heap, void *p)
 		insert_vector(&heap->index, (void *)header);
 }
 
-
 void kmem_free(void *p)
 {
 	free(_kheap, p);

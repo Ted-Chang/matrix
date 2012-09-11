@@ -9,6 +9,7 @@
 #include "system.h"
 #include "matrix/debug.h"
 #include "fs.h"
+#include "mm/malloc.h"
 
 void idle_task();
 void sys_task();
@@ -30,11 +31,11 @@ void idle_task(void *ctx)
 		count = 20000;
 
 		buf_size = 100;
-		buf = kmem_alloc(buf_size);
+		buf = kmalloc(buf_size, 0);
 		if (!buf) {
-			DEBUG(DL_ERR, ("kmem_alloc failed, buf_size(%d)\n", buf_size));
+			DEBUG(DL_ERR, ("kmalloc failed, buf_size(%d)\n", buf_size));
 		} else {
-			kmem_free(buf);
+			kfree(buf);
 			buf_size++;
 		}
 		

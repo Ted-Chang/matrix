@@ -51,7 +51,7 @@ int close(int fd)
 	int rc = -1;
 	struct vfs_node *n;
 
-	n = fd_2_vfs_node(CURR_PROC, fd);
+	n = fd_2_vfs_node(NULL, fd);
 	if (!n) {
 		rc = -1;
 		goto out;
@@ -70,7 +70,7 @@ int read(int fd, char *buf, int len)
 	uint32_t out = -1;
 	struct vfs_node *n;
 
-	n = fd_2_vfs_node(CURR_PROC, fd);
+	n = fd_2_vfs_node(NULL, fd);
 	if (!n)
 		return -1;
 
@@ -84,7 +84,7 @@ int write(int fd, char *buf, int len)
 	uint32_t out = -1;
 	struct vfs_node *n;
 
-	n = fd_2_vfs_node(CURR_PROC, fd);
+	n = fd_2_vfs_node(NULL, fd);
 	if (!n)
 		return -1;
 
@@ -129,7 +129,7 @@ int readdir(int fd, int index, struct dirent *entry)
 	if (!entry)
 		goto out;
 	
-	n = fd_2_vfs_node(CURR_PROC, fd);
+	n = fd_2_vfs_node(NULL, fd);
 	if (!n) {
 		DEBUG(DL_DBG, ("readdir: invalid fd(%d)\n", fd));
 		goto out;
@@ -150,6 +150,81 @@ out:
 	return rc;
 }
 
+int lseek(int fd, int offset, int whence)
+{
+	int off = -1;
+	struct vfs_node *n;
+
+	n = fd_2_vfs_node(NULL, fd);
+	if (!n) {
+		DEBUG(DL_DBG, ("seek: invalid fd(%d)\n", fd));
+		goto out;
+	}
+
+	switch (whence) {
+	case 0:
+		n->offset = offset;
+		off = n->offset;
+		break;
+	case 1:
+		n->offset += offset;
+		off = n->offset;
+		break;
+	case 2:
+		n->offset = n->length + offset;
+		off = n->offset;
+		break;
+	default:
+		DEBUG(DL_DBG, ("seek: invalid whence(%d)\n", whence));
+	}
+
+out:
+	return off;
+}
+
+int lstat(int fd, void *stat)
+{
+	int rc = -1;
+	struct vfs_node *n;
+	struct stat *s;
+	uint32_t flags = 0;
+
+	if (!stat)
+		goto out;
+	
+	n = fd_2_vfs_node(NULL, fd);
+	if (!n) {
+		DEBUG(DL_DBG, ("stat: invalid fd(%d)\n", fd));
+		goto out;
+	}
+
+	s = (struct stat *)stat;
+	if (n->type == VFS_FILE)
+		flags = _IFREG;
+	if (n->type == VFS_DIRECTORY)
+		flags = _IFDIR;
+	if (n->type == VFS_PIPE)
+		flags = _IFIFO;
+	if (n->type == VFS_CHARDEVICE)
+		flags = _IFCHR;
+	if (n->type == VFS_BLOCKDEVICE)
+		flags = _IFBLK;
+	if (n->type == VFS_SYMLINK)
+		flags = _IFLNK;
+
+	s->st_dev = 0;
+	s->st_ino = n->inode;
+	s->st_mode = n->mask | flags;
+	s->st_nlink = 0;
+	s->st_uid = n->uid;
+	s->st_gid = n->gid;
+	s->st_rdev = 0;
+	s->st_size = n->length;
+	
+out:
+	return rc;
+}
+
 /*
  * NOTE: When adding a system call, please add the following items:
  *   [1] _nr_syscalls - number of the system calls
@@ -157,7 +232,7 @@ out:
  *   [3] define macro in /loader/syscalls.c
  *   [4] define macro in /include/syscall.h
  */
-uint32_t _nr_syscalls = 9;
+uint32_t _nr_syscalls = 11;
 static void *_syscalls[] = {
 	putstr,
 	open,
@@ -168,6 +243,8 @@ static void *_syscalls[] = {
 	gettimeofday,
 	settimeofday,
 	readdir,
+	lseek,
+	lstat,
 };
 
 void init_syscalls()

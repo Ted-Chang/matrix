@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "mm/page.h"
+#include "mm/kmem.h"
 #include "multiboot.h"
 #include "matrix/debug.h"
 

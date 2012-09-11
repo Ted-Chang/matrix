@@ -60,6 +60,8 @@ DECL_SYSCALL1(exit, int);
 DECL_SYSCALL2(gettimeofday, void *, void *);
 DECL_SYSCALL2(settimeofday, const void *, const void *);
 DECL_SYSCALL3(readdir, int, int, void *);
+DECL_SYSCALL3(lseek, int, int, int);
+DECL_SYSCALL2(lstat, int, void *);
 /* System call declaration end */
 
 void init_syscalls();

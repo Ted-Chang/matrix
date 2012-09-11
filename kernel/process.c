@@ -11,7 +11,7 @@
 #include "hal.h"
 #include "mm/page.h"
 #include "mm/mmu.h"
-#include "mm/kmem.h"
+#include "mm/malloc.h"
 #include "proc/process.h"
 #include "matrix/debug.h"
 #include "proc/sched.h"
@@ -119,7 +119,7 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	p->arch.esp = 0;
 	p->arch.ebp = 0;
 	p->arch.eip = 0;
-	p->arch.kstack = kmem_alloc_a(KSTACK_SIZE);
+	p->arch.kstack = kmalloc(KSTACK_SIZE, MM_ALGN);
 
 	/* Initialize the file descriptor table */
 	p->fds = fd_table_create(parent ? parent->fds : NULL);
@@ -134,7 +134,7 @@ static void process_dtor(void *obj)
 
 	p = (struct process *)obj;
 	
-	kmem_free((void *)p->arch.kstack);
+	kfree((void *)p->arch.kstack);
 	// TODO: cleanup the page directory owned by this process
 	fd_table_destroy(p->fds);
 }
@@ -224,7 +224,7 @@ int fork()
 	mmu_copy_ctx(ctx, _current_mmu_ctx);
 
 	/* Create a new process */
-	new_process = (struct process *)kmem_alloc(sizeof(struct process));
+	new_process = (struct process *)kmalloc(sizeof(struct process), 0);
 	process_ctor(new_process, parent, ctx);
 
 	/* Enqueue the forked new process */
@@ -315,7 +315,7 @@ void init_process()
 	move_stack((void *)0xE0000000, 0x2000);
 
 	/* Malloc the initial process and initialize it */
-	p = (struct process *)kmem_alloc(sizeof(struct process));
+	p = (struct process *)kmalloc(sizeof(struct process), 0);
 	process_ctor(p, NULL, _current_mmu_ctx);
 	
 	/* Enqueue the new process */

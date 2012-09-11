@@ -5,6 +5,7 @@
 #include "fs.h"
 #include "proc/process.h"
 #include "matrix/debug.h"
+#include "mm/malloc.h"
 
 struct vfs_node *fd_2_vfs_node(struct process *p, int fd)
 {
@@ -59,7 +60,7 @@ fd_table_t *fd_table_create(fd_table_t *parent)
 	fd_table_t *t;
 	size_t nodes_len, i;
 
-	t = (fd_table_t *)kmem_alloc(sizeof(fd_table_t));
+	t = (fd_table_t *)kmalloc(sizeof(fd_table_t), 0);
 	if (!t)
 		goto out;
 	
@@ -71,9 +72,9 @@ fd_table_t *fd_table_create(fd_table_t *parent)
 	}
 	
 	nodes_len = t->slots_count * sizeof(struct vfs_node *);
-	t->nodes = (struct vfs_node **)kmem_alloc(nodes_len);
+	t->nodes = (struct vfs_node **)kmalloc(nodes_len, 0);
 	if (!t->nodes) {
-		kmem_free(t);
+		kfree(t);
 		t = NULL;
 		goto out;
 	}
@@ -107,9 +108,9 @@ void fd_table_destroy(fd_table_t *table)
 	}
 	
 	if (table->nodes)
-		kmem_free(table->nodes);
+		kfree(table->nodes);
 	
-	kmem_free(table);
+	kfree(table);
 }
 
 fd_table_t *fd_table_clone(fd_table_t *src)

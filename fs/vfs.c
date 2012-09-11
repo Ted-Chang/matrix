@@ -2,7 +2,7 @@
 #include <string.h>
 #include "fs.h"
 #include "matrix/debug.h"
-#include "mm/kmem.h"
+#include "mm/malloc.h"
 
 struct vfs_node *_root_node = 0;
 
@@ -10,7 +10,7 @@ struct vfs_node *vfs_node_alloc(uint32_t type)
 {
 	struct vfs_node *n;
 
-	n = (struct vfs_node *)kmem_alloc(sizeof(struct vfs_node));
+	n = (struct vfs_node *)kmalloc(sizeof(struct vfs_node), 0);
 	if (n) {
 		memset(n, 0, sizeof(struct vfs_node));
 		n->ref_count = 1;
@@ -22,7 +22,7 @@ struct vfs_node *vfs_node_alloc(uint32_t type)
 
 void vfs_node_free(struct vfs_node *node)
 {
-	kmem_free(node);
+	kfree(node);
 }
 
 int vfs_node_refer(struct vfs_node *node)
@@ -100,7 +100,7 @@ struct vfs_node *vfs_clone(struct vfs_node *src)
 	if (!src)
 		return NULL;
 
-	node = (struct vfs_node *)kmem_alloc(sizeof(struct vfs_node));
+	node = (struct vfs_node *)kmalloc(sizeof(struct vfs_node), 0);
 	memcpy(node, src, sizeof(struct vfs_node));
 
 	return node;
@@ -197,7 +197,7 @@ struct vfs_node *vfs_lookup(const char *path, int type)
 
 	/* Duplicate path so that vfs_lookup_internal can modify it */
 	len = strlen(path) + 1;
-	dup = (char *)kmem_alloc(len);
+	dup = (char *)kmalloc(len, 0);
 	if (!dup)
 		goto out;
 	strcpy(dup, path);
@@ -213,7 +213,7 @@ struct vfs_node *vfs_lookup(const char *path, int type)
 
 out:
 	if (dup)
-		kmem_free(dup);
+		kfree(dup);
 	return n;
 }
 
