@@ -7,12 +7,13 @@
 #include <string.h>
 #include "hal.h"
 #include "syscall.h"
-#include "isr.h"	// register_interrupt_handler
+#include "isr.h"	// register_irq_handler
 #include "util.h"	// putstr
 #include "proc/process.h"
 #include "matrix/matrix.h"
 #include "div64.h"	// do_div
 #include "matrix/debug.h"
+#include "fd.h"
 
 #define MAX_HOSTNAME_LEN	256
 
@@ -294,6 +295,36 @@ out:
 	return rc;
 }
 
+int getuid()
+{
+	return CURR_PROC->uid;
+}
+
+int setuid(uid_t uid)
+{
+	int rc = -1;
+
+	CURR_PROC->uid = uid;
+	rc = 0;
+	
+	return rc;
+}
+
+int getgid()
+{
+	return CURR_PROC->gid;
+}
+
+int setgid(gid_t gid)
+{
+	int rc = -1;
+
+	CURR_PROC->gid = gid;
+	rc = 0;
+
+	return rc;
+}
+
 /*
  * NOTE: When adding a system call, please add the following items:
  *   [1] _nr_syscalls - number of the system calls
@@ -301,7 +332,7 @@ out:
  *   [3] define macro in /loader/syscalls.c
  *   [4] define macro in /include/syscall.h
  */
-uint32_t _nr_syscalls = 17;
+uint32_t _nr_syscalls = 22;
 static void *_syscalls[] = {
 	putstr,
 	open,
@@ -320,14 +351,20 @@ static void *_syscalls[] = {
 	fork,
 	gethostname,
 	sethostname,
+	getuid,
+	setuid,
+	getgid,
+	setgid,
+	getpid,
 };
 
 void init_syscalls()
 {
 	/* Register our syscall handler */
-	register_interrupt_handler(0x80, &_syscall_hook, syscall_handler);
+	register_irq_handler(0x80, &_syscall_hook, syscall_handler);
 
 	/* Initialize the hostname */
+	memset(_hostname, 0, MAX_HOSTNAME_LEN + 1);
 	strcpy(_hostname, "Matrix");
 }
 

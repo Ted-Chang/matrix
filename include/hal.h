@@ -115,11 +115,11 @@ uint8_t inportb(uint16_t port);
 
 uint16_t inportw(uint16_t port);
 
-void enable_interrupt();
+void irq_enable();
 
-void disable_interrupt();
+void irq_disable();
 
-void interrupt_done(uint32_t int_no);
+void irq_done(uint32_t int_no);
 
 void init_gdt();
 
@@ -127,9 +127,9 @@ void init_idt();
 
 void set_kernel_stack(uint32_t stack);
 
-void register_interrupt_handler(uint8_t irq, struct irq_hook *hook, isr_t handler);
+void register_irq_handler(uint8_t irq, struct irq_hook *hook, isr_t handler);
 
-void unregister_interrupt_handler(struct irq_hook *hook);
+void unregister_irq_handler(struct irq_hook *hook);
 
 
 /* Declaration of the interrupt service routines */

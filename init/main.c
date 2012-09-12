@@ -29,7 +29,7 @@
 uint32_t _initial_esp;
 struct multiboot_info *_mbi;
 
-extern struct irq_hook *_interrupt_handlers[];
+extern struct irq_hook *_irq_handlers[];
 
 extern void init_task();
 
@@ -60,14 +60,14 @@ int kmain(u_long addr, uint32_t initial_stack)
 	/* Install the gdt and idt */
 	init_gdt();
 	init_idt();
-	memset(&_interrupt_handlers[0], 0, sizeof(struct irq_hook *)*256);
+	memset(&_irq_handlers[0], 0, sizeof(struct irq_hook *)*256);
 	kprintf("Gdt and idt installed.\n");
 
 	init_exception_handlers();
 	kprintf("Exception handlers installed.\n");
 
 	/* Enable interrupt so our timer can work */
-	enable_interrupt();
+	irq_enable();
 
 	/* Initialize our timer */
 	init_clock();

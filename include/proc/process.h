@@ -10,6 +10,9 @@
 /* Our kernel stack size is 4096 bytes */
 #define KSTACK_SIZE 4096
 
+typedef uint32_t uid_t;
+typedef uint32_t gid_t;
+
 /* Definition of the architecture specific process structure */
 struct arch_process {
 	uint32_t esp;		// Stack pointer
@@ -19,14 +22,16 @@ struct arch_process {
 };
 typedef struct arch_process arch_process_t;
 
-typedef int process_id_t;
+typedef int pid_t;
 
 /* Definition of the process structure */
 struct process {
 	struct process *next;	// Next process
 	struct priv priv;	// System privileges structure
 	struct mmu_ctx *mmu_ctx;// MMU context
-	process_id_t id;	// Process ID
+	pid_t id;		// Process ID
+	uid_t uid;		// User ID
+	gid_t gid;		// Group ID
 	struct arch_process arch;// Architecture process implementation
 	struct fd_table *fds;	// File descriptor table
 	clock_t usr_time;	// User time in ticks

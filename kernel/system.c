@@ -24,6 +24,7 @@ uint32_t _nr_boot_tasks = sizeof(images)/sizeof(images[0]);
 void idle_task(void *ctx)
 {
 	while (TRUE) {
+
 		uint32_t count;
 		char *buf;
 		size_t buf_size;
@@ -54,6 +55,9 @@ void sys_task(void *ctx)
 		int fd = 0;
 		uint32_t count;
 		char hostname[128];
+		pid_t pid;
+		uid_t uid;
+		gid_t gid;
 		
 		count = 200000;
 
@@ -108,6 +112,18 @@ void sys_task(void *ctx)
 		rc = syscall_sethostname("MATRIX", strlen("MATRIX"));
 		if (rc == -1) {
 			syscall_putstr("sys_task: sethostname failed.\n");
+		}
+
+		pid = syscall_getpid();
+
+		uid = syscall_getuid();
+		if (uid == 500) {
+			syscall_putstr("sys_task: root uid.\n");
+		}
+
+		gid = syscall_getgid();
+		if (gid == 500) {
+			syscall_putstr("sys_task: root gid.\n");
 		}
 		
 		/* Wait for a little while */

@@ -197,7 +197,7 @@ void mmu_switch_ctx(struct mmu_ctx *ctx)
 }
 
 /*
- * We don't call interrupt_done here, check this when we implementing
+ * We don't call irq_done here, check this when we implementing
  * the paging feature of our kernel.
  */
 void page_fault(struct registers *regs)
@@ -325,7 +325,7 @@ void init_mmu()
 	}
 
 	/* Before we enable paging, we must register our page fault handler */
-	register_interrupt_handler(14, &_pf_hook, page_fault);
+	register_irq_handler(14, &_pf_hook, page_fault);
 
 	/* Enable paging now */
 	mmu_switch_ctx(&_kernel_mmu_ctx);

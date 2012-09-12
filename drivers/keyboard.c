@@ -3,11 +3,15 @@
 #include "util.h"
 #include "isr.h"
 #include "keyboard.h"
+#include "matrix/debug.h"
 
+/* Keyboard I/O ports */
 #define KBD_STATUS_PORT		0x64
 #define KBD_DATA_PORT		0x60
 
 #define KBD_CTRL_TIMEOUT	0x10000
+/* Keyboard command */
+#define KBD_CMD_SET_LEDS	0xED
 
 /* Make code */
 #define MK_CTRL			0x1D
@@ -21,6 +25,45 @@
 #define MK_INSERT		0x52
 
 #define BREAK			0x0080
+
+/* Flags - active */
+#define ACT_SCRLK     0x0010
+#define ACT_NUMLK     0x0020
+#define ACT_CAPSLK    0x0040
+#define ACT_INSERT    0x0080
+/* Flag */
+#define FLAG_RSHIFT   0x0001
+#define FLAG_LSHIFT   0x0002
+#define FLAG_CTRL     0x0004
+#define FLAG_ALT      0x0008
+#define FLAG_LCTRL    0x0100
+#define FLAG_LALT     0x0200
+#define FLAG_SYSRQ    0x0400
+#define FLAG_SUSPEND  0x0800
+#define FLAG_SCRLK    0x1000
+#define FLAG_NUMLK    0x2000
+#define FLAG_CAPS     0x4000
+#define FLAG_INSTERT  0x8000
+/* Mode */
+#define MODE_E1       0x01
+#define MODE_E0       0x02
+#define MODE_RCTRL    0x04
+#define MODE_RALT     0x08
+#define MODE_EINST    0x10
+#define MODE_FNUMLK   0x20
+#define MODE_LASTID   0x40
+#define MODE_READID   0x80
+/* Led */
+#define LEGS_MASK     0x07
+#define LED_SCRLK     0x01
+#define LED_NUMLK     0x02
+#define LED_CAPSLK    0x04
+#define LED_CIRCUS    0x08
+#define LED_ACKRCV    0x10
+#define LED_RSRCV     0x20
+#define LED_MODEUPD   0x40
+#define LED_TRANSERR  0x80
+
 
 /* Key code definition */
 struct key_code {
@@ -45,9 +88,9 @@ union kbd_status {
 		uint8_t lshift:1;
 		uint8_t ctrl:1;
 		uint8_t alt:1;
-		uint8_t scrollock:1;
-		uint8_t numlock:1;
-		uint8_t capslock:1;
+		uint8_t scrlk_active:1;
+		uint8_t numlk_active:1;
+		uint8_t capslk_active:1;
 		uint8_t reserved1:1;
 		uint8_t lctrl:1;
 		uint8_t lalt:1;
@@ -60,15 +103,34 @@ union kbd_status {
 	} status;
 };
 
+/* Keyboard global mode data */
+struct kbd_data {
+	uint16_t kbd_flag;
+	uint16_t kbd_mode;
+	uint16_t kbd_led;
+};
+
+struct kbd_cmd {
+	uint8_t cmd;
+	uint8_t data_len;
+	uint8_t *data;
+};
+
+/* Keyboard IRQ hook */
 struct irq_hook _kbd_hook;
 
 static char _scan_code;
-static union kbd_status _status;
+static union kbd_status _kbdst;
 
 static uint16_t _rawq_head;
 static uint16_t _rawq_tail;
 
-const struct key_code _kmap[128] = {
+static uint16_t _ack_left;
+static uint8_t _ack_cmd;
+static uint8_t _led_state;
+static struct kbd_data _kbd_data;
+
+const struct key_code _keymap[128] = {
 	/* Flags,   CMD               N,  SHIFT,   CTRL,    ALT */
 	{{3, 0, 0, 0, 0, 1}, 0, {     0,      0,      0,      0}},
 	{{3, 0, 0, 0, 0, 1}, 0, {0x011B, 0x011B, 0x011B, 0x0100}},	// escape
@@ -161,19 +223,24 @@ const struct key_code _kmap[128] = {
 	{{3, 0, 0, 0, 0, 1}, 0, {0x8600, 0x8800, 0x8A00, 0x8C00}},	// F12
 };
 
+static struct kbd_cmd _cmd_table[] = {
+	{KBD_CMD_SET_LEDS, 1, &_led_state}	// After the ACK, led state must be sent
+};
+#define NR_KBD_CMDS	(sizeof(_cmd_table)/sizeof(struct kbd_cmd))
+
 static void kbd_reset()
 {
 	_scan_code = 0;
-	_status.data = 0;
+	_kbdst.data = 0;
 }
 
 static void rawq_put(int8_t code)
 {
-	disable_interrupt();
+	irq_disable();
 	/* Put the key into the key queue and update the raw queue with
 	 * new scan code.
 	 */
-	enable_interrupt();
+	irq_enable();
 }
 
 static int8_t rawq_read()
@@ -204,34 +271,179 @@ static int wait_kbd(boolean_t op_read)
 		return -1;
 }
 
-static int process(u_char code)
+static int kbd_layout_decode(uint8_t c, union kbd_status st)
+{
+	int ret = -1;
+
+	return ret;
+}
+
+static int kbd_wait_write()
+{
+	return -1;
+}
+
+static int kbd_write(uint8_t data)
+{
+	if (kbd_wait_write() != -1) {
+		outportb(KBD_DATA_PORT, data);
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+static int kbd_send_cmd(uint8_t cmd)
+{
+	if (_ack_left == 0) {
+		if (kbd_write(cmd) != -1) {
+			_ack_left = 2;	// Always need 2 ACKs
+			return 0;
+		}
+	}
+
+	DEBUG(DL_ERR, ("kbd_send_cmd: sending control CMD error\n"));
+	return -1;
+}
+
+static void kbd_ack_hdlr()
+{
+	uint32_t i, j;
+
+	switch (_ack_left) {
+	case 2:
+		for (i = 0; i < NR_KBD_CMDS; i++) {
+			if (_ack_cmd == _cmd_table[i].cmd) {
+				for (j = 0; j < _cmd_table[i].data_len; j++)
+					kbd_write(_cmd_table[i].data[j]);
+			}
+		}
+		_ack_left--;
+		break;
+	case 1:
+		_ack_left--;
+		break;
+	default:
+		DEBUG(DL_ERR, ("kbd_ack_hdlr: CRITICAL_ERROR\n"));
+		break;
+	}
+}
+
+static uint16_t kbd_decode(uint8_t c, union kbd_status st)
+{
+	int res = 0;
+
+	res = kbd_layout_decode(c, st);
+	if (res < 0) {
+
+		/* Set the keymap index value according to the shift flags */
+		if (st.status.alt) {
+			res = 3;
+		} else if (st.status.ctrl) {
+			res = 2;
+		} else if (st.status.e0_prefix && _keymap[c].flags.numlock_af) {
+			res = 0;
+		} else {
+			/* Letter keys have to be handled according to CAPSLOCK
+			 * Keypad keys have to be handled according to NUMLOCK
+			 */
+			int caps_or_num = (_keymap[c].flags.numlock_af && _kbdst.status.numlk_active) ||
+				(_keymap[c].flags.capslock_af && _kbdst.status.capslk_active);
+			if (_kbdst.status.shift)
+				res = (1 ^ caps_or_num);
+			else	// Extended key shouldn't shift
+				res = (0 ^ caps_or_num);
+		}
+
+		res = _keymap[c].data[res];
+	}
+
+	return res;
+}
+
+static int preprocess(u_char code)
 {
 	int rc = -1;
 	int e0_keycode_1 = 0;
+	static int e0_keycode = 0;	// It's a static variable
+
+	/* Add the extended key prefix */
+	if (e0_keycode) {
+		/* Extended keycode */
+		e0_keycode_1 = 0x80;
+		e0_keycode = 0;
+	}
 	
 	switch (code) {
 	case 0xE0:
+		e0_keycode = 1;
 		break;
 	case 0xFA:
+		kbd_ack_hdlr();
 		break;
 	case MK_INSERT:
+		_kbd_data.kbd_flag ^= ACT_INSERT;
+		rc = 0;
 		break;
 	case MK_CTRL:
+		_kbdst.status.ctrl = 1;
+		_kbd_data.kbd_flag |= FLAG_CTRL;
+		if (!e0_keycode_1) {
+			_kbdst.status.lctrl = 1;
+			_kbd_data.kbd_flag |= FLAG_LCTRL;
+		} else {	// Extended RCTRL
+			_kbdst.status.rctrl = 1;
+			_kbd_data.kbd_mode |= MODE_RCTRL;
+		}
 		break;
 	case MK_LSHIFT:
+		_kbdst.status.lshift = _kbdst.status.rshift = 1;
+		_kbd_data.kbd_flag |= FLAG_LSHIFT;
+		/* Numlock and shift conditions automatically cared in extended key */
 		break;
 	case MK_RSHIFT:
+		_kbdst.status.lshift = _kbdst.status.rshift = 1;
+		_kbd_data.kbd_flag |= FLAG_RSHIFT;
 		break;
 	case MK_ALT:
+		_kbdst.status.alt = 1;
+		_kbd_data.kbd_flag |= FLAG_ALT;
+		if (!e0_keycode_1) {
+			_kbdst.status.lalt = 1;
+			_kbd_data.kbd_flag |= FLAG_LALT;
+		} else {
+			_kbdst.status.ralt = 1;
+			_kbd_data.kbd_mode |= MODE_RALT;
+		}
 		break;
 	case MK_CAPS:
+		_kbdst.status.capslk_active ^= 1;
+		_kbd_data.kbd_flag |= FLAG_CAPS;
+		_kbd_data.kbd_flag ^= ACT_CAPSLK;
+		_kbd_data.kbd_led ^= LED_CAPSLK;
+		_led_state = _kbd_data.kbd_led & LEGS_MASK;
+		kbd_send_cmd(KBD_CMD_SET_LEDS);
 		break;
 	case MK_NUMLK:
+		_kbdst.status.numlk_active ^= 1;
+		_kbd_data.kbd_flag |= FLAG_NUMLK;
+		_kbd_data.kbd_flag ^= ACT_NUMLK;
+		_kbd_data.kbd_led ^= LED_NUMLK;
+		_led_state = _kbd_data.kbd_led & LEGS_MASK;
+		kbd_send_cmd(KBD_CMD_SET_LEDS);
 		break;
 	case MK_SCRLK:
+		_kbdst.status.scrlk_active ^= 1;
+		_kbd_data.kbd_flag |= FLAG_SCRLK;
+		_kbd_data.kbd_flag ^= ACT_SCRLK;
+		_kbd_data.kbd_led ^= LED_SCRLK;
+		_led_state = _kbd_data.kbd_led & LEGS_MASK;
+		kbd_send_cmd(KBD_CMD_SET_LEDS);
 		break;
 	case MK_SYSRQ:
+		_kbd_data.kbd_flag |= FLAG_SYSRQ;
 		break;
+		/* Normal function key released */
 	case BREAK|MK_CTRL:
 		break;
 	case BREAK|MK_LSHIFT:
@@ -247,6 +459,8 @@ static int process(u_char code)
 	case BREAK|MK_SYSRQ:
 		break;
 	default:
+		if (!(BREAK & code))
+			rc = 0;
 		break;
 	}
 
@@ -256,19 +470,50 @@ static int process(u_char code)
 	return rc;
 }
 
+void postprocess()
+{
+	uint16_t decoded = 0;
+	uint8_t code = rawq_read();
+
+	while (code != 0) {
+
+		if (code & 0x80) {	// Extended code
+			_kbdst.status.e0_prefix = 1;
+			code &= 0x7F;
+		}
+
+		/* Handle the basic key */
+		decoded = kbd_decode(code, _kbdst);
+
+		/* Reset the e0_prefix flag */
+		_kbdst.status.e0_prefix = 0;
+
+		if (decoded == 0) {
+			/* Skip the key stroke */;
+		} else {
+			decoded = 0;
+		}
+
+		code = rawq_read();
+	}
+}
+
 static void kbd_callback(struct registers *regs)
 {
 	u_char scan_code;
-	u_long temp;
 
+	/* We are the interrupt handler. If we are called, we assume that there is
+	 * something to be read. (so we don't read the status port.)
+	 */
 	scan_code = inportb(KBD_DATA_PORT);
 
 	/* We don't check the error code here */
-	if (!process(scan_code)) {
-		enable_interrupt();	// Reenable interrupts
+	if (!preprocess(scan_code)) {
+		irq_enable();	// Reenable interrupts
+		postprocess();	// Do post process
 	}
 	
-	interrupt_done(regs->int_no);
+	irq_done(regs->int_no);
 }
 
 void init_keyboard()
@@ -276,7 +521,7 @@ void init_keyboard()
 	/* Init keyboard status */
 	kbd_reset();
 
-	register_interrupt_handler(IRQ1, &_kbd_hook, kbd_callback);
+	register_irq_handler(IRQ1, &_kbd_hook, kbd_callback);
 
 	/* Clear the keyboard input buffer */
 }

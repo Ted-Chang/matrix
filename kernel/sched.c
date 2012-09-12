@@ -51,7 +51,7 @@ void sched_enqueue(struct process *p)
 	int q;
 	boolean_t front;
 
-	disable_interrupt();
+	irq_disable();
 
 #ifdef _DEBUG_SCHED
 	check_runqueues("sched_enqueue:begin");
@@ -80,7 +80,7 @@ void sched_enqueue(struct process *p)
 	check_runqueues("sched_enqueue:end");
 #endif
 
-	enable_interrupt();
+	irq_enable();
 }
 
 /**
@@ -94,7 +94,7 @@ void sched_dequeue(struct process *p)
 	struct process **xpp;
 	struct process *prev_ptr;
 
-	disable_interrupt();
+	irq_disable();
 	
 	q = p->priority;
 
@@ -124,7 +124,7 @@ void sched_dequeue(struct process *p)
 	check_runqueues("sched_dequeue:end");
 #endif
 
-	disable_interrupt();
+	irq_disable();
 }
 
 /**

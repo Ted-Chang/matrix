@@ -42,7 +42,7 @@ uint16_t inportw(uint16_t port)
 /*
  * Enable the hardware interrupts
  */
-void enable_interrupt()
+void irq_enable()
 {
 	asm volatile("sti");
 }
@@ -50,7 +50,7 @@ void enable_interrupt()
 /*
  * Disable the hardware interrupts
  */
-void disable_interrupt()
+void irq_disable()
 {
 	asm volatile("cli");
 }
@@ -58,7 +58,7 @@ void disable_interrupt()
 /*
  * Notify the HAL interrupt handler was done
  */
-void interrupt_done(uint32_t int_no)
+void irq_done(uint32_t int_no)
 {
 	if (int_no >= 40)
 		outportb(PIC2_CMD, PIC_EOI);

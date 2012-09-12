@@ -131,7 +131,7 @@ void init_clock()
 	_current_frequency = HZ;
 	
 	/* Register our timer callback first */
-	register_interrupt_handler(IRQ0, &_clock_hook, &clock_callback);
+	register_irq_handler(IRQ0, &_clock_hook, &clock_callback);
 
 	/* The value we send to the PIT is the value to divide. it's input
 	 * clock (1193182 Hz) by, to get our required frequency. Important

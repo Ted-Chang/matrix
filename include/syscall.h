@@ -3,6 +3,7 @@
 
 #include <types.h>
 #include <stddef.h>
+#include "proc/process.h"
 
 #define DECL_SYSCALL0(fn) int syscall_##fn();
 #define DECL_SYSCALL1(fn, p1) int syscall_##fn(p1);
@@ -71,6 +72,11 @@ DECL_SYSCALL3(execve, const char *, const char **, const char **);
 DECL_SYSCALL0(fork);
 DECL_SYSCALL2(gethostname, char *, size_t);
 DECL_SYSCALL2(sethostname, const char *, size_t);
+DECL_SYSCALL0(getuid);
+DECL_SYSCALL1(setuid, uid_t);
+DECL_SYSCALL0(getgid);
+DECL_SYSCALL1(setgid, gid_t);
+DECL_SYSCALL0(getpid);
 /* System call declaration end */
 
 void init_syscalls();

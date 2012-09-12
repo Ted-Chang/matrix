@@ -16,14 +16,14 @@
 #include "matrix/debug.h"
 #include "proc/sched.h"
 
-static process_id_t _next_pid = 1;
+static pid_t _next_pid = 1;
 
 extern uint32_t _initial_esp;
 
 extern uint32_t read_eip();
 extern void sched_init();
 
-static process_id_t id_alloc()
+static pid_t id_alloc()
 {
 	return _next_pid++;
 }
@@ -106,6 +106,8 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	p->next = NULL;
 	p->mmu_ctx = ctx;
 	p->id = id_alloc();		// Allocate an ID for the process
+	p->uid = 500;			// FixMe: set it to the currently logged user
+	p->gid = 500;			// FixMe: set it to the current user's group
 	p->priority = USER_Q;		// Default priority
 	p->max_priority = PROCESS_Q;	// Max priority for the process
 	p->quantum = P_QUANTUM;
@@ -205,7 +207,7 @@ void switch_context()
 
 int fork()
 {
-	process_id_t pid = 0;
+	pid_t pid = 0;
 	struct process *parent;
 	struct process *new_process;
 	struct mmu_ctx *ctx;
@@ -214,7 +216,7 @@ int fork()
 	uint32_t esp;
 	uint32_t ebp;
 	
-	disable_interrupt();
+	irq_disable();
 
 	/* Take a pointer to this process' process struct for later reference */
 	parent = (struct process *)CURR_PROC;
@@ -250,7 +252,7 @@ int fork()
 			       new_process->id, new_process->arch.esp, new_process->arch.ebp,
 			       new_process->arch.eip, new_process->mmu_ctx));
 		
-		enable_interrupt();
+		irq_enable();
 	} else {
 		/* We are the child */
 		DEBUG(DL_DBG, ("fork: now in child process.\n"));
