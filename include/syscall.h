@@ -1,6 +1,9 @@
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
+#include <types.h>
+#include <stddef.h>
+
 #define DECL_SYSCALL0(fn) int syscall_##fn();
 #define DECL_SYSCALL1(fn, p1) int syscall_##fn(p1);
 #define DECL_SYSCALL2(fn, p1, p2) int syscall_##fn(p1, p2);
@@ -62,6 +65,12 @@ DECL_SYSCALL2(settimeofday, const void *, const void *);
 DECL_SYSCALL3(readdir, int, int, void *);
 DECL_SYSCALL3(lseek, int, int, int);
 DECL_SYSCALL2(lstat, int, void *);
+DECL_SYSCALL1(chdir, const char *);
+DECL_SYSCALL2(mkdir, const char *, uint32_t);
+DECL_SYSCALL3(execve, const char *, const char **, const char **);
+DECL_SYSCALL0(fork);
+DECL_SYSCALL2(gethostname, char *, size_t);
+DECL_SYSCALL2(sethostname, const char *, size_t);
 /* System call declaration end */
 
 void init_syscalls();

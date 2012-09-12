@@ -50,8 +50,10 @@ void sys_task(void *ctx)
 	switch_to_user_mode();
 	
 	while (TRUE) {
+		int rc = 0;
 		int fd = 0;
 		uint32_t count;
+		char hostname[128];
 		
 		count = 200000;
 
@@ -76,7 +78,7 @@ void sys_task(void *ctx)
 		if (fd == -1) {
 			syscall_putstr("sys_task: open root failed.\n");
 		} else {
-			int rc = 0, index;
+			int index;
 			struct dirent d;
 
 			index = 0;
@@ -93,6 +95,19 @@ void sys_task(void *ctx)
 			}
 
 			syscall_close(fd);
+		}
+
+		rc = syscall_gethostname(hostname, 128);
+		if (rc == -1) {
+			syscall_putstr("sys_task: gethostname failed.\n");
+		} else {
+			syscall_putstr(hostname);
+			syscall_putstr("\n");
+		}
+
+		rc = syscall_sethostname("MATRIX", strlen("MATRIX"));
+		if (rc == -1) {
+			syscall_putstr("sys_task: sethostname failed.\n");
 		}
 		
 		/* Wait for a little while */

@@ -14,9 +14,12 @@
 #include "div64.h"	// do_div
 #include "matrix/debug.h"
 
+#define MAX_HOSTNAME_LEN	256
+
 static void syscall_handler(struct registers *regs);
 
 static struct irq_hook _syscall_hook;
+static char _hostname[MAX_HOSTNAME_LEN + 1];
 
 int open(const char *file, int flags, int mode)
 {
@@ -225,6 +228,72 @@ out:
 	return rc;
 }
 
+int chdir(const char *path)
+{
+	int rc = -1;
+
+	if (!path) {
+		goto out;
+	}
+
+out:
+	return rc;
+}
+
+int mkdir(const char *path, uint32_t mode)
+{
+	int rc = -1;
+
+	if (!path) {
+		goto out;
+	}
+
+out:
+	return rc;
+}
+
+int execve(const char *filename, const char *argv[], const char *envp[])
+{
+	int rc = -1;
+
+	if (!filename || !argv || !envp) {
+		goto out;
+	}
+	
+out:
+	return rc;
+}
+
+int gethostname(char *name, size_t len)
+{
+	int rc = -1;
+
+	if (!name || !len) {
+		goto out;
+	}
+	
+	strncpy(name, _hostname, len);
+	rc = 0;
+
+out:
+	return rc;
+}
+
+int sethostname(const char *name, size_t len)
+{
+	int rc = -1;
+
+	if (!name || !len || len > MAX_HOSTNAME_LEN) {
+		goto out;
+	}
+
+	memcpy(_hostname, name, len);
+	rc = 0;
+
+out:
+	return rc;
+}
+
 /*
  * NOTE: When adding a system call, please add the following items:
  *   [1] _nr_syscalls - number of the system calls
@@ -232,7 +301,7 @@ out:
  *   [3] define macro in /loader/syscalls.c
  *   [4] define macro in /include/syscall.h
  */
-uint32_t _nr_syscalls = 11;
+uint32_t _nr_syscalls = 17;
 static void *_syscalls[] = {
 	putstr,
 	open,
@@ -245,12 +314,21 @@ static void *_syscalls[] = {
 	readdir,
 	lseek,
 	lstat,
+	chdir,
+	mkdir,
+	execve,
+	fork,
+	gethostname,
+	sethostname,
 };
 
 void init_syscalls()
 {
 	/* Register our syscall handler */
 	register_interrupt_handler(0x80, &_syscall_hook, syscall_handler);
+
+	/* Initialize the hostname */
+	strcpy(_hostname, "Matrix");
 }
 
 void syscall_handler(struct registers *regs)
