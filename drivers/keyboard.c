@@ -81,7 +81,7 @@ struct key_code {
 };
 
 /* Keyboard status */
-union kbd_status {
+union kbd_std_status {
 	uint16_t data;
 	struct {
 		uint8_t rshift:1;
@@ -103,6 +103,21 @@ union kbd_status {
 	} status;
 };
 
+/* Keyboard control status */
+union kbd_ctrl_status {
+	uint8_t data;
+	struct {
+		uint8_t outbuf_full:1;
+		uint8_t inbuf_full:1;
+		uint8_t self_test:1;
+		uint8_t command:1;
+		uint8_t unlocked:1;
+		uint8_t mouse_outbuf_full:1;
+		uint8_t general_timeout:1;
+		uint8_t parity_error:1;
+	} status;
+};
+
 /* Keyboard global mode data */
 struct kbd_data {
 	uint16_t kbd_flag;
@@ -120,15 +135,19 @@ struct kbd_cmd {
 struct irq_hook _kbd_hook;
 
 static char _scan_code;
-static union kbd_status _kbdst;
-
-static uint16_t _rawq_head;
-static uint16_t _rawq_tail;
+static union kbd_std_status _kbdst;
 
 static uint16_t _ack_left;
 static uint8_t _ack_cmd;
 static uint8_t _led_state;
 static struct kbd_data _kbd_data;
+
+#define KBD_Q_MAX_SIZE	32
+static uint8_t _kbd_buf[32];
+static uint16_t _rawq_head;
+static uint16_t _rawq_tail;
+static uint16_t _kbd_bufhead;
+static uint16_t _kbd_buftail;
 
 const struct key_code _keymap[128] = {
 	/* Flags,   CMD               N,  SHIFT,   CTRL,    ALT */
@@ -237,20 +256,68 @@ static void kbd_reset()
 static void rawq_put(int8_t code)
 {
 	irq_disable();
+	
 	/* Put the key into the key queue and update the raw queue with
 	 * new scan code.
 	 */
+	_kbd_buf[_rawq_tail] = code;
+	_rawq_tail = (_rawq_tail + 2) % KBD_Q_MAX_SIZE;
+	if (_rawq_tail == _rawq_head) {
+		_rawq_head = (_rawq_head + 2) % KBD_Q_MAX_SIZE;
+	}
+	
 	irq_enable();
 }
 
-static int8_t rawq_read()
+static uint8_t rawq_read()
 {
-	;
+	uint16_t rawq_index;
+	/* Read the raw queue incrementally, based on queue_index from head to tail */
+	rawq_index = (_kbd_buftail + 1) % KBD_Q_MAX_SIZE;
+	if (_rawq_tail == rawq_index) {
+		return 0;	// No char in queue
+	} else {
+		uint8_t scancode = _kbd_buf[rawq_index];
+		return scancode;
+	}
 }
 
-static void rawq_clear()
+static void keyq_clear()
 {
+	/* Clear raw queue and key queue */
 	_rawq_head = _rawq_tail = 1;
+	_kbd_bufhead = _kbd_buftail = 0;
+}
+
+static void keyq_put(uint16_t code)
+{
+	uint16_t keyq_index;
+	uint16_t rawq_index;
+
+	keyq_index = _kbd_buftail;
+	rawq_index = (keyq_index + 1) % KBD_Q_MAX_SIZE;
+	irq_disable();
+	_kbd_buf[keyq_index] = (uint8_t)code;
+	_kbd_buf[rawq_index] = (uint8_t)code >> 8;
+	/* Update key queue buffer tail */
+	_kbd_buftail = keyq_index;
+	irq_enable();
+}
+
+static uint8_t keyq_get()
+{
+	if (_kbd_buftail == _kbd_bufhead) {
+		_scan_code = 0;	// No char in queue
+		return 0;
+	} else {
+		uint32_t i;
+		i = _kbd_bufhead;
+		irq_disable();
+		_kbd_bufhead = (i + 2) % KBD_Q_MAX_SIZE;
+		irq_enable();
+		_scan_code = _kbd_buf[i+1];
+		return _kbd_buf[i];
+	}
 }
 
 static int wait_kbd(boolean_t op_read)
@@ -271,15 +338,44 @@ static int wait_kbd(boolean_t op_read)
 		return -1;
 }
 
-static int kbd_layout_decode(uint8_t c, union kbd_status st)
+static int kbd_layout_decode(uint8_t c, union kbd_std_status st)
 {
 	int ret = -1;
 
 	return ret;
 }
 
+static int kbd_wait_read()
+{
+	uint32_t i;
+	union kbd_ctrl_status st;
+	
+	for (i = 0, st.data = inportb(KBD_STATUS_PORT);
+	     st.status.outbuf_full && i < KBD_CTRL_TIMEOUT;
+	     i++, st.data = inportb(KBD_STATUS_PORT)) {
+		;
+	}
+
+	if (i < KBD_CTRL_TIMEOUT)
+		return 0;
+
+	return -1;
+}
+
 static int kbd_wait_write()
 {
+	uint32_t i;
+	union kbd_ctrl_status st;
+
+	for (i = 0, st.data = inportb(KBD_STATUS_PORT);
+	     st.status.inbuf_full && i < KBD_CTRL_TIMEOUT;
+	     i++, st.data = inportb(KBD_STATUS_PORT)) {
+		;
+	}
+
+	if (i < KBD_CTRL_TIMEOUT)
+		return 0;
+	
 	return -1;
 }
 
@@ -329,7 +425,7 @@ static void kbd_ack_hdlr()
 	}
 }
 
-static uint16_t kbd_decode(uint8_t c, union kbd_status st)
+static uint16_t kbd_decode(uint8_t c, union kbd_std_status st)
 {
 	int res = 0;
 
@@ -442,6 +538,7 @@ static int preprocess(u_char code)
 		break;
 	case MK_SYSRQ:
 		_kbd_data.kbd_flag |= FLAG_SYSRQ;
+		DEBUG(DL_DBG, ("preprocess: SYSRQ pressed...\n"));
 		break;
 		/* Normal function key released */
 	case BREAK|MK_CTRL:
@@ -489,8 +586,11 @@ void postprocess()
 		_kbdst.status.e0_prefix = 0;
 
 		if (decoded == 0) {
-			/* Skip the key stroke */;
+			/* Skip the key stroke */
+			keyq_put(0x0000);
+			keyq_get();
 		} else {
+			keyq_put(decoded);
 			decoded = 0;
 		}
 
