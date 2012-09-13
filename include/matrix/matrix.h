@@ -14,4 +14,8 @@
 
 #define CLEAR_FLAG(_x, _f)	((_x) &= ~(_f))
 
+#define MIN(_x, _y)		((_x) < (_y) ? (_x) : (_y))
+
+#define MAX(_x, _y)		((_x) > (_y) ? (_x) : (_y))
+
 #endif	/* __MATRIX_H__ */

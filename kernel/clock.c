@@ -3,13 +3,13 @@
 #include <sys/time.h>
 #include "matrix/matrix.h"
 #include "matrix/const.h"
-#include "matrix/global.h"
 #include "isr.h"
 #include "hal.h"
 #include "timer.h"
 #include "proc/process.h"
 #include "proc/sched.h"
 #include "matrix/debug.h"
+#include "div64.h"
 
 #define LEAPYEAR(y)	(((y) % 4) == 0 && (((y) % 100) != 0 || ((y) % 400) == 0))
 #define DAYS(y)		(LEAPYEAR(y) ? 366 : 365)
@@ -17,6 +17,7 @@
 #define TIMER_FREQ	1193182L	// clock frequency for timer in PC and AT
 
 extern struct timer *_active_timers;
+extern struct process *_prev_proc;
 extern void tmrs_exptimers(struct timer **list, clock_t now);
 
 int _current_frequency = 0;
@@ -176,4 +177,31 @@ u_long read_clock()
 	count |= (inportb(0x40) << 8);
 
 	return count;
+}
+
+static uint32_t usec_2_ticks(uint32_t usec)
+{
+	uint32_t ticks;
+	uint64_t tmp_usec;
+
+	tmp_usec = usec * TIMER_FREQ;
+	ticks = do_div(tmp_usec, 1000000);
+
+	return ticks;
+}
+
+void pit_delay(uint32_t usec)
+{
+	uint64_t when;
+
+	when = _real_time + usec_2_ticks(usec);
+	while (TRUE) {
+		irq_disable();
+		if (_real_time >= when) {
+			irq_enable();
+			break;
+		}
+		irq_enable();
+		cpu_idle();
+	}
 }

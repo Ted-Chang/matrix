@@ -5,7 +5,10 @@
 static size_t _nr_cpus;
 static size_t _highest_cpu_id;
 
-
+cpu_id_t cpu_id()
+{
+	return 0;
+}
 
 void init_cpu()
 {

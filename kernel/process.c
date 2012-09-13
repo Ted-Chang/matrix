@@ -6,7 +6,6 @@
 #include <stddef.h>
 #include <string.h>
 #include "matrix/matrix.h"
-#include "matrix/global.h"
 #include "matrix/const.h"
 #include "hal.h"
 #include "mm/page.h"
@@ -19,6 +18,7 @@
 static pid_t _next_pid = 1;
 
 extern uint32_t _initial_esp;
+extern struct process *_next_proc;
 
 extern uint32_t read_eip();
 extern void sched_init();

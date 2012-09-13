@@ -2,8 +2,10 @@
 #include <stddef.h>
 #include "hal.h"
 #include "matrix/debug.h"
-#include "matrix/global.h"
 #include "proc/process.h"
+
+extern struct process *_ready_head[NR_SCHED_QUEUES];
+extern struct process *_ready_tail[NR_SCHED_QUEUES];
 
 uint32_t _debug_level = DL_DBG;
 

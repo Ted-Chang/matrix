@@ -21,5 +21,6 @@ u_long read_clock();
 void init_timer(struct timer *t);
 void set_timer(struct timer *t, clock_t exp_time, timer_func_t callback);
 void cancel_timer(struct timer *t);
+void timer_delay(uint32_t usec);
 
 #endif	/* __TIMER_H__ */

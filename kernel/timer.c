@@ -3,6 +3,8 @@
 #include <sys/time.h>
 #include "timer.h"
 
+extern void pit_delay(uint32_t usec);
+
 extern clock_t _next_timeout;
 struct timer *_active_timers;
 
@@ -95,4 +97,9 @@ void cancel_timer(struct timer *t)
 	tmrs_clrtimer(&_active_timers, t);
 	_next_timeout = (_active_timers == NULL) ?
 		TIMER_NEVER : _active_timers->exp_time;
+}
+
+void timer_delay(uint32_t usec)
+{
+	pit_delay(usec);
 }

@@ -3,6 +3,7 @@
 #include "util.h"
 #include "vector.h"
 #include "mm/mmu.h"
+#include "mm/kmem.h"
 #include "matrix/debug.h"
 
 int8_t default_compare(type_t x, type_t y)

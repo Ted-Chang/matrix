@@ -247,7 +247,7 @@ static struct kbd_cmd _cmd_table[] = {
 };
 #define NR_KBD_CMDS	(sizeof(_cmd_table)/sizeof(struct kbd_cmd))
 
-static void kbd_reset()
+static void kbd_state_reset()
 {
 	_scan_code = 0;
 	_kbdst.data = 0;
@@ -348,12 +348,13 @@ static int kbd_layout_decode(uint8_t c, union kbd_std_status st)
 static int kbd_wait_read()
 {
 	uint32_t i;
+	uint8_t t;
 	union kbd_ctrl_status st;
 	
 	for (i = 0, st.data = inportb(KBD_STATUS_PORT);
 	     st.status.outbuf_full && i < KBD_CTRL_TIMEOUT;
 	     i++, st.data = inportb(KBD_STATUS_PORT)) {
-		;
+		t = inportb(KBD_DATA_PORT);
 	}
 
 	if (i < KBD_CTRL_TIMEOUT)
@@ -370,7 +371,7 @@ static int kbd_wait_write()
 	for (i = 0, st.data = inportb(KBD_STATUS_PORT);
 	     st.status.inbuf_full && i < KBD_CTRL_TIMEOUT;
 	     i++, st.data = inportb(KBD_STATUS_PORT)) {
-		;
+		timer_delay(1);
 	}
 
 	if (i < KBD_CTRL_TIMEOUT)
@@ -618,10 +619,14 @@ static void kbd_callback(struct registers *regs)
 
 void init_keyboard()
 {
-	/* Init keyboard status */
-	kbd_reset();
+	/* Choose keyboard layout */
+	//...
+	
+	/* Reset keyboard status */
+	kbd_state_reset();
 
 	register_irq_handler(IRQ1, &_kbd_hook, kbd_callback);
 
-	/* Clear the keyboard input buffer */
+	/* Clear the keyboard queue */
+	keyq_clear();
 }

@@ -35,7 +35,7 @@ int strncmp(const char *str1, const char *str2, size_t num)
 char *strcpy(char *dst, const char *src)
 {
 	char *cp = dst;
-	while (*(cp++) = *(src++));
+	while ((*(cp++) = *(src++)));
 	return (dst);
 }
 

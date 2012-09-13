@@ -34,6 +34,7 @@ int mmu_map_page(struct mmu_ctx *ctx, uint32_t virt, uint32_t phys,
 int mmu_unmap_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t shared,
 		   uint32_t *phys);
 void mmu_switch_ctx(struct mmu_ctx *ctx);
+void mmu_copy_ctx(struct mmu_ctx *dst, struct mmu_ctx *src);
 void init_mmu();
 
 #endif	/* __MMU_H__ */
