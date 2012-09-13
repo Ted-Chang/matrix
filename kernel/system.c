@@ -61,26 +61,26 @@ void sys_task(void *ctx)
 		
 		count = 200000;
 
-		fd = syscall_open("/test1.txt", 0, 0);
+		fd = mtx_open("/test1.txt", 0, 0);
 		if (fd == -1) {
-			syscall_putstr("sys_task: open /test1.txt failed.\n");
+			mtx_putstr("sys_task: open /test1.txt failed.\n");
 		} else {
 			int bytes = 0;
 			char buf[1024] = {0};
 			
-			bytes = syscall_read(fd, buf, 1024);
+			bytes = mtx_read(fd, buf, 1024);
 			if (bytes != -1) {
-				syscall_putstr(buf);
+				mtx_putstr(buf);
 			} else {
-				syscall_putstr("sys_task: read /test1.txt failed.\n");
+				mtx_putstr("sys_task: read /test1.txt failed.\n");
 			}
 			
-			syscall_close(fd);
+			mtx_close(fd);
 		}
 
-		fd = syscall_open("/", 0, 0);
+		fd = mtx_open("/", 0, 0);
 		if (fd == -1) {
-			syscall_putstr("sys_task: open root failed.\n");
+			mtx_putstr("sys_task: open root failed.\n");
 		} else {
 			int index;
 			struct dirent d;
@@ -88,42 +88,42 @@ void sys_task(void *ctx)
 			index = 0;
 			while (rc != -1) {
 				memset(&d, 0, sizeof(struct dirent));
-				rc = syscall_readdir(fd, index, &d);
+				rc = mtx_readdir(fd, index, &d);
 				index++;
 				if (rc != -1) {
-					syscall_putstr(d.name);
-					syscall_putstr("\n");
+					mtx_putstr(d.name);
+					mtx_putstr("\n");
 				} else {
-					syscall_putstr("sys_task: no entry.\n");
+					mtx_putstr("sys_task: no entry.\n");
 				}
 			}
 
-			syscall_close(fd);
+			mtx_close(fd);
 		}
 
-		rc = syscall_gethostname(hostname, 128);
+		rc = mtx_gethostname(hostname, 128);
 		if (rc == -1) {
-			syscall_putstr("sys_task: gethostname failed.\n");
+			mtx_putstr("sys_task: gethostname failed.\n");
 		} else {
-			syscall_putstr(hostname);
-			syscall_putstr("\n");
+			mtx_putstr(hostname);
+			mtx_putstr("\n");
 		}
 
-		rc = syscall_sethostname("MATRIX", strlen("MATRIX"));
+		rc = mtx_sethostname("MATRIX", strlen("MATRIX"));
 		if (rc == -1) {
-			syscall_putstr("sys_task: sethostname failed.\n");
+			mtx_putstr("sys_task: sethostname failed.\n");
 		}
 
-		pid = syscall_getpid();
+		pid = mtx_getpid();
 
-		uid = syscall_getuid();
+		uid = mtx_getuid();
 		if (uid == 500) {
-			syscall_putstr("sys_task: root uid.\n");
+			mtx_putstr("sys_task: root uid.\n");
 		}
 
-		gid = syscall_getgid();
+		gid = mtx_getgid();
 		if (gid == 500) {
-			syscall_putstr("sys_task: root gid.\n");
+			mtx_putstr("sys_task: root gid.\n");
 		}
 		
 		/* Wait for a little while */
@@ -148,7 +148,7 @@ void init_task(void *ctx)
 		memset(&tv, 0, sizeof(struct timeval));
 		rc = gettimeofday(&tv, NULL);
 		if (rc != 0) {
-			syscall_putstr("gettimeofday failed.\n");
+			mtx_putstr("gettimeofday failed.\n");
 		}
 
 		/* Wait for a little while */
