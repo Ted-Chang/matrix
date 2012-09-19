@@ -102,7 +102,8 @@ static void clock_callback(struct registers *regs)
 	_real_time += ticks;
 
 	/* If multitask was not initialized, just return */
-	if (!CURR_PROC) return;
+	if (!CURR_PROC)
+		return;
 
 	/* Update user and system accounting times. Charge the current process for
 	 * user time. If the current process is not billable, that is, if a non-user
@@ -184,24 +185,24 @@ static uint32_t usec_2_ticks(uint32_t usec)
 	uint32_t ticks;
 	uint64_t tmp_usec;
 
-	tmp_usec = usec * TIMER_FREQ;
-	ticks = do_div(tmp_usec, 1000000);
+	ticks = (usec / 100) + 1;
+	ticks *= 120;
 
 	return ticks;
 }
 
 void pit_delay(uint32_t usec)
 {
-	uint64_t when;
+	uint32_t when;
 
 	when = _real_time + usec_2_ticks(usec);
+	DEBUG(DL_DBG, ("pit_delay: usec(%d), _real_time(%d), when(%d)\n",
+		       usec, _real_time, when));
+	
 	while (TRUE) {
-		irq_disable();
 		if (_real_time >= when) {
-			irq_enable();
 			break;
 		}
-		irq_enable();
 		cpu_idle();
 	}
 }

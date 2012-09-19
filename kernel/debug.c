@@ -7,7 +7,7 @@
 extern struct process *_ready_head[NR_SCHED_QUEUES];
 extern struct process *_ready_tail[NR_SCHED_QUEUES];
 
-uint32_t _debug_level = DL_DBG;
+uint32_t _debug_level = DL_INF;
 
 void panic(const char *message, const char *file, uint32_t line)
 {

@@ -25,12 +25,9 @@ void idle_task(void *ctx)
 {
 	while (TRUE) {
 
-		uint32_t count;
 		char *buf;
 		size_t buf_size;
 	
-		count = 20000;
-
 		buf_size = 100;
 		buf = kmalloc(buf_size, 0);
 		if (!buf) {
@@ -41,7 +38,7 @@ void idle_task(void *ctx)
 		}
 		
 		/* Wait for a little while */
-		while (count--);
+		timer_delay(1000);
 	}
 }
 
@@ -53,14 +50,11 @@ void sys_task(void *ctx)
 	while (TRUE) {
 		int rc = 0;
 		int fd = 0;
-		uint32_t count;
 		char hostname[128];
 		pid_t pid;
 		uid_t uid;
 		gid_t gid;
 		
-		count = 200000;
-
 		fd = mtx_open("/test1.txt", 0, 0);
 		if (fd == -1) {
 			mtx_putstr("sys_task: open /test1.txt failed.\n");
@@ -127,7 +121,7 @@ void sys_task(void *ctx)
 		}
 		
 		/* Wait for a little while */
-		while (count--);
+		mtx_sleep(1000);
 	}
 }
 
@@ -139,11 +133,8 @@ void init_task(void *ctx)
 
 	while (TRUE) {
 		int fd = 0, root_fd = 0;
-		uint32_t count;
 		struct timeval tv;
 		char buf[256] = {0};
-
-		count = 20000;
 
 		memset(&tv, 0, sizeof(struct timeval));
 		rc = gettimeofday(&tv, NULL);
@@ -152,6 +143,6 @@ void init_task(void *ctx)
 		}
 
 		/* Wait for a little while */
-		while (count--);
+		mtx_sleep(1000);
 	}
 }

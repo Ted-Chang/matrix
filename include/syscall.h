@@ -77,6 +77,7 @@ DECL_SYSCALL1(setuid, uid_t);
 DECL_SYSCALL0(getgid);
 DECL_SYSCALL1(setgid, gid_t);
 DECL_SYSCALL0(getpid);
+DECL_SYSCALL1(sleep, uint32_t);
 /* System call declaration end */
 
 void init_syscalls();

@@ -114,7 +114,7 @@ typedef uint16_t cpu_id_t;
 /* Yield the CPU */
 static INLINE void cpu_idle()
 {
-	asm volatile("hlt");
+	asm volatile("sti;hlt;cli");
 }
 
 void outportb(uint16_t port, uint8_t value);

@@ -325,6 +325,11 @@ int setgid(gid_t gid)
 	return rc;
 }
 
+int sleep(uint32_t ms)
+{
+	timer_delay(ms);
+}
+
 /*
  * NOTE: When adding a system call, please add the following items:
  *   [1] _nr_syscalls - number of the system calls
@@ -332,7 +337,7 @@ int setgid(gid_t gid)
  *   [3] define macro in /loader/syscalls.c
  *   [4] define macro in /include/syscall.h
  */
-uint32_t _nr_syscalls = 22;
+uint32_t _nr_syscalls = 23;
 static void *_syscalls[] = {
 	putstr,
 	open,
@@ -356,6 +361,7 @@ static void *_syscalls[] = {
 	getgid,
 	setgid,
 	getpid,
+	sleep,
 };
 
 void init_syscalls()

@@ -9,7 +9,7 @@
 #define DL_DBG		0x00000001
 
 #define DEBUG(level, params) do { \
-		if (_debug_level >= (level)) { \
+		if (_debug_level <= (level)) { \
 			kprintf("[DEBUG] ");   \
 			kprintf params;	       \
 		}			       \
