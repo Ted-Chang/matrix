@@ -88,6 +88,8 @@ int kmain(u_long addr, uint32_t initial_stack)
 	DEBUG(DL_DBG, ("MMU initialization done.\n"));
 	init_kmem();
 	DEBUG(DL_DBG, ("Kernel memory manager initialization done.\n"));
+	init_slab();
+	DEBUG(DL_DBG, ("Slab memory cache initialization done.\n"));
 	init_malloc();
 	DEBUG(DL_DBG, ("Kernel memory allocator initialization done.\n"));
 

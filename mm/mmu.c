@@ -120,7 +120,7 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t make,
 	}
 }
 
-int mmu_map_page(struct mmu_ctx *ctx, uint32_t virt, uint32_t phys,
+int mmu_map_page(struct mmu_ctx *ctx, uint32_t virt, phys_addr_t phys,
 		 boolean_t write, boolean_t execute, int mmflag)
 {
 	struct page *page;
@@ -150,7 +150,7 @@ int mmu_map_page(struct mmu_ctx *ctx, uint32_t virt, uint32_t phys,
 }
 
 int mmu_unmap_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t shared,
-		   uint32_t *phys)
+		   phys_addr_t *phys)
 {
 	uint32_t pte, pde;
 	struct ptbl *ptbl;
@@ -291,7 +291,7 @@ void mmu_destroy_ctx(struct mmu_ctx *ctx)
 
 void init_mmu()
 {
-	uint32_t i, pdbr;
+	phys_addr_t i, pdbr;
 	struct page *page;
 
 	/* Initialize the kernel MMU context structure */

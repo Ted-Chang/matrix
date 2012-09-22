@@ -10,10 +10,10 @@
 #define OFFSET_FROM_BIT(a)	((a)%(8*4))
 
 /* Placement address indicates the end of the physical memory */
-uint32_t _placement_addr = 0;
+phys_addr_t _placement_addr = 0;
 
 /* Total physical pages */
-static uint32_t _nr_total_pages = 0;
+static page_num_t _nr_total_pages = 0;
 
 /* Bitmap for all pages */
 uint32_t *_pages = NULL;
@@ -96,7 +96,7 @@ void page_free(struct page *p)
 
 void init_page()
 {
-	uint32_t mem_size = 0;
+	phys_size_t mem_size = 0;
 	struct multiboot_mmap_entry *mmap;
 	
 	/* As we have only one module loaded, so the end of the module is our

@@ -10,6 +10,7 @@
 #define ELF_CLASS	ELFCLASS32
 #define ELF_ENDIAN	ELFDATA2LSB
 #define ELF_MACHINE	ELF_EM_386
+
 typedef Elf32_Ehdr elf_ehdr_t;
 typedef Elf32_Shdr elf_shdr_t;
 

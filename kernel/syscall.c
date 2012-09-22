@@ -130,8 +130,9 @@ int readdir(int fd, int index, struct dirent *entry)
 	struct vfs_node *n;
 	struct dirent *e;
 
-	if (!entry)
+	if (!entry) {
 		goto out;
+	}
 	
 	n = fd_2_vfs_node(NULL, fd);
 	if (!n) {
@@ -263,6 +264,7 @@ int execve(const char *filename, const char *argv[], const char *envp[])
 		goto out;
 	}
 
+	/* Get number of arguments */
 	i = 0;
 	while (argv[i]) {
 		i++;
