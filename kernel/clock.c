@@ -180,24 +180,23 @@ u_long read_clock()
 	return count;
 }
 
-static uint32_t usec_2_ticks(uint32_t usec)
+static uint32_t msec_2_ticks(uint32_t msec)
 {
 	uint32_t ticks;
-	uint64_t tmp_usec;
 
-	ticks = (usec / 100) + 1;
-	ticks *= 120;
+	ticks = (msec * 12) / 10;
 
 	return ticks;
 }
 
-void pit_delay(uint32_t usec)
+void pit_delay(uint32_t msec)
 {
 	uint32_t when;
 
-	when = _real_time + usec_2_ticks(usec);
-	DEBUG(DL_DBG, ("pit_delay: usec(%d), _real_time(%d), when(%d)\n",
-		       usec, _real_time, when));
+	when = _real_time + msec_2_ticks(msec);
+	
+	DEBUG(DL_DBG, ("pit_delay: msec(%d), _real_time(%d), when(%d)\n",
+		       msec, _real_time, when));
 	
 	while (TRUE) {
 		if (_real_time >= when) {

@@ -7,8 +7,12 @@
 #include "fs.h"
 #include "fd.h"			// File descriptors
 
-/* Our kernel stack size is 4096 bytes */
-#define KSTACK_SIZE 4096
+/* Our kernel stack size is 8192 bytes */
+#define KSTACK_SIZE	0x2000
+/* Our user stack size is 65536 bytes */
+#define USTACK_SIZE	0x10000
+/* Bottom of the user stack */
+#define USTACK_BOTTOM	0x10000000
 
 typedef uint32_t uid_t;
 typedef uint32_t gid_t;
@@ -19,6 +23,9 @@ struct arch_process {
 	uint32_t ebp;		// Base pointer
 	uint32_t eip;		// Instruction pointer
 	uint32_t kstack;	// Kernel stack location
+	uint32_t ustack;	// User stack location
+	uint32_t entry;		// Entry point of the image
+	size_t size;		// Total size of the image
 };
 typedef struct arch_process arch_process_t;
 

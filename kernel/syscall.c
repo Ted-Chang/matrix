@@ -232,6 +232,7 @@ out:
 int chdir(const char *path)
 {
 	int rc = -1;
+	struct vfs_node *n;
 
 	if (!path) {
 		goto out;
@@ -255,13 +256,40 @@ out:
 
 int execve(const char *filename, const char *argv[], const char *envp[])
 {
-	int rc = -1;
+	int rc = -1, i, j;
+	char **args;
 
 	if (!filename || !argv || !envp) {
 		goto out;
 	}
+
+	i = 0;
+	while (argv[i]) {
+		i++;
+	}
+	
+	args = kmalloc(sizeof(char *) * i);
+	if (!args) {
+		goto out;
+	}
+	memset(args, 0, sizeof(char *) * i);
+
+	for (j = 0; j < i; j++) {
+		args[j] = kmalloc((strlen(argv[j]) + 1) * sizeof(char));
+		if (!args[j]) {
+			goto out;
+		}
+		strcpy(args[j], argv[j]);
+	}
 	
 out:
+	/* Free the arguments */
+	for (j = 0; j < i; j++) {
+		if (args[j]) {
+			kfree(args[j]);
+		}
+	}
+	
 	return rc;
 }
 

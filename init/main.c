@@ -25,6 +25,7 @@
 #include "keyboard.h"
 #include "floppy.h"
 #include "system.h"
+#include "kd.h"
 
 uint32_t _initial_esp;
 struct multiboot_info *_mbi;
@@ -45,6 +46,9 @@ int kmain(u_long addr, uint32_t initial_stack)
 	uint32_t initrd_location;
 	uint32_t initrd_end;
 	task_func_t tp;
+
+	/* Make the debugger available as soon as possible */
+	kd_init();
 
 	/* Clear the screen */
 	clear_scr();

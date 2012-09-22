@@ -16,6 +16,8 @@ TARGETOBJ := $(OBJ)/debug.o \
 	$(OBJ)/system.o \
 	$(OBJ)/util.o \
 	$(OBJ)/fd.o \
+	$(OBJ)/kd.o \
+	$(OBJ)/elf.o \
 
 
 .PHONY: clean help
@@ -23,7 +25,7 @@ TARGETOBJ := $(OBJ)/debug.o \
 all: $(TARGETOBJ)
 
 $(OBJ)/%.o: %.c
-	$(CC) -D_DEBUG_SCHED -DBITS_PER_LONG=32 -m32 -I../include $(CFLAGS_global) -c -o $@ $<
+	$(CC) -D_DEBUG_SCHED -D__KERNEL__ -D_X86_ -DBITS_PER_LONG=32 -m32 -I../include $(CFLAGS_global) -c -o $@ $<
 
 $(OBJ)/misc.o:
 	nasm $(ASFLAGS) -o $(OBJ)/misc.o misc.s

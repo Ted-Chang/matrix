@@ -41,7 +41,9 @@ void move_stack(void *new_stack, uint32_t size)
 	     i -= 0x1000) {
 
 		/* General purpose stack is in user-mode */
-		struct page *page = mmu_get_page(_current_mmu_ctx, i, TRUE, 0);
+		struct page *page;
+		
+		page = mmu_get_page(_current_mmu_ctx, i, TRUE, 0);
 		/* Associate the pte with a physical page */
 		page_alloc(page, FALSE, TRUE);
 	}
@@ -122,6 +124,10 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	p->arch.ebp = 0;
 	p->arch.eip = 0;
 	p->arch.kstack = kmalloc(KSTACK_SIZE, MM_ALGN);
+	// TODO: Get the right method to do this
+	p->arch.ustack = 0;
+	p->arch.size = 0;
+	p->arch.entry = 0;
 
 	/* Initialize the file descriptor table */
 	p->fds = fd_table_create(parent ? parent->fds : NULL);
