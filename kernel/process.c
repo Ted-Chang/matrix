@@ -14,6 +14,19 @@
 #include "proc/process.h"
 #include "matrix/debug.h"
 #include "proc/sched.h"
+#include "elf.h"
+
+struct process_create {
+	/* Arguments provided by the caller */
+	const char **argv;	// Arguments array
+	const char **env;	// Environment array
+
+	/* Information used internally by the loader */
+	int argc;		// Argument count
+
+	/* Information to return to the caller */
+	int status;		// Status code to return from the call
+};
 
 static pid_t _next_pid = 1;
 
@@ -267,12 +280,102 @@ int fork()
 	return pid;
 }
 
+int exec(char *path, int argc, char **argv)
+{
+	int rc = -1;
+	struct vfs_node *n;
+	elf_ehdr_t *ehdr;
+	uint32_t virt, entry;
+	struct page *page;
+
+	/* Lookup the file from the file system */
+	n = vfs_lookup(path, 0);
+	if (!n) {
+		return 0;
+	}
+
+	/* Map some pages to the address for this process */
+	for (virt = 0x30000000;	virt < (0x30000000 + n->length); virt += PAGE_SIZE) {
+		page = mmu_get_page(_current_mmu_ctx, virt, TRUE, 0);
+		if (!page) {
+			DEBUG(DL_ERR, ("exec: mmu_get_page failed, virt(0x%x).\n", virt));
+			rc = -1;
+			goto out;
+		}
+		
+		page_alloc(page, FALSE, TRUE);
+	}
+
+	ehdr = (elf_ehdr_t *)0x30000000;
+
+	/* Read in the executive content */
+	rc = vfs_read(n, 0, n->length, (uint8_t *)ehdr);
+	if (rc == -1 || rc < sizeof(elf_ehdr_t)) {
+		rc = -1;
+		goto out;
+	}
+
+	if (!elf_ehdr_check(ehdr)) {
+		rc = -1;
+		goto out;
+	}
+
+	/* Load the loadable segments from the executive */
+	rc = elf_load_sections(&(CURR_PROC->arch), ehdr);
+	if (rc != 0) {
+		goto out;
+	}
+
+	/* Save the entry point to the code segment */
+	entry = ehdr->e_entry;
+
+	/* Free the memory we used for the ELF headers and files */
+	for (virt = 0x30000000; virt < (0x30000000 + n->length); virt += PAGE_SIZE) {
+		page = mmu_get_page(_current_mmu_ctx, virt, FALSE, 0);
+		ASSERT(page != NULL);
+		page_free(page);
+	}
+
+	/* Map some pages to the user stack */
+	for (virt = USTACK_BOTTOM; virt < (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
+		page = mmu_get_page(_current_mmu_ctx, virt, FALSE, 0);
+		if (!page) {
+			DEBUG(DL_ERR, ("exec: mmu_get_page failed, virt(0x%x)\n", virt));
+			rc = -1;
+			goto out;
+		}
+		page_alloc(page, FALSE, TRUE);
+	}
+
+	/* Update the user stack */
+	CURR_PROC->arch.ustack = (USTACK_BOTTOM + USTACK_SIZE);
+
+	/* Jump to user mode */
+	switch_to_user_mode(entry, USTACK_BOTTOM + USTACK_SIZE);
+
+out:
+	return -1;
+}
+
+int system(char *path, int argc, char **argv)
+{
+	int c = fork();
+	if (c == 0) {
+		exec(path, argc, argv);
+		return -1;
+	} else {
+		switch_context();
+		return -1;
+	}
+}
+
 int getpid()
 {
 	return CURR_PROC->id;
 }
 
 /**
+ * Switch to the user mode
  * @param location	- User address to jump to
  * @param ustack	- User stack
  */

@@ -31,6 +31,9 @@ typedef struct arch_process arch_process_t;
 
 typedef int pid_t;
 
+/* Forward declaration, used to pass arguments */
+struct process_create;
+
 /* Definition of the process structure */
 struct process {
 	struct process *next;	// Next process
@@ -48,6 +51,8 @@ struct process {
 	int8_t ticks_left;	// Number of scheduling ticks left
 	int8_t quantum;		// Quantum in ticks
 	char name[P_NAME_LEN];	// Name of the process, include `\0'
+	
+	struct process_create *create;// Internal creation info structure
 };
 typedef struct process process_t;
 
@@ -72,5 +77,6 @@ void switch_context();
 int fork();
 int getpid();
 void switch_to_user_mode(uint32_t location, uint32_t ustack);
+int exec(char *path, int argc, char **argv);
 
 #endif	/* __PROCESS_H__ */

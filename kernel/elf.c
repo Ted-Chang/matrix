@@ -2,10 +2,10 @@
 #include <stddef.h>
 #include <string.h>
 #include "matrix/debug.h"
-#include "elf.h"
 #include "mm/page.h"
 #include "mm/mmu.h"
 #include "proc/process.h"
+#include "elf.h"
 
 #define ELF_CLASS	ELFCLASS32
 #define ELF_ENDIAN	ELFDATA2LSB
@@ -14,7 +14,7 @@
 typedef Elf32_Ehdr elf_ehdr_t;
 typedef Elf32_Shdr elf_shdr_t;
 
-static boolean_t elf_ehdr_check(elf_ehdr_t *ehdr)
+boolean_t elf_ehdr_check(elf_ehdr_t *ehdr)
 {
 	/* Check the magic number and version */
 	if (strncmp((const char *)ehdr->e_ident, ELF_MAGIC, strlen(ELF_MAGIC)) != 0) {
@@ -33,7 +33,7 @@ static boolean_t elf_ehdr_check(elf_ehdr_t *ehdr)
 	return TRUE;
 }
 
-static int elf_load_sections(struct arch_process *arch, elf_ehdr_t *ehdr)
+int elf_load_sections(struct arch_process *arch, elf_ehdr_t *ehdr)
 {
 	int rc = -1;
 	struct page *page;
@@ -90,76 +90,3 @@ out:
 	return rc;
 }
 
-int exec(char *path, int argc, char **argv)
-{
-	int rc = -1;
-	struct vfs_node *n;
-	elf_ehdr_t *ehdr;
-	uint32_t virt, entry;
-	struct page *page;
-
-	n = vfs_lookup(path, 0);
-	if (!n) {
-		return 0;
-	}
-
-	/* Map some pages to the address for this process */
-	for (virt = 0x30000000;	virt < (0x30000000 + n->length); virt += PAGE_SIZE) {
-		page = mmu_get_page(_current_mmu_ctx, virt, TRUE, 0);
-		if (!page) {
-			DEBUG(DL_ERR, ("exec: mmu_get_page failed, virt(0x%x).\n", virt));
-			rc = -1;
-			goto out;
-		}
-		
-		page_alloc(page, FALSE, TRUE);
-	}
-
-	ehdr = (elf_ehdr_t *)0x30000000;
-
-	/* Read in the executive content */
-	rc = vfs_read(n, 0, n->length, (uint8_t *)ehdr);
-	if (rc == -1 || rc < sizeof(elf_ehdr_t)) {
-		rc = -1;
-		goto out;
-	}
-
-	if (!elf_ehdr_check(ehdr)) {
-		rc = -1;
-		goto out;
-	}
-
-	/* Load the loadable segments from the executive */
-	rc = elf_load_sections(&(CURR_PROC->arch), ehdr);
-	if (rc != 0) {
-		goto out;
-	}
-
-	/* Save the entry point to the code segment */
-	entry = ehdr->e_entry;
-
-	/* Free the memory we used for the ELF headers and files */
-	for (virt = 0x30000000; virt < (0x30000000 + n->length); virt += PAGE_SIZE) {
-		page = mmu_get_page(_current_mmu_ctx, virt, FALSE, 0);
-		ASSERT(page != NULL);
-		page_free(page);
-	}
-
-	/* Map some pages to the user stack */
-	for (virt = USTACK_BOTTOM; virt < (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
-		page = mmu_get_page(_current_mmu_ctx, virt, FALSE, 0);
-		if (!page) {
-			DEBUG(DL_ERR, ("exec: mmu_get_page failed, virt(0x%x)\n", virt));
-			rc = -1;
-			goto out;
-		}
-		page_alloc(page, FALSE, TRUE);
-	}
-
-	CURR_PROC->arch.ustack = (USTACK_BOTTOM + USTACK_SIZE);
-
-	/* Jump to user mode */
-
-out:
-	return -1;
-}
