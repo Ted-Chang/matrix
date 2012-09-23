@@ -71,6 +71,6 @@ void init_process();
 void switch_context();
 int fork();
 int getpid();
-void switch_to_user_mode();
+void switch_to_user_mode(uint32_t location, uint32_t ustack);
 
 #endif	/* __PROCESS_H__ */

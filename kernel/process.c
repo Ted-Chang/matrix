@@ -272,7 +272,11 @@ int getpid()
 	return CURR_PROC->id;
 }
 
-void switch_to_user_mode()
+/**
+ * @param location	- User address to jump to
+ * @param ustack	- User stack
+ */
+void switch_to_user_mode(uint32_t location, uint32_t ustack)
 {
 	/* Setup our kernel stack, note that the stack was grow from high address
 	 * to low address
@@ -286,27 +290,24 @@ void switch_to_user_mode()
 	 * we enter user mode as it is a privileged instruction, we will set the
 	 * interrupt flag to enable interrupt.
 	 */
-	asm volatile("\
-		     cli; \
-		     mov $0x23, %ax; \
-		     mov %ax, %ds; \
-		     mov %ax, %es; \
-		     mov %ax, %fs; \
-		     mov %ax, %gs; \
-		     \
-		     mov %esp, %eax; \
-		     pushl $0x23; \
-		     pushl %esp; \
-		     pushf; \
-		     \
-		     pop %eax; \
-		     orl $0x200, %eax; \
-		     push %eax; \
-		     \
-		     pushl $0x1B; \
-		     push $1f; \
-		     iret; \
-		     1: ");
+	asm volatile("cli\n"
+		     "mov %1, %%esp\n"
+		     "mov $0x23, %%ax\n"	/* Segment selector */
+		     "mov %%ax, %%ds\n"
+		     "mov %%ax, %%es\n"
+		     "mov %%ax, %%fs\n"
+		     "mov %%ax, %%gs\n"
+		     "mov %%esp, %%eax\n"	/* Move stack to EAX */
+		     "pushl $0x23\n"		/* Segment selector again */
+		     "pushl %%eax\n"
+		     "pushf\n"			/* Push flags */
+		     "pop %%eax\n"		/* Enable the interrupt flag */
+		     "orl $0x200, %%eax\n"
+		     "push %%eax\n"
+		     "pushl $0x1B\n"
+		     "pushl %0\n"		/* Push the entry point */
+		     "iret\n"
+		     :: "m"(location), "r"(ustack) : "%ax", "%esp", "%eax");
 }
 
 /**
