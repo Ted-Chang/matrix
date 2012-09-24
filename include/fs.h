@@ -60,6 +60,8 @@ extern struct vfs_node *_root_node;
 
 int vfs_node_refer(struct vfs_node *node);
 int vfs_node_deref(struct vfs_node *node);
+struct vfs_node *vfs_node_alloc(uint32_t type);
+void vfs_node_free(struct vfs_node *node);
 uint32_t vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer);
 uint32_t vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer);
 void vfs_open(struct vfs_node *node);

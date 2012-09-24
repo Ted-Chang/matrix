@@ -15,12 +15,20 @@ static void usage();
 void main(int argc, char **argv)
 {
 	int rc = 0, i;
-	int nr_headers = (argc - 1)/2;
+	int nr_headers;
 	struct initrd_header headers[64];
-	unsigned int off = sizeof(struct initrd_header)*64 + sizeof(int);
+	unsigned int off;
 	FILE *wfp;
 	unsigned char *data;
 
+	if (argc <= 2) {
+		usage();
+		goto out;
+	}
+
+	nr_headers = (argc - 1)/2;
+	off = sizeof(struct initrd_header)*64 + sizeof(int);
+	
 	printf("size of header: %d\n", sizeof(struct initrd_header));
 
 	for (i = 0; i < nr_headers; i++) {
@@ -66,12 +74,15 @@ void main(int argc, char **argv)
 	fclose(wfp);
 	free(data);
 
- out:
+out:
 
 	exit(rc);
 }
 
 void usage()
 {
-	printf("usage:\n");
+	printf("usage: mkinitrd srcfile1 dstfile1 srcfile2 dstfile2 ...\n"
+	       "note: maximum number of files is 64\n"
+	       "example: mkinitrd test1.txt test1.txt test2.txt\n"
+	       "         mkinitrd echo echo ls ls cat cat\n");
 }

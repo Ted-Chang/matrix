@@ -16,6 +16,7 @@
 #include "mm/kmem.h"
 #include "mm/mmu.h"
 #include "mm/malloc.h"
+#include "mm/slab.h"
 #include "timer.h"
 #include "fs.h"
 #include "initrd.h"
@@ -32,7 +33,7 @@ struct multiboot_info *_mbi;
 
 extern struct irq_hook *_irq_handlers[];
 
-extern void init_task();
+void init_syscalls();
 
 static void announce();
 static void dump_mbi(struct multiboot_info *mbi);
@@ -130,8 +131,6 @@ int kmain(u_long addr, uint32_t initial_stack)
 			tp(NULL);
 		}
 	}
-
-	init_task(NULL);
 
 	return rc;
 }

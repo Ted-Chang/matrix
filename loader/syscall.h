@@ -3,7 +3,6 @@
 
 #include <types.h>
 #include <stddef.h>
-#include "proc/process.h"
 
 #define DECL_SYSCALL0(fn) int mtx_##fn();
 #define DECL_SYSCALL1(fn, p1) int mtx_##fn(p1);
@@ -79,7 +78,5 @@ DECL_SYSCALL1(setgid, gid_t);
 DECL_SYSCALL0(getpid);
 DECL_SYSCALL1(sleep, uint32_t);
 /* System call declaration end */
-
-void init_syscalls();
 
 #endif	/* __SYSCALL_H__ */

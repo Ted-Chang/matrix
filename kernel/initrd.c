@@ -82,6 +82,7 @@ struct vfs_node *init_initrd(uint32_t location)
 		initrd_root->inode =
 		initrd_root->length =
 		0;
+
 	initrd_root->read = 0;
 	initrd_root->write = 0;
 	initrd_root->open = 0;
@@ -108,6 +109,7 @@ struct vfs_node *init_initrd(uint32_t location)
 	initrd_dev->ptr = 0;
 	initrd_dev->impl = 0;
 
+	/* Initialize the file nodes in root directory */
 	root_nodes = (struct vfs_node *)
 		kmalloc(sizeof(struct vfs_node) * initrd_hdr->nr_files, 0);
 	nr_root_nodes = initrd_hdr->nr_files;

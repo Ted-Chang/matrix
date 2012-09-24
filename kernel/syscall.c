@@ -6,7 +6,7 @@
 #include <sys/time.h>
 #include <string.h>
 #include "hal.h"
-#include "syscall.h"
+#include "mm/malloc.h"
 #include "isr.h"	// register_irq_handler
 #include "util.h"	// putstr
 #include "proc/process.h"
@@ -14,6 +14,7 @@
 #include "div64.h"	// do_div
 #include "matrix/debug.h"
 #include "fd.h"
+#include "timer.h"
 
 #define MAX_HOSTNAME_LEN	256
 
@@ -78,7 +79,7 @@ int read(int fd, char *buf, int len)
 	if (!n)
 		return -1;
 
-	out = vfs_read(n, 0, len, buf);
+	out = vfs_read(n, 0, len, (uint8_t *)buf);
 
 	return out;
 }
@@ -92,7 +93,7 @@ int write(int fd, char *buf, int len)
 	if (!n)
 		return -1;
 
-	out = vfs_write(n, 0, len, buf);
+	out = vfs_write(n, 0, len, (uint8_t *)buf);
 	
 	return out;
 }
@@ -270,21 +271,21 @@ int execve(const char *filename, const char *argv[], const char *envp[])
 		i++;
 	}
 	
-	args = kmalloc(sizeof(char *) * i);
+	args = kmalloc(sizeof(char *) * i, 0);
 	if (!args) {
 		goto out;
 	}
 	memset(args, 0, sizeof(char *) * i);
 
 	for (j = 0; j < i; j++) {
-		args[j] = kmalloc((strlen(argv[j]) + 1) * sizeof(char));
+		args[j] = kmalloc((strlen(argv[j]) + 1) * sizeof(char), 0);
 		if (!args[j]) {
 			goto out;
 		}
 		strcpy(args[j], argv[j]);
 	}
 
-	exec(filename, i, args);
+	rc = exec(filename, i, args);
 	
 out:
 	/* Free the arguments */
@@ -360,6 +361,8 @@ int setgid(gid_t gid)
 int sleep(uint32_t ms)
 {
 	timer_delay(ms);
+
+	return 0;
 }
 
 /*

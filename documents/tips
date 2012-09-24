@@ -1,3 +1,8 @@
+[Build mkinitrd tools]
+
+gcc -o mkinitrd make_initrd.c
+
+
 [Debugging tips]
 
 * set a lenear address executive break point

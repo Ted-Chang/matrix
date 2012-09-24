@@ -51,6 +51,6 @@ slab_cache_t *slab_cache_create(const char *name, size_t size, size_t align,
 				slab_ctor_t ctor, slab_dtor_t dtor,
 				void *data, int flags, int mmflag);
 void slab_cache_destroy(slab_cache_t *cache);
-void slab_init();
+void init_slab();
 
 #endif	/* __SLAB_H__ */

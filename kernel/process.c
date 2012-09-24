@@ -291,7 +291,7 @@ int exec(char *path, int argc, char **argv)
 	/* Lookup the file from the file system */
 	n = vfs_lookup(path, 0);
 	if (!n) {
-		return 0;
+		return -1;
 	}
 
 	/* Map some pages to the address for this process */
@@ -315,6 +315,7 @@ int exec(char *path, int argc, char **argv)
 		goto out;
 	}
 
+	/* Check whether it is valid ELF */
 	if (!elf_ehdr_check(ehdr)) {
 		rc = -1;
 		goto out;
@@ -359,7 +360,9 @@ out:
 
 int system(char *path, int argc, char **argv)
 {
-	int c = fork();
+	int c;
+
+	c = fork();
 	if (c == 0) {
 		exec(path, argc, argv);
 		return -1;
