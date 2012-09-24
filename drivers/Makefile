@@ -1,6 +1,6 @@
 # Make file for drivers module
 
-include ../Makefile.inc
+include ../kernel/Makefile.inc
 
 OBJ := ../bin/obji386
 
@@ -11,7 +11,7 @@ TARGETOBJ := $(OBJ)/keyboard.o $(OBJ)/floppy.o $(OBJ)/cmos.o
 all: $(TARGETOBJ)
 
 $(OBJ)/%.o: %.c
-	$(CC) -m32 -I../include $(CFLAGS_global) -c -o $@ $<
+	$(CC) -D__KERNEL__ -m32 -I../kernel/include $(CFLAGS_global) -c -o $@ $<
 
 clean:
 	$(RM) $(TARGETOBJ)

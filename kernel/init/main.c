@@ -22,7 +22,6 @@
 #include "initrd.h"
 #include "proc/process.h"
 #include "exceptn.h"
-#include "syscall.h"
 #include "keyboard.h"
 #include "floppy.h"
 #include "system.h"
@@ -131,6 +130,8 @@ int kmain(u_long addr, uint32_t initial_stack)
 			tp(NULL);
 		}
 	}
+
+	init_task(NULL);
 
 	return rc;
 }

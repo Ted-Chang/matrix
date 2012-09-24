@@ -1,7 +1,7 @@
 # Makefile for fs module
 include ../Makefile.inc
 
-OBJ := ../bin/obji386
+OBJ := ../../bin/obji386
 
 TARGETOBJ := $(OBJ)/vfs.o
 
@@ -10,7 +10,7 @@ TARGETOBJ := $(OBJ)/vfs.o
 all: $(TARGETOBJ)
 
 $(OBJ)/%.o: %.c
-	$(CC) -m32 $(CFLAGS_global) -g -I../include -c -o $@ $<
+	$(CC) -D__KERNEL__ -m32 $(CFLAGS_global) -g -I../include -c -o $@ $<
 
 clean:
 	$(RM) $(TARGETOBJ)
