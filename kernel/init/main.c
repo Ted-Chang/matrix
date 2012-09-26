@@ -45,7 +45,6 @@ int kmain(u_long addr, uint32_t initial_stack)
 	int i, rc, parent_pid;
 	uint32_t initrd_location;
 	uint32_t initrd_end;
-	task_func_t tp;
 
 	/* Make the debugger available as soon as possible */
 	kd_init();
