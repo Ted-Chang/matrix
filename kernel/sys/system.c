@@ -10,19 +10,11 @@
 #include "fs.h"
 #include "mm/malloc.h"
 
-void idle_task();
-void sys_task();
-
-task_func_t images[] = {
-	idle_task,
-};
-
-uint32_t _nr_boot_tasks = sizeof(images)/sizeof(images[0]);
-
 void init_task(void *ctx)
 {
 	while (TRUE) {
-		;
+		DEBUG(DL_INF, ("Initializaing...\n"));
+		timer_delay(1000);
 	}
 }
 

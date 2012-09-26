@@ -37,8 +37,10 @@ struct process_create;
 /* Definition of the process structure */
 struct process {
 	struct process *next;	// Next process
+
 	struct priv priv;	// System privileges structure
 	struct mmu_ctx *mmu_ctx;// MMU context
+
 	pid_t id;		// Process ID
 	uid_t uid;		// User ID
 	gid_t gid;		// Group ID
@@ -51,6 +53,12 @@ struct process {
 	int8_t ticks_left;	// Number of scheduling ticks left
 	int8_t quantum;		// Quantum in ticks
 	char name[P_NAME_LEN];	// Name of the process, include `\0'
+
+	/* State of the process */
+	enum {
+		PROCESS_RUNNING,
+		PROCESS_DEAD
+	} state;
 	
 	struct process_create *create;// Internal creation info structure
 };

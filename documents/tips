@@ -5,8 +5,17 @@ gcc -o mkinitrd make_initrd.c
 
 [Debugging tips]
 
+* list the break points
+blist
+
 * set a lenear address executive break point
 lb 0x1040ea
+
+* delete a break point by break point number
+d 1
+
+* next statement, not step in
+p
 
 * calculate an expression
 ? 0x1000+0x10

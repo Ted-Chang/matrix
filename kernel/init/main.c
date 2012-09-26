@@ -117,21 +117,12 @@ int kmain(u_long addr, uint32_t initial_stack)
 	announce();
 
 	parent_pid = getpid();
-
-	/* Run all boot tasks */
-	for (i = 0; i < NR_BOOT_TASKS; i++) {
-		tp = images[i];
-		rc = fork();
-
-		/* Fork a new task and execute the specified boot task if it
-		 * was the child task
-		 */
-		if (getpid() != parent_pid) {
-			tp(NULL);
-		}
+	rc = fork();
+	if (getpid() != parent_pid) {
+		init_task(NULL);
 	}
-
-	init_task(NULL);
+	
+	idle_task(NULL);
 
 	return rc;
 }
