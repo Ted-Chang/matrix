@@ -1,5 +1,5 @@
 #include <types.h>
-#include <stdio.h>
+#include <stddef.h>
 #include <syscall.h>
 
 void main(int argc, char **argv)
