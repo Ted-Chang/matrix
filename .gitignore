@@ -1,2 +1,4 @@
 bin/obji386/*
+bni/lib/*
+userspace/obji386/*
 !.gitignore

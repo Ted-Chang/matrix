@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <syscall.h>
 
-void main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	int rc = 0;
 	
@@ -12,5 +12,5 @@ void main(int argc, char **argv)
 		mtx_sleep(1000);
 	}
 
-	exit(rc);
+	return rc;
 }

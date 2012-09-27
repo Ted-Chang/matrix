@@ -72,9 +72,9 @@ DECL_SYSCALL0(fork);
 DECL_SYSCALL2(gethostname, char *, size_t);
 DECL_SYSCALL2(sethostname, const char *, size_t);
 DECL_SYSCALL0(getuid);
-DECL_SYSCALL1(setuid, uid_t);
+DECL_SYSCALL1(setuid, uint32_t);
 DECL_SYSCALL0(getgid);
-DECL_SYSCALL1(setgid, gid_t);
+DECL_SYSCALL1(setgid, uint32_t);
 DECL_SYSCALL0(getpid);
 DECL_SYSCALL1(sleep, uint32_t);
 /* System call declaration end */
