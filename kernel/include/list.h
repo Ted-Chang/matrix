@@ -10,6 +10,8 @@ struct list {
 };
 typedef struct list list_t;
 
+#define LIST_INIT(list) \
+	(((list)->prev) = ((list)->next) = (list))
 
 #define LIST_ENTRY(entry, type, member) \
 	(type *)((char *)entry - offsetof(type, member))

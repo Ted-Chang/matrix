@@ -109,14 +109,6 @@ struct irq_hook {
 	int irq;
 };
 
-typedef uint16_t cpu_id_t;
-
-/* Yield the CPU */
-static INLINE void cpu_idle()
-{
-	asm volatile("sti;hlt;cli");
-}
-
 void outportb(uint16_t port, uint8_t value);
 uint8_t inportb(uint16_t port);
 uint16_t inportw(uint16_t port);

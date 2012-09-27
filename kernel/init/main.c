@@ -26,6 +26,7 @@
 #include "floppy.h"
 #include "system.h"
 #include "kd.h"
+#include "cpu.h"
 
 uint32_t _initial_esp;
 struct multiboot_info *_mbi;
@@ -42,7 +43,7 @@ static void dump_mbi(struct multiboot_info *mbi);
  */
 int kmain(u_long addr, uint32_t initial_stack)
 {
-	int i, rc, parent_pid;
+	int rc, parent_pid;
 	uint32_t initrd_location;
 	uint32_t initrd_end;
 
@@ -59,6 +60,10 @@ int kmain(u_long addr, uint32_t initial_stack)
 	dump_mbi(_mbi);
 
 	_initial_esp = initial_stack;
+
+	/* Initialize the CPU */
+	init_cpu();
+	kprintf("CPU initialized.\n");
 
 	/* Install the gdt and idt */
 	init_gdt();
