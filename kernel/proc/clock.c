@@ -11,11 +11,10 @@
 #include "matrix/debug.h"
 #include "div64.h"
 #include "cpu.h"
+#include "pit.h"
 
 #define LEAPYEAR(y)	(((y) % 4) == 0 && (((y) % 100) != 0 || ((y) % 400) == 0))
 #define DAYS(y)		(LEAPYEAR(y) ? 366 : 365)
-
-#define TIMER_FREQ	1193182L	// clock frequency for timer in PC and AT
 
 extern struct timer *_active_timers;
 extern struct process *_prev_proc;
@@ -140,7 +139,7 @@ void init_clock()
 	 * clock (1193182 Hz) by, to get our required frequency. Important
 	 * note that the divisor must be small enough to fit into 16-bits.
 	 */
-	divisor = TIMER_FREQ / HZ;
+	divisor = PIT_BASE_FREQ / HZ;
 
 	/* Send the command byte */
 	outportb(0x43, 0x36);
@@ -170,7 +169,7 @@ u_long read_clock()
 	u_long count;
 
 	/* Read the counter of channel 0 of the 8253A timer. This counter counts
-	 * down at a rate of TIMER_FREQ and restarts at TIMER_COUNT - 1 when it
+	 * down at a rate of PIT_BASE_FREQ and restarts at TIMER_COUNT - 1 when it
 	 * reaches zero. A hardware interrupt (clock tick) occurs when the counter
 	 * gets to zero and restarts its cycle.
 	 */

@@ -90,7 +90,7 @@ fd_table_t *fd_table_create(fd_table_t *parent)
 		}
 	}
 
-	DEBUG(DL_DBG, ("fd_table_create: parent(%x)", parent));
+	DEBUG(DL_DBG, ("fd_table_create: parent(%x)\n", parent));
 
 out:
 	return t;

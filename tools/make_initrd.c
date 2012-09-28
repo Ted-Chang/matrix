@@ -81,8 +81,8 @@ out:
 
 void usage()
 {
-	printf("usage: mkinitrd srcfile1 dstfile1 srcfile2 dstfile2 ...\n"
+	printf("usage: mkinitrd srcpath1 dstfile1 srcpath2 dstfile2 ...\n"
 	       "note: maximum number of files is 64\n"
-	       "example: mkinitrd test1.txt test1.txt test2.txt\n"
-	       "         mkinitrd echo echo ls ls cat cat\n");
+	       "example: mkinitrd ../bin/init init\n"
+	       "         mkinitrd ../bin/echo echo ../bin/ls ls ../bin/cat cat\n");
 }

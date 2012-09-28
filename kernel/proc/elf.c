@@ -39,12 +39,19 @@ int elf_load_sections(struct arch_process *arch, elf_ehdr_t *ehdr)
 	struct page *page;
 	uint32_t virt;
 	elf_shdr_t *shdr;
+	uint32_t i = 0;
+
+	DEBUG(DL_DBG, ("elf_load_sections: e_shnum(%d), e_shentsize(%d), e_shoff(%d)\n",
+		       ehdr->e_shnum, ehdr->e_shentsize, ehdr->e_shoff));
 
 	/* Load all the loadable sections */
-	for (virt = 0; virt < (ehdr->e_shentsize * ehdr->e_shnum); virt += ehdr->e_shentsize) {
+	for (virt = 0; virt < (ehdr->e_shentsize * ehdr->e_shnum); virt += ehdr->e_shentsize, i++) {
 
 		/* Read a section header */
 		shdr = (elf_shdr_t *)(((uint8_t *)ehdr) + (ehdr->e_shoff + virt));
+		DEBUG(DL_DBG, ("elf_load_sections: i(%d), sh_addr(0x%x), sh_size(0x%x), sh_type(%d)\n",
+			       i, shdr->sh_addr, shdr->sh_size, shdr->sh_type));
+		
 		if (shdr->sh_addr) {
 			
 			/* If this is a loadable section, load it */
@@ -53,13 +60,15 @@ int elf_load_sections(struct arch_process *arch, elf_ehdr_t *ehdr)
 				arch->entry = shdr->sh_addr;
 			}
 
+			/* Update the section size we may needed */
 			if ((shdr->sh_addr + shdr->sh_size - arch->entry) > arch->size) {
 				/* We also store the total size */
 				arch->size = shdr->sh_addr + shdr->sh_size - arch->entry;
 			}
 
+			/* Map memory space for this section */
 			for (virt = 0; virt < (shdr->sh_size + 0x2000); virt += PAGE_SIZE) {
-				page = mmu_get_page(_current_mmu_ctx, virt, TRUE, 0);
+				page = mmu_get_page(_current_mmu_ctx, shdr->sh_addr + virt, TRUE, 0);
 				if (!page) {
 					DEBUG(DL_ERR, ("elf_load_section: mmu_get_page failed.\n"));
 					goto out;
@@ -68,6 +77,8 @@ int elf_load_sections(struct arch_process *arch, elf_ehdr_t *ehdr)
 				page_alloc(page, FALSE, TRUE);
 			}
 
+			DEBUG(DL_DBG, ("elf_load_sections: i(%d), memory space mapped.\n", i));
+			
 			switch (shdr->sh_type) {
 			case ELF_SHT_NOBITS:
 				/* Zero the .bss section */
@@ -77,7 +88,7 @@ int elf_load_sections(struct arch_process *arch, elf_ehdr_t *ehdr)
 			case ELF_SHT_STRTAB:
 			case ELF_SHT_SYMTAB:
 				/* Copy the section into memory */
-				memcpy((void *)(shdr->sh_addr), ehdr + shdr->sh_offset,
+				memcpy((void *)(shdr->sh_addr), (uint8_t *)ehdr + shdr->sh_offset,
 				       shdr->sh_size);
 				break;	// Break out the switch
 			}

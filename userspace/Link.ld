@@ -6,7 +6,7 @@ OUTPUT_FORMAT(elf32-i386)
 ENTRY(_start)
 STARTUP(../bin/lib/crtlib.o)
 INPUT(../bin/lib/syscalls.o)
-phys = 0x02000000;
+phys = 0x20000000;
 SECTIONS
 {
 	/*

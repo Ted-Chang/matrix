@@ -1,6 +1,7 @@
 #include <types.h>
 #include <stddef.h>
 #include <sys/time.h>
+#include "pit.h"
 #include "timer.h"
 
 extern void pit_delay(uint32_t usec);

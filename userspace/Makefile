@@ -5,8 +5,7 @@ CFLAGS := -Wall -nostdlib -nostdinc -fno-builtin -fno-stack-protector
 # The linker script will link crtlib in
 LDFLAGS := -melf_i386 -TLink.ld
 
-TARGETS := \
-	../bin/init
+TARGETS := ../bin/init
 
 OBJ := ./obji386
 
@@ -16,13 +15,13 @@ all: $(TARGETS)
 	@echo "Making default applications"
 
 $(TARGETS): $(OBJ)/init.o
-	$(LD) $(LDFLAGS) -Map ../bin/$(TARGETS).map -o $(TARGETS) $(OBJ)/init.o
+	$(LD) $(LDFLAGS) -Map $(TARGETS).map -o $(TARGETS) $(OBJ)/init.o
 
 $(OBJ)/%.o: %.c
 	$(CC) $(CFLAGS) -m32 -g -I../sdk/include -c -o $@ $<
 
 clean:
-	$(RM) $(TARGETS)
+	$(RM) -rf $(TARGETS) $(TARGETS).map
 
 help:
 	@echo "Available make targets:"

@@ -46,6 +46,10 @@ int kmain(u_long addr, uint32_t initial_stack)
 	int rc, parent_pid;
 	uint32_t initrd_location;
 	uint32_t initrd_end;
+	char *argv[] = {
+		"/init",
+		NULL
+	};
 
 	/* Make the debugger available as soon as possible */
 	kd_init();
@@ -120,13 +124,8 @@ int kmain(u_long addr, uint32_t initial_stack)
 	/* Print the banner */
 	announce();
 
-	parent_pid = getpid();
-	rc = fork();
-	if (getpid() != parent_pid) {
-		init_task(NULL);
-	}
-	
-	idle_task(NULL);
+	/* Ready to run init process from executable file init */
+	system(argv[0], 1, argv);
 
 	return rc;
 }

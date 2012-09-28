@@ -86,6 +86,13 @@ static struct ptbl *clone_ptbl(struct ptbl *src, uint32_t *phys_addr)
 	return ptbl;
 }
 
+/**
+ * Get a page from the specified mmu context
+ * @ctx		- mmu context
+ * @virt	- virtual address to map the memory to
+ * @make	- make a new page table if we are out of page table
+ * @mmflag	- memory manager flags
+ */
 struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t make,
 			  int mmflag)
 {

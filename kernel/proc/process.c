@@ -136,7 +136,7 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	p->arch.esp = 0;
 	p->arch.ebp = 0;
 	p->arch.eip = 0;
-	p->arch.kstack = kmalloc(KSTACK_SIZE, MM_ALGN);
+	p->arch.kstack = (uint32_t)kmalloc(KSTACK_SIZE, MM_ALGN);
 	// TODO: Get the right method to do this
 	p->arch.ustack = 0;
 	p->arch.size = 0;
@@ -237,7 +237,6 @@ int fork()
 	struct process *parent;
 	struct process *new_process;
 	struct mmu_ctx *ctx;
-	uint32_t phys_addr;
 	uint32_t eip;
 	uint32_t esp;
 	uint32_t ebp;
@@ -294,6 +293,7 @@ int exec(char *path, int argc, char **argv)
 	elf_ehdr_t *ehdr;
 	uint32_t virt, entry;
 	struct page *page;
+	boolean_t is_elf;
 
 	/* Lookup the file from the file system */
 	n = vfs_lookup(path, 0);
@@ -317,25 +317,33 @@ int exec(char *path, int argc, char **argv)
 
 	/* Read in the executive content */
 	rc = vfs_read(n, 0, n->length, (uint8_t *)ehdr);
+	DEBUG(DL_DBG, ("exec: vfs_read done.\n"));
 	if (rc == -1 || rc < sizeof(elf_ehdr_t)) {
+		DEBUG(DL_INF, ("exec: read file(%s) failed.\n", path));
 		rc = -1;
 		goto out;
 	}
 
 	/* Check whether it is valid ELF */
-	if (!elf_ehdr_check(ehdr)) {
+	is_elf = elf_ehdr_check(ehdr);
+	DEBUG(DL_DBG, ("exec: elf_ehdr_check done.\n"));
+	if (!is_elf) {
+		DEBUG(DL_INF, ("exec: invalid ELF, file(%s).\n", path));
 		rc = -1;
 		goto out;
 	}
 
 	/* Load the loadable segments from the executive */
 	rc = elf_load_sections(&(CURR_PROC->arch), ehdr);
+	DEBUG(DL_DBG, ("exec: elf_load_sections done.\n"));
 	if (rc != 0) {
+		DEBUG(DL_WRN, ("exec: load sections failed, file(%s).\n", path));
 		goto out;
 	}
 
 	/* Save the entry point to the code segment */
 	entry = ehdr->e_entry;
+	DEBUG(DL_DBG, ("exec: entry(0x%08x)\n", entry));
 
 	/* Free the memory we used for the ELF headers and files */
 	for (virt = 0x30000000; virt < (0x30000000 + n->length); virt += PAGE_SIZE) {
@@ -344,9 +352,9 @@ int exec(char *path, int argc, char **argv)
 		page_free(page);
 	}
 
-	/* Map some pages to the user stack */
-	for (virt = USTACK_BOTTOM; virt < (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
-		page = mmu_get_page(_current_mmu_ctx, virt, FALSE, 0);
+	/* Map some pages to the user mode stack */
+	for (virt = USTACK_BOTTOM; virt <= (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
+		page = mmu_get_page(_current_mmu_ctx, virt, TRUE, 0);
 		if (!page) {
 			DEBUG(DL_ERR, ("exec: mmu_get_page failed, virt(0x%x)\n", virt));
 			rc = -1;

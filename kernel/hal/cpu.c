@@ -1,6 +1,8 @@
 #include <types.h>
 #include <string.h>
 #include "cpu.h"
+#include "pit.h"
+#include "hal.h"
 #include "matrix/debug.h"
 
 /* Boot CPU structure */
@@ -23,14 +25,13 @@ void dump_cpu(struct cpu *c)
 	DEBUG(DL_DBG, ("vendor: %s\n", c->arch.vendor_str));
 	DEBUG(DL_DBG, ("cpu step(%d), phys_bits(%d), virt_bits(%d)\n",
 		       c->arch.cpu_step, c->arch.max_phys_bits, c->arch.max_virt_bits));
-	DEBUG(DL_DBG, ("cpu frequency(%d)\n", c->arch.cpu_freq));
+	DEBUG(DL_DBG, ("cpu frequency(%16d)\n", c->arch.cpu_freq));
 }
 
 static void detect_cpu_features(struct cpu *c, struct cpu_features *f)
 {
 	uint32_t eax, ebx, ecx, edx;
 	uint32_t *ptr;
-	char *str;
 
 	/* Get the highest supported standard level */
 	x86_cpuid(X86_CPUID_VENDOR_ID, &f->highest_standard, &ebx, &ecx, &edx);
@@ -73,6 +74,46 @@ static void detect_cpu_features(struct cpu *c, struct cpu_features *f)
 
 }
 
+static uint64_t calculate_cpu_freq()
+{
+	uint16_t shi, slo, ehi, elo, ticks;
+	uint64_t start, end, cycles;
+
+	/* Set the PIT to rate generator mode */
+	outportb(0x43, 0x34);
+	outportb(0x40, 0xFF);
+	outportb(0x40, 0xFF);
+
+	/* Wait for the cycle to begin */
+	do {
+		outportb(0x43, 0x00);
+		slo = inportb(0x40);
+		shi = inportb(0x40);
+	} while (shi != 0xFF);
+
+	/* Get the start TSC value */
+	start = x86_rdtsc();
+
+	/* Wait for the high byte to decrease to 128 */
+	do {
+		outportb(0x43, 0x00);
+		elo = inportb(0x40);
+		ehi = inportb(0x40);
+	} while (ehi > 0x80);
+
+	/* Get the end TSC value */
+	end = x86_rdtsc();
+
+	/* Calculate the difference between the values */
+	cycles = end - start;
+	ticks = ((ehi << 8) | elo) - ((shi << 8) | slo);
+
+	/* Calculate frequency */
+	ASSERT(PIT_BASE_FREQ > ticks);
+
+	return cycles * (PIT_BASE_FREQ / ticks);
+}
+
 cpu_id_t cpu_id()
 {
 	return 0;
@@ -89,6 +130,9 @@ void init_cpu()
 
 	/* Detect CPU feature and information. */
 	detect_cpu_features(&_boot_cpu, &features);
+
+	/* Get the CPU frequency */
+	_boot_cpu.arch.cpu_freq = calculate_cpu_freq();
 	
 	_boot_cpu.id = _highest_cpu_id = cpu_id();
 	_nr_cpus = 1;
