@@ -43,7 +43,7 @@ static void dump_mbi(struct multiboot_info *mbi);
  */
 int kmain(u_long addr, uint32_t initial_stack)
 {
-	int rc, parent_pid;
+	int rc;
 	uint32_t initrd_location;
 	uint32_t initrd_end;
 	char *argv[] = {

@@ -9,8 +9,8 @@ TARGETOBJ := $(OBJ)/stdio.o $(OBJ)/string.o $(OBJ)/div64.o $(OBJ)/vsprintf.o
 
 all: $(TARGETOBJ)
 
-$(OBJ)/%.o: %.c
-	$(CC) -m32 -DBITS_PER_LONG=32 -D_X86_ -D__KERNEL__ -g -I../include $(CFLAGS_global) -c -o $@ $<
+$(OBJ)/%.o: ../../sdk/libc/%.c
+	$(CC) -m32 -DBITS_PER_LONG=32 -D_X86_ -D__KERNEL__ -g -I../include -I../../sdk/include $(CFLAGS_global) -c -o $@ $<
 
 clean:
 	$(RM) $(TARGETOBJ)

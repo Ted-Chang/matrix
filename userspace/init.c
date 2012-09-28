@@ -5,11 +5,11 @@
 int main(int argc, char **argv)
 {
 	int rc = 0;
+
+	printf("Hello from init printed by printf.\n");
 	
 	while (TRUE) {
-		mtx_putstr("Hello from init\n");
-		
-		mtx_sleep(1000);
+		sleep(1000);
 	}
 
 	return rc;

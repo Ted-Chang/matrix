@@ -6,7 +6,11 @@
 #include <stdarg.h>
 #include <string.h>
 #include "div64.h"
+#ifdef __KERNEL__
 #include "mm/page.h"		// PAGE_SIZE
+#else
+#define PAGE_SIZE	4096
+#endif	/* __KERNEL__ */
 
 #define ZEROPAD	1		// pad with zero
 #define SIGN	2		// unsigned or signed long

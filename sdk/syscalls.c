@@ -27,3 +27,39 @@ DEFN_SYSCALL0(getgid, 19)
 DEFN_SYSCALL1(setgid, 20, uint32_t)
 DEFN_SYSCALL0(getpid, 21)
 DEFN_SYSCALL1(sleep, 22, uint32_t)
+
+
+int open(const char *file, int flags, int mode)
+{
+	return mtx_open(file, flags, mode);
+}
+
+int read(int fd, char *buf, int len)
+{
+	return mtx_read(fd, buf, len);
+}
+
+int write(int fd, char *buf, int len)
+{
+	return mtx_write(fd, buf, len);
+}
+
+int close(int fd)
+{
+	return mtx_close(fd);
+}
+
+int exit(int val)
+{
+	return mtx_exit(val);
+}
+
+int getpid()
+{
+	return mtx_getpid();
+}
+
+int sleep(int ms)
+{
+	return mtx_sleep(ms);
+}

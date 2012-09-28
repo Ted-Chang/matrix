@@ -6,6 +6,11 @@ OUTPUT_FORMAT(elf32-i386)
 ENTRY(_start)
 STARTUP(../bin/lib/crtlib.o)
 INPUT(../bin/lib/syscalls.o)
+INPUT(../bin/lib/div64.o)
+INPUT(../bin/lib/string.o)
+INPUT(../bin/lib/vsprintf.o)
+INPUT(../bin/lib/stdio.o)
+INPUT(../bin/lib/print.o)
 phys = 0x20000000;
 SECTIONS
 {

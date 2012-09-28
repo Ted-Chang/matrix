@@ -80,11 +80,12 @@ extern volatile struct process *_curr_proc;
 /* Macro that retrieve the pointer of the current process */
 #define CURR_PROC	(_curr_proc)
 
-void init_process();
 void switch_context();
 int fork();
 int getpid();
 void switch_to_user_mode(uint32_t location, uint32_t ustack);
 int exec(char *path, int argc, char **argv);
+int system(char *path, int argc, char **argv);
+void init_process();
 
 #endif	/* __PROCESS_H__ */
