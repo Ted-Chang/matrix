@@ -35,4 +35,8 @@ typedef int ptrdiff_t;
 /* Micro second type definition */
 typedef int64_t useconds_t;
 
+/* User id and group id */
+typedef uint32_t uid_t;
+typedef uint32_t gid_t;
+
 #endif	/* __TYPES_H__ */

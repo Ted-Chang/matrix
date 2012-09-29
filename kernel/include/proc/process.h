@@ -14,9 +14,6 @@
 /* Bottom of the user stack */
 #define USTACK_BOTTOM	0x10000000
 
-typedef uint32_t uid_t;
-typedef uint32_t gid_t;
-
 /* Definition of the architecture specific process structure */
 struct arch_process {
 	uint32_t esp;		// Stack pointer

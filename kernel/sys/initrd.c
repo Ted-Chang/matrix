@@ -1,6 +1,7 @@
 #include <types.h>
 #include <string.h>
 #include "mm/malloc.h"
+#include "dirent.h"
 #include "initrd.h"
 #include "matrix/debug.h"
 

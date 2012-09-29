@@ -3,6 +3,10 @@
  */
 
 #include <syscall.h>
+#include <types.h>
+#include <dirent.h>
+#include <sys/time.h>
+#include <sys/stat.h>
 
 DEFN_SYSCALL1(putstr, 0, const char *)
 DEFN_SYSCALL3(open, 1, const char *, int, int)
@@ -52,6 +56,76 @@ int close(int fd)
 int exit(int val)
 {
 	return mtx_exit(val);
+}
+
+int gettimeofday(struct timeval *tv, struct timezone *tz)
+{
+	return mtx_gettimeofday(tv, tz);
+}
+
+int settimeofday(const struct timeval *tv, const struct timezone *tz)
+{
+	return mtx_settimeofday(tv, tz);
+}
+
+int readdir(int fd, int index, struct dirent *entry)
+{
+	return mtx_readdir(fd, index, entry);
+}
+
+int lseek(int fd, int offset, int whence)
+{
+	return mtx_lseek(fd, offset, whence);
+}
+
+int lstat(int fd, struct stat *s)
+{
+	return mtx_lstat(fd, s);
+}
+
+int chdir(const char *path)
+{
+	return mtx_chdir(path);
+}
+
+int mkdir(const char *path, int mode)
+{
+	return mtx_mkdir(path, mode);
+}
+
+int execve(const char *filename, const char *argv[], const char *envp[])
+{
+	return mtx_execve(filename, argv, envp);
+}
+
+int gethostname(char *name, size_t len)
+{
+	return mtx_gethostname(name, len);
+}
+
+int sethostname(const char *name, size_t len)
+{
+	return mtx_sethostname(name, len);
+}
+
+int getuid()
+{
+	return mtx_getuid();
+}
+
+int setuid(uid_t uid)
+{
+	return mtx_setuid(uid);
+}
+
+int getgid()
+{
+	return mtx_getgid();
+}
+
+int setgid(gid_t gid)
+{
+	return mtx_setgid(gid);
 }
 
 int getpid()

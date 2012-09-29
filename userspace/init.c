@@ -5,8 +5,17 @@
 int main(int argc, char **argv)
 {
 	int rc = 0;
+	char buf[256];
 
-	printf("Hello from init printed by printf.\n");
+	printf("init process started.\n");
+
+	memset(buf, 0, 256);
+	rc = gethostname(buf, 255);
+	if (rc) {
+		printf("gethostname failed, error:%d\n", rc);
+	} else {
+		printf("hostname: %s\n", buf);
+	}
 	
 	while (TRUE) {
 		sleep(1000);

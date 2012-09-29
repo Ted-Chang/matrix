@@ -5,6 +5,7 @@
 #include "matrix/const.h"
 #include "isr.h"
 #include "hal.h"
+#include "clock.h"
 #include "timer.h"
 #include "proc/process.h"
 #include "proc/sched.h"

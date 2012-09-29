@@ -51,7 +51,7 @@ void main(int argc, char **argv)
 		headers[i].magic = 0xBF;
 	}
 
-	wfp = fopen("./initrd.img", "w");
+	wfp = fopen("./initrd", "w");
 	if (wfp == 0) {
 		printf("Failed to open file: initrd.img\n");
 		goto out;

@@ -1,9 +1,6 @@
 #ifndef __TIME_H__
 #define __TIME_H__
 
-/* Seconds to microseconds */
-#define SECS2USECS(secs)	((useconds_t)secs * 1000000)
-
 typedef long clock_t;
 
 struct tm {
@@ -30,9 +27,5 @@ struct timezone {
 	int tz_minuteswest;	/* minutes west of Greenwich */
 	int tz_dsttime;		/* type of DST correction */
 };
-
-int get_cmostime(struct tm *t);
-useconds_t time_to_unix(uint32_t year, uint32_t mon, uint32_t day,
-			uint32_t hour, uint32_t min, uint32_t sec);
 
 #endif	/* __TIME_H__ */
