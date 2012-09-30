@@ -2,8 +2,10 @@
 #include <stddef.h>
 #include "util.h"
 #include "vector.h"
+#include "mm/mm.h"
 #include "mm/mmu.h"
 #include "mm/kmem.h"
+#include "matrix/matrix.h"
 #include "matrix/debug.h"
 
 /*
@@ -31,9 +33,9 @@ struct heap {
 
 struct heap *_kheap = NULL;
 
-void *alloc(struct heap *heap, size_t size, uint8_t page_align);
+void *alloc(struct heap *heap, size_t size, boolean_t page_align);
 
-void *kmem_alloc_int(size_t size, int align, uint32_t *phys)
+void *kmem_alloc_int(size_t size, boolean_t align, uint32_t *phys)
 {
 	if (_kheap) {	// The heap manager was initialized
 		void *addr = alloc(_kheap, size, (uint8_t)align);
@@ -65,24 +67,28 @@ void *kmem_alloc_int(size_t size, int align, uint32_t *phys)
 	}
 }
 
-void *kmem_alloc(size_t size)
+void *kmem_alloc(size_t size, int mmflag)
 {
-	return kmem_alloc_int(size, 0, 0);
+	void *ret;
+	
+	if (FLAG_ON(mmflag, MM_ALIGN))
+		ret = kmem_alloc_int(size, TRUE, NULL);
+	else
+		ret = kmem_alloc_int(size, FALSE, NULL);
+	
+	return ret;
 }
 
-void *kmem_alloc_a(size_t size)
+void *kmem_alloc_p(size_t size, uint32_t *phys, int mmflag)
 {
-	return kmem_alloc_int(size, 1, 0);
-}
+	void *ret;
 
-void *kmem_alloc_p(size_t size, uint32_t *phys)
-{
-	return kmem_alloc_int(size, 0, phys);
-}
-
-void *kmem_alloc_ap(size_t size, uint32_t *phys)
-{
-	return kmem_alloc_int(size, 1, phys);
+	if (FLAG_ON(mmflag, MM_ALIGN))
+		ret = kmem_alloc_int(size, TRUE, phys);
+	else
+		ret = kmem_alloc_int(size, FALSE, phys);
+	
+	return ret;
 }
 
 static void expand(struct heap *heap, size_t new_size)
@@ -166,7 +172,7 @@ struct heap *create_heap(uint32_t start, uint32_t end, uint32_t max,
 	ASSERT(start % 0x1000 == 0);
 	ASSERT(end % 0x1000 == 0);
 
-	heap = (struct heap *)kmem_alloc(sizeof(struct heap));
+	heap = (struct heap *)kmem_alloc(sizeof(struct heap), 0);
 
 	/* Initialize the index of the heap, size of index is fixed */
 	heap->index = place_vector((void *)start, HEAP_INDEX_SIZE, header_compare);
@@ -231,7 +237,7 @@ static uint32_t find_smallest_hole(struct heap *heap, size_t size, uint8_t page_
 	}
 }
 
-void *alloc(struct heap *heap, size_t size, uint8_t page_align)
+void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 {
 	uint32_t new_size;
 	int32_t iterator;

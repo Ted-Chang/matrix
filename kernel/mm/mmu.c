@@ -6,6 +6,7 @@
 #include <string.h>	// memset
 #include "hal.h"
 #include "isr.h"	// register interrupt handler
+#include "mm/mm.h"
 #include "mm/mmu.h"
 #include "mm/kmem.h"
 #include "matrix/debug.h"
@@ -56,7 +57,7 @@ static struct ptbl *clone_ptbl(struct ptbl *src, uint32_t *phys_addr)
 	struct ptbl *ptbl;
 	
 	/* Make a new page table, which is page aligned */
-	ptbl = (struct ptbl *)kmem_alloc_ap(sizeof(struct ptbl), phys_addr);
+	ptbl = (struct ptbl *)kmem_alloc_p(sizeof(struct ptbl), phys_addr, MM_ALIGN);
 	
 	/* Clear the content of the new page table */
 	memset(ptbl, 0, sizeof(struct ptbl));
@@ -111,7 +112,8 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t make,
 		uint32_t tmp;
 		
 		/* Allocate a new page table */
-		pdir->ptbl[dir_idx] = (struct ptbl *)kmem_alloc_ap(sizeof(struct ptbl), &tmp);
+		pdir->ptbl[dir_idx] =
+			(struct ptbl *)kmem_alloc_p(sizeof(struct ptbl), &tmp, MM_ALIGN);
 		
 		/* Clear the content of the page table */
 		memset(pdir->ptbl[dir_idx], 0, sizeof(struct ptbl));
@@ -273,11 +275,11 @@ struct mmu_ctx *mmu_create_ctx()
 	struct mmu_ctx *ctx;
 	uint32_t pdbr;
 
-	ctx = kmem_alloc(sizeof(struct mmu_ctx));
+	ctx = kmem_alloc(sizeof(struct mmu_ctx), 0);
 	if (!ctx)
 		return NULL;
 
-	ctx->pdir = kmem_alloc_ap(sizeof(struct pdir), &pdbr);
+	ctx->pdir = kmem_alloc_p(sizeof(struct pdir), &pdbr, MM_ALIGN);
 	if (!ctx->pdir) {
 		kmem_free(ctx);
 		return NULL;
@@ -302,7 +304,7 @@ void init_mmu()
 	struct page *page;
 
 	/* Initialize the kernel MMU context structure */
-	_kernel_mmu_ctx.pdir = kmem_alloc_ap(sizeof(struct pdir), &pdbr);
+	_kernel_mmu_ctx.pdir = kmem_alloc_p(sizeof(struct pdir), &pdbr, MM_ALIGN);
 	_kernel_mmu_ctx.pdbr = pdbr;
 	memset(_kernel_mmu_ctx.pdir, 0, sizeof(struct pdir));
 	

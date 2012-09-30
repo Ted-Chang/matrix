@@ -12,12 +12,7 @@ void *kmalloc(size_t size, int mmflag)
 {
 	void *addr;
 
-	if (mmflag & MM_ALGN) {
-		addr = kmem_alloc_a(size);
-	} else {
-		addr = kmem_alloc(size);
-	}
-
+	addr = kmem_alloc(size, mmflag);
 	if (!addr) {
 		return NULL;
 	}

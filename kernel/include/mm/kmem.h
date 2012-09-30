@@ -14,10 +14,8 @@
 /*
  * Routines for allocate a chunk of memory
  */
-void *kmem_alloc(size_t size);
-void *kmem_alloc_a(size_t size);
-void *kmem_alloc_p(size_t size, uint32_t *phys);
-void *kmem_alloc_ap(size_t size, uint32_t *phys);
+void *kmem_alloc(size_t size, int mmflag);
+void *kmem_alloc_p(size_t size, uint32_t *phys, int mmflag);
 void kmem_free(void *p);
 void init_kmem();
 

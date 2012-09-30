@@ -6,7 +6,8 @@
 #include "mm/mm.h"
 
 /* Allocator limitation/settings */
-#define SLAB_NAME_MAX		25	// Maximum slab cache name length
+#define SLAB_NAME_MAX		24	// Maximum slab cache name length
+#define SLAB_MAGAZINE_SIZE	16	// Initial magazine size (resizing currently not supported)
 
 /* Slab constructor callback function */
 typedef void (*slab_ctor_t)(void *obj, void *data);

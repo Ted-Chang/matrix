@@ -12,9 +12,16 @@ int main(int argc, char **argv)
 	memset(buf, 0, 256);
 	rc = gethostname(buf, 255);
 	if (rc) {
-		printf("gethostname failed, error:%d\n", rc);
+		printf("init: gethostname failed.\n");
 	} else {
-		printf("hostname: %s\n", buf);
+		printf("init: hostname: %s\n", buf);
+	}
+
+	rc = execve("/crond", NULL, NULL);
+	if (rc == -1) {
+		printf("init: execute crond failed.\n");
+	} else {
+		printf("init: crond start successfully.\n");
 	}
 	
 	while (TRUE) {

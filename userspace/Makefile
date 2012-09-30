@@ -8,8 +8,9 @@ LDFLAGS := -melf_i386 -TLink.ld
 TARGETDIR := ../bin
 
 TARGETS := \
-	../bin/init \
-	../bin/echo \
+	$(TARGETDIR)/init \
+	$(TARGETDIR)/echo \
+	$(TARGETDIR)/crond \
 
 OBJ := ./obji386
 
@@ -24,11 +25,14 @@ $(TARGETDIR)/init: $(OBJ)/init.o
 $(TARGETDIR)/echo: $(OBJ)/echo.o
 	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/echo.map -o $(TARGETDIR)/echo $(OBJ)/echo.o
 
+$(TARGETDIR)/crond: $(OBJ)/crond.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/crond.map -o $(TARGETDIR)/crond $(OBJ)/crond.o
+
 $(OBJ)/%.o: %.c
 	$(CC) $(CFLAGS) -m32 -g -I../sdk/include -c -o $@ $<
 
 clean:
-	$(RM) -rf $(TARGETS) $(TARGETS).map
+	$(RM) -f $(TARGETS)
 
 help:
 	@echo "Available make targets:"

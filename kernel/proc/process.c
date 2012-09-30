@@ -136,7 +136,7 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	p->arch.esp = 0;
 	p->arch.ebp = 0;
 	p->arch.eip = 0;
-	p->arch.kstack = (uint32_t)kmalloc(KSTACK_SIZE, MM_ALGN);
+	p->arch.kstack = (uint32_t)kmalloc(KSTACK_SIZE, MM_ALIGN);
 	// TODO: Get the right method to do this
 	p->arch.ustack = 0;
 	p->arch.size = 0;
