@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 
+/* Definition of the system calls */
 DEFN_SYSCALL1(putstr, 0, const char *)
 DEFN_SYSCALL3(open, 1, const char *, int, int)
 DEFN_SYSCALL3(read, 2, int, char *, int)

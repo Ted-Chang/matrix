@@ -136,11 +136,18 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	p->arch.esp = 0;
 	p->arch.ebp = 0;
 	p->arch.eip = 0;
-	p->arch.kstack = (uint32_t)kmalloc(KSTACK_SIZE, MM_ALIGN);
-	// TODO: Get the right method to do this
-	p->arch.ustack = 0;
-	p->arch.size = 0;
+	p->arch.kstack = (uint32_t)kmalloc(KSTACK_SIZE, MM_ALIGN) + KSTACK_SIZE;
+
+	if (parent) {
+		/* User stack should be cloned before this, so we can use parent's
+		 * ustack directly
+		 */
+		p->arch.ustack = parent->arch.ustack;
+	} else {
+		p->arch.ustack = 0;
+	}
 	p->arch.entry = 0;
+	p->arch.size = 0;
 
 	/* Initialize the file descriptor table */
 	p->fds = fd_table_create(parent ? parent->fds : NULL);
@@ -261,6 +268,7 @@ int fork()
 
 	/* We could be the parent or the child here */
 	if (CURR_PROC == parent) {
+		uint32_t old_stack, new_stack, offset;
 
 		/* We are the parent, so setup the esp/ebp/eip for our child */
 		asm volatile("mov %%esp, %0" : "=r" (esp));
@@ -268,19 +276,31 @@ int fork()
 
 		new_process->arch.esp = esp;
 		new_process->arch.ebp = ebp;
+		
 		new_process->arch.eip = eip;
+
+		/* Copy the kernel stack from this process to the new process */
+		memcpy(new_process->arch.kstack - KSTACK_SIZE, parent->arch.kstack - KSTACK_SIZE,
+		       KSTACK_SIZE);
+
+		/* Update the per process system call registers */
+		old_stack = parent->arch.kstack - KSTACK_SIZE;
+		new_stack = new_process->arch.kstack - KSTACK_SIZE;
+		offset = parent->syscall_regs - old_stack;
+		new_process->syscall_regs = (struct registers *)(new_stack + offset);
 
 		pid = new_process->id;
 
 		DEBUG(DL_DBG, ("fork: new process forked, pid %d\n"
-			       "- esp(0x%x), ebp(0x%x), eip(0x%x), page_dir(0x%x)\n",
+			       "- esp(0x%x), ebp(0x%x), eip(0x%x), ustack(0x%x), mmu(0x%x)\n",
 			       new_process->id, new_process->arch.esp, new_process->arch.ebp,
-			       new_process->arch.eip, new_process->mmu_ctx));
+			       new_process->arch.eip, new_process->arch.ustack,
+			       new_process->mmu_ctx));
 		
 		irq_enable();
 	} else {
 		/* We are the child */
-		DEBUG(DL_DBG, ("fork: now in child process.\n"));
+		DEBUG(DL_DBG, ("fork: child process\n"));
 	}
 	
 	return pid;
@@ -302,7 +322,9 @@ int exec(char *path, int argc, char **argv)
 		return -1;
 	}
 
-	/* Map some pages to the address for this process */
+	/* Map some pages to the address for this process, this is used for storing the ELF
+	 * file content
+	 */
 	for (virt = 0x30000000;	virt < (0x30000000 + n->length); virt += PAGE_SIZE) {
 		page = mmu_get_page(_current_mmu_ctx, virt, TRUE, 0);
 		if (!page) {

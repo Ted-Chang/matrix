@@ -426,6 +426,9 @@ void syscall_handler(struct registers *regs)
 
 	location = _syscalls[regs->eax];
 
+	/* Update the syscall registers for this process */
+	CURR_PROC->syscall_regs = regs;
+
 	/* We don't know how many parameters the function wants, so we just
 	 * push them all onto the stack in the correct order. The function
 	 * will use all the parameters it wants, and we can pop them all back
@@ -443,7 +446,11 @@ void syscall_handler(struct registers *regs)
 		     pop %%ebx; \
 		     pop %%ebx; \
 		     pop %%ebx; \
-		     " : "=a" (rc) : "r" (regs->edi), "r" (regs->esi), "r" (regs->edx), "r" (regs->ecx), "r" (regs->ebx), "r" (location));
-	
+		     " : "=a"(rc) : "r"(regs->edi), "r"(regs->esi), "r"(regs->edx), "r"(regs->ecx), "r"(regs->ebx), "r"(location));
+
+	/* The syscall handler may have moved the register pointer, so update
+	 * the pointer here.
+	 */
+	regs = CURR_PROC->syscall_regs;
 	regs->eax = rc;
 }

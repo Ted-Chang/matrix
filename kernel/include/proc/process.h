@@ -43,6 +43,10 @@ struct process {
 	gid_t gid;		// Group ID
 	struct arch_process arch;// Architecture process implementation
 	struct fd_table *fds;	// File descriptor table
+
+	/* Registers at interrupt */
+	struct registers *syscall_regs;
+	
 	clock_t usr_time;	// User time in ticks
 	clock_t sys_time;	// System time in ticks
 	int8_t priority;	// Current scheduling priority

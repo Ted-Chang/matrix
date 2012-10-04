@@ -66,7 +66,7 @@ int elf_load_sections(struct arch_process *arch, elf_ehdr_t *ehdr)
 				arch->size = shdr->sh_addr + shdr->sh_size - arch->entry;
 			}
 
-			/* Map memory space for this section */
+			/* Map memory space for this section, this is where codes stored */
 			for (virt = 0; virt < (shdr->sh_size + 0x2000); virt += PAGE_SIZE) {
 				page = mmu_get_page(_current_mmu_ctx, shdr->sh_addr + virt, TRUE, 0);
 				if (!page) {
