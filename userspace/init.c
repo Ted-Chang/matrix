@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include <syscall.h>
 
+void start_crond();
+
 int main(int argc, char **argv)
 {
 	int rc = 0;
@@ -17,13 +19,6 @@ int main(int argc, char **argv)
 		printf("init: hostname: %s\n", buf);
 	}
 
-	rc = execve("/crond", NULL, NULL);
-	if (rc == -1) {
-		printf("init: execute crond failed.\n");
-	} else {
-		printf("init: crond start successfully.\n");
-	}
-	
 	while (TRUE) {
 		sleep(1000);
 	}

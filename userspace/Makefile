@@ -33,6 +33,7 @@ $(OBJ)/%.o: %.c
 
 clean:
 	$(RM) -f $(TARGETS)
+	$(RM) -f $(OBJ)/*
 
 help:
 	@echo "Available make targets:"

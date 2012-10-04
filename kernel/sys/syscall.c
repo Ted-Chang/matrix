@@ -264,7 +264,7 @@ int execve(const char *filename, const char *argv[], const char *envp[])
 	int rc = -1, i, j;
 	char **args;
 
-	if (!filename || !argv || !envp) {
+	if (!filename || !argv || !argv[0]) {
 		goto out;
 	}
 
@@ -375,7 +375,7 @@ int sleep(uint32_t ms)
  *   [3] define macro in /loader/syscalls.c
  *   [4] define macro in /include/syscall.h
  */
-uint32_t _nr_syscalls = 23;
+uint32_t _nr_syscalls = 24;
 static void *_syscalls[] = {
 	putstr,
 	open,
@@ -400,6 +400,7 @@ static void *_syscalls[] = {
 	setgid,
 	getpid,
 	sleep,
+	NULL
 };
 
 void init_syscalls()

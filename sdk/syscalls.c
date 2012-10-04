@@ -98,6 +98,11 @@ int execve(const char *filename, const char *argv[], const char *envp[])
 	return mtx_execve(filename, argv, envp);
 }
 
+int fork()
+{
+	return mtx_fork();
+}
+
 int gethostname(char *name, size_t len)
 {
 	return mtx_gethostname(name, len);

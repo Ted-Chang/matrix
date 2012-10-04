@@ -298,6 +298,7 @@ int exec(char *path, int argc, char **argv)
 	/* Lookup the file from the file system */
 	n = vfs_lookup(path, 0);
 	if (!n) {
+		DEBUG(DL_DBG, ("exec: file(%s) not found.\n", path));
 		return -1;
 	}
 

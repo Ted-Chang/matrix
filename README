@@ -6,3 +6,15 @@ I only tried it with bochs 2.4.6 and boot it with grub installed.
 
 What architecture does matrix support now?
 At this moment matrix only support the x86 architecture.
+
+How to create an image?
+dd if=/dev/zero of=matrix.img bs=512 count=2880
+
+How to create a bochs vm using the image?
+Create a file bochsrc.bxrc and write the configuration into the file. You can refer to the documents on bochs site.
+
+How to install grub to the image?
+sudo losetup /dev/loop0 ~/vm/matrix/matrix.img
+sudo mkfs.msdos /dev/loop0
+sudo mount /dev/loop0 /mnt
+sudo grub-install --root-directory=/mnt --recheck --force /dev/loop0

@@ -46,8 +46,12 @@ int kmain(u_long addr, uint32_t initial_stack)
 	int rc = 0;
 	uint32_t initrd_location;
 	uint32_t initrd_end;
-	char *argv[] = {
+	char *init_argv[] = {
 		"/init",
+		NULL
+	};
+	char *crond_argv[] = {
+		"/crond",
 		NULL
 	};
 
@@ -125,7 +129,10 @@ int kmain(u_long addr, uint32_t initial_stack)
 	announce();
 
 	/* Ready to run init process from executable file init */
-	system(argv[0], 1, argv);
+	system(init_argv[0], 1, init_argv);
+
+	/* Run crond process from executable file crond */
+	system(crond_argv[0], 1, crond_argv);
 
 	return rc;
 }
