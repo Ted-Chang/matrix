@@ -76,9 +76,9 @@ void move_stack(void *new_stack, uint32_t size)
 	new_ebp = old_ebp + offset;
 
 	DEBUG(DL_DBG, ("move_stack: move stack to new address.\n"
-		       "* old_esp(0x%x), old_ebp(0x%x)\n"
-		       "* new_esp(0x%x), new_ebp(0x%x)\n"
-		       "* _initial_esp(0x%x)\n",
+		       "- old_esp(0x%x), old_ebp(0x%x)\n"
+		       "- new_esp(0x%x), new_ebp(0x%x)\n"
+		       "- _initial_esp(0x%x)\n",
 		       old_esp, old_ebp, new_esp, new_ebp, _initial_esp));
 	
 	/* Copy the old stack to new stack. Although we have switched to cloned
@@ -99,6 +99,7 @@ void move_stack(void *new_stack, uint32_t size)
 		 */
 		if ((old_esp < tmp) && (tmp < _initial_esp)) {
 			uint32_t *tmp2;
+			
 			tmp = tmp + offset;
 			tmp2 = (uint32_t *)i;
 			*tmp2 = tmp;
@@ -137,6 +138,7 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	p->arch.ebp = 0;
 	p->arch.eip = 0;
 	p->arch.kstack = (uint32_t)kmalloc(KSTACK_SIZE, MM_ALIGN) + KSTACK_SIZE;
+	memset((void *)p->arch.kstack, 0, KSTACK_SIZE);
 
 	if (parent) {
 		/* User stack should be cloned before this, so we can use parent's
@@ -162,8 +164,8 @@ static void process_dtor(void *obj)
 
 	p = (struct process *)obj;
 	
-	kfree((void *)p->arch.kstack);
-	// TODO: cleanup the page directory owned by this process
+	kfree((void *)p->arch.kstack - KSTACK_SIZE);
+	// FixMe: cleanup the page directory owned by this process
 	fd_table_destroy(p->fds);
 }
 
@@ -211,7 +213,7 @@ void switch_context()
 	_current_mmu_ctx = CURR_PROC->mmu_ctx;
 
 	/* Switch the kernel stack in TSS to the process's kernel stack */
-	set_kernel_stack(CURR_PROC->arch.kstack + KSTACK_SIZE);
+	set_kernel_stack(CURR_PROC->arch.kstack);
 
 	/* Here we:
 	 * [1] Disable interrupts so we don't get bothered.
@@ -241,6 +243,7 @@ void switch_context()
 int fork()
 {
 	pid_t pid = 0;
+	uint32_t magic = 'ksaT';
 	struct process *parent;
 	struct process *new_process;
 	struct mmu_ctx *ctx;
@@ -271,19 +274,22 @@ int fork()
 		uint32_t old_stack, new_stack, offset;
 
 		/* We are the parent, so setup the esp/ebp/eip for our child */
-		asm volatile("mov %%esp, %0" : "=r" (esp));
-		asm volatile("mov %%ebp, %0" : "=r" (ebp));
+		asm volatile("mov %%esp, %0" : "=r"(esp));
+		asm volatile("mov %%ebp, %0" : "=r"(ebp));
 
 		new_process->arch.esp = esp;
 		new_process->arch.ebp = ebp;
-		
 		new_process->arch.eip = eip;
 
 		/* Copy the kernel stack from this process to the new process */
-		memcpy(new_process->arch.kstack - KSTACK_SIZE, parent->arch.kstack - KSTACK_SIZE,
+		memcpy((void *)new_process->arch.kstack - KSTACK_SIZE,
+		       (void *)parent->arch.kstack - KSTACK_SIZE,
 		       KSTACK_SIZE);
+		
+		DEBUG(DL_DBG, ("fork: kstack(0x%x -> 0x%x).\n",
+			       parent->arch.kstack, new_process->arch.kstack));
 
-		/* Update the per process system call registers */
+		/* Update the per process system call registers to the new process' one */
 		old_stack = parent->arch.kstack - KSTACK_SIZE;
 		new_stack = new_process->arch.kstack - KSTACK_SIZE;
 		offset = parent->syscall_regs - old_stack;
@@ -299,8 +305,11 @@ int fork()
 		
 		irq_enable();
 	} else {
-		/* We are the child */
-		DEBUG(DL_DBG, ("fork: child process\n"));
+		/* We are the child, at this point we can't access the data even on
+		 * the stack. We're just rescheduled.
+		 */
+		ASSERT(magic == 'ksaT');	// Make sure we have a correct stack
+		DEBUG(DL_DBG, ("fork: child process.\n"));
 	}
 	
 	return pid;
@@ -425,7 +434,7 @@ void switch_to_user_mode(uint32_t location, uint32_t ustack)
 	/* Setup our kernel stack, note that the stack was grow from high address
 	 * to low address
 	 */
-	set_kernel_stack(CURR_PROC->arch.kstack + KSTACK_SIZE);
+	set_kernel_stack(CURR_PROC->arch.kstack);
 	
 	/* Setup a stack structure for switching to user mode.
 	 * The code firstly disables interrupts, as we're working on a critical
@@ -465,9 +474,11 @@ void init_process()
 	init_sched();
 	
 	/* Relocate the stack so we know where it is, the stack size is 8KB */
-	move_stack((void *)0xE0000000, 0x2000);
+	move_stack((void *)0xE0000000, KSTACK_SIZE);
 
-	/* Malloc the initial process and initialize it */
+	/* Malloc the initial process and initialize it, the initial process will
+	 * use kernel mmu context as its mmu context.
+	 */
 	p = (struct process *)kmalloc(sizeof(struct process), 0);
 
 	ASSERT(_current_mmu_ctx != NULL);

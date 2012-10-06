@@ -455,7 +455,7 @@ void init_kmem()
 	struct mmu_ctx *ctx;
 	
 	/* Create kernel heap */
-	_kheap = create_heap(KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE,
+	_kheap = create_heap(KHEAP_START, KHEAP_START + KHEAP_INITIAL_SIZE,
 			     0xCFFFF000, FALSE, FALSE);
 
 	/* Clone the page directory and switch to it. This makes the kernel page

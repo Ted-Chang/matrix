@@ -30,4 +30,4 @@ $(OBJ)/crtlib.o:
 	nasm $(ASFLAGS) -o $(OBJ)/crtlib.o crtlib.s
 
 clean:
-	$(RM) $(TARGETOBJ)
+	$(RM) $(OBJ)/*.o

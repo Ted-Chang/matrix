@@ -1,3 +1,11 @@
+[Build a debug version of bochs]
+* Download the sources
+* ./configure --help
+* ./configure --enable-debugger --enable-disasm
+* make
+* sudo make install
+
+
 [Build mkinitrd tools]
 
 gcc -o mkinitrd make_initrd.c
@@ -7,6 +15,15 @@ gcc -o mkinitrd make_initrd.c
 
 * list the break points
 blist
+
+* trace the registers after each command
+trace-on
+
+* translate linear address to physical address
+page 0xC00ab000
+
+* set a write break point
+watch w 0x1d8000
 
 * set a lenear address executive break point
 lb 0x1040ea
@@ -26,6 +43,9 @@ u /10
 
 * logging 
 edit the bochsrc.bxrc, set the log option to a file
+
+* print infomation
+info tss
 
 * Debugging process:
 lb 0x104008

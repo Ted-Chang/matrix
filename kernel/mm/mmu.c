@@ -62,7 +62,7 @@ static struct ptbl *clone_ptbl(struct ptbl *src, uint32_t *phys_addr)
 	/* Clear the content of the new page table */
 	memset(ptbl, 0, sizeof(struct ptbl));
 
-	DEBUG(DL_DBG, ("src page table(0x%x), new page table(0x%x)\n", src, ptbl));
+	DEBUG(DL_DBG, ("clone_ptbl: src pt(0x%x), new pt(0x%x)\n", src, ptbl));
 
 	for (i = 0; i < 1024; i++) {
 		/* If the source entry has a frame associated with it */
@@ -123,7 +123,7 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t make,
 		
 		return &pdir->ptbl[dir_idx]->pte[tbl_idx];
 	} else {
-		DEBUG(DL_INF, ("no page for addr(0x%08x) in mmu context(0x%08x)\n",
+		DEBUG(DL_INF, ("mmu_get_page: no page for addr(0x%08x) in mmu ctx(0x%08x)\n",
 			       virt, ctx));
 		return NULL;
 	}
@@ -195,7 +195,8 @@ void mmu_switch_ctx(struct mmu_ctx *ctx)
 	/* Update the current mmu context */
 	_current_mmu_ctx = ctx;
 	
-	DEBUG(DL_DBG, ("switch context to 0x%08x, pdbr(0x%08x)\n", ctx, ctx->pdbr));
+	DEBUG(DL_DBG, ("mmu_switch_ctx: switch ctx to 0x%08x, pdbr(0x%08x)\n",
+		       ctx, ctx->pdbr));
 
 	/* Set CR3 register */
 	asm volatile("mov %0, %%cr3":: "r"(ctx->pdbr));
@@ -262,10 +263,16 @@ void mmu_copy_ctx(struct mmu_ctx *dst, struct mmu_ctx *src)
 			dst_dir->ptbl[i] = src_dir->ptbl[i];
 			dst_dir->pde[i] = src_dir->pde[i];
 		} else {
-			/* Physically copy the page table */
+			/* Physically copy the page table only when it is user
+			 * mode stuff. We don't want to copy the kernel stack
+			 * because we will allocate it.
+			 */
 			uint32_t pde;
-			dst_dir->ptbl[i] = clone_ptbl(src_dir->ptbl[i], &pde);
-			dst_dir->pde[i] = pde | 0x07;
+			
+			if ((i * PAGE_SIZE * 1024) < 0x20000000) {
+				dst_dir->ptbl[i] = clone_ptbl(src_dir->ptbl[i], &pde);
+				dst_dir->pde[i] = pde | 0x07;
+			}
 		}
 	}
 }
@@ -308,27 +315,27 @@ void init_mmu()
 	_kernel_mmu_ctx.pdbr = pdbr;
 	memset(_kernel_mmu_ctx.pdir, 0, sizeof(struct pdir));
 	
-	DEBUG(DL_DBG, ("kernel mmu context(0x%08x), page directory address(0x%08x)\n",
+	DEBUG(DL_DBG, ("init_mmu: kernel mmu ctx(0x%08x), pdbr(0x%08x)\n",
 		       &_kernel_mmu_ctx, _kernel_mmu_ctx.pdbr));
 
 	/* Allocate some pages in the kernel heap area. Here we call mmu_get_page
 	 * but not page_alloc. this cause the page tables to be created when necessary.
 	 * We can't allocate page yet because they need to be identity mapped first.
 	 */
-	for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i += PAGE_SIZE)
+	for (i = KHEAP_START; i < (KHEAP_START + KHEAP_INITIAL_SIZE); i += PAGE_SIZE)
 		mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
 
 	/* Do identity map (physical addr == virtual addr) for the memory we used. */
-	for (i = 0; i < (_placement_addr+PAGE_SIZE); i += PAGE_SIZE) {
+	for (i = 0; i < (_placement_addr + PAGE_SIZE); i += PAGE_SIZE) {
 		/* Kernel code is readable but not writable from user-mode */
 		page = mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
 		page_alloc(page, FALSE, FALSE);
 	}
 
 	/* Allocate those pages we mapped earlier, our kernel heap start from
-	 * address 0xC0000000 and size is 0x100000
+	 * address 0xC0000000 and size is 0x1000000
 	 */
-	for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i += PAGE_SIZE) {
+	for (i = KHEAP_START; i < (KHEAP_START + KHEAP_INITIAL_SIZE); i += PAGE_SIZE) {
 		page = mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
 		page_alloc(page, FALSE, FALSE);
 	}
@@ -336,6 +343,8 @@ void init_mmu()
 	/* Before we enable paging, we must register our page fault handler */
 	register_irq_handler(14, &_pf_hook, page_fault);
 
-	/* Enable paging now */
+	/* Enable paging and switch to our kernel mmu context, kernel mmu context
+	 * will be used by every process.
+	 */
 	mmu_switch_ctx(&_kernel_mmu_ctx);
 }

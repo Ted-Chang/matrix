@@ -33,27 +33,27 @@ struct process_create;
 
 /* Definition of the process structure */
 struct process {
-	struct process *next;	// Next process
+	struct process *next;		// Next process
 
-	struct priv priv;	// System privileges structure
-	struct mmu_ctx *mmu_ctx;// MMU context
+	struct priv priv;		// System privileges structure
+	struct mmu_ctx *mmu_ctx;	// MMU context
 
-	pid_t id;		// Process ID
-	uid_t uid;		// User ID
-	gid_t gid;		// Group ID
-	struct arch_process arch;// Architecture process implementation
-	struct fd_table *fds;	// File descriptor table
+	pid_t id;			// Process ID
+	uid_t uid;			// User ID
+	gid_t gid;			// Group ID
+	struct arch_process arch;	// Architecture process implementation
+	struct fd_table *fds;		// File descriptor table
 
-	/* Registers at interrupt */
+	/* Per process pointer store the regs on stack of this process */
 	struct registers *syscall_regs;
 	
-	clock_t usr_time;	// User time in ticks
-	clock_t sys_time;	// System time in ticks
-	int8_t priority;	// Current scheduling priority
-	int8_t max_priority;	// Max priority of the process
-	int8_t ticks_left;	// Number of scheduling ticks left
-	int8_t quantum;		// Quantum in ticks
-	char name[P_NAME_LEN];	// Name of the process, include `\0'
+	clock_t usr_time;		// User time in ticks
+	clock_t sys_time;		// System time in ticks
+	int8_t priority;		// Current scheduling priority
+	int8_t max_priority;		// Max priority of the process
+	int8_t ticks_left;		// Number of scheduling ticks left
+	int8_t quantum;			// Quantum in ticks
+	char name[P_NAME_LEN];		// Name of the process, include `\0'
 
 	/* State of the process */
 	enum {
