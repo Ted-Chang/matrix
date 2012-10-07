@@ -263,16 +263,11 @@ void mmu_copy_ctx(struct mmu_ctx *dst, struct mmu_ctx *src)
 			dst_dir->ptbl[i] = src_dir->ptbl[i];
 			dst_dir->pde[i] = src_dir->pde[i];
 		} else {
-			/* Physically copy the page table only when it is user
-			 * mode stuff. We don't want to copy the kernel stack
-			 * because we will allocate it.
-			 */
+			/* Physically clone the page table if it's not kernel stuff */
 			uint32_t pde;
 			
-			if ((i * PAGE_SIZE * 1024) < 0x20000000) {
-				dst_dir->ptbl[i] = clone_ptbl(src_dir->ptbl[i], &pde);
-				dst_dir->pde[i] = pde | 0x07;
-			}
+			dst_dir->ptbl[i] = clone_ptbl(src_dir->ptbl[i], &pde);
+			dst_dir->pde[i] = pde | 0x07;
 		}
 	}
 }

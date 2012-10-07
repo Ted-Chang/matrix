@@ -137,10 +137,14 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	p->arch.esp = 0;
 	p->arch.ebp = 0;
 	p->arch.eip = 0;
-	p->arch.kstack = (uint32_t)kmalloc(KSTACK_SIZE, MM_ALIGN) + KSTACK_SIZE;
-	memset((void *)p->arch.kstack, 0, KSTACK_SIZE);
 
 	if (parent) {
+		/* If parent is NULL, then it must be the init process. We only allocate
+		 * kernel stack for non-init process.
+		 */
+		p->arch.kstack = (uint32_t)kmalloc(KSTACK_SIZE, MM_ALIGN) + KSTACK_SIZE;
+		memset((void *)p->arch.kstack, 0, KSTACK_SIZE);
+
 		/* User stack should be cloned before this, so we can use parent's
 		 * ustack directly
 		 */
@@ -245,11 +249,9 @@ int fork()
 	pid_t pid = 0;
 	uint32_t magic = 'ksaT';
 	struct process *parent;
-	struct process *new_process;
+	struct process *new_proc;
 	struct mmu_ctx *ctx;
-	uint32_t eip;
-	uint32_t esp;
-	uint32_t ebp;
+	uint32_t eip, esp, ebp;
 	
 	irq_disable();
 
@@ -261,11 +263,11 @@ int fork()
 	mmu_copy_ctx(ctx, _current_mmu_ctx);
 
 	/* Create a new process */
-	new_process = (struct process *)kmalloc(sizeof(struct process), 0);
-	process_ctor(new_process, parent, ctx);
+	new_proc = (struct process *)kmalloc(sizeof(struct process), 0);
+	process_ctor(new_proc, parent, ctx);
 
 	/* Enqueue the forked new process */
-	sched_enqueue(new_process);
+	sched_enqueue(new_proc);
 	
 	eip = read_eip();
 
@@ -277,31 +279,43 @@ int fork()
 		asm volatile("mov %%esp, %0" : "=r"(esp));
 		asm volatile("mov %%ebp, %0" : "=r"(ebp));
 
-		new_process->arch.esp = esp;
-		new_process->arch.ebp = ebp;
-		new_process->arch.eip = eip;
+		if (parent->arch.kstack > new_proc->arch.kstack) {
+			new_proc->arch.esp = esp -
+				(parent->arch.kstack - new_proc->arch.kstack);
+			new_proc->arch.ebp = ebp -
+				(parent->arch.kstack - new_proc->arch.kstack);
+		} else {
+			/* Can parent and child use the same stack? */
+			ASSERT(parent->arch.kstack != new_proc->arch.kstack);
+			new_proc->arch.esp = esp +
+				(new_proc->arch.kstack - parent->arch.kstack);
+			new_proc->arch.ebp = ebp +
+				(new_proc->arch.kstack - parent->arch.kstack);
+		}
+		
+		new_proc->arch.eip = eip;
 
 		/* Copy the kernel stack from this process to the new process */
-		memcpy((void *)new_process->arch.kstack - KSTACK_SIZE,
+		memcpy((void *)new_proc->arch.kstack - KSTACK_SIZE,
 		       (void *)parent->arch.kstack - KSTACK_SIZE,
 		       KSTACK_SIZE);
 		
 		DEBUG(DL_DBG, ("fork: kstack(0x%x -> 0x%x).\n",
-			       parent->arch.kstack, new_process->arch.kstack));
+			       parent->arch.kstack, new_proc->arch.kstack));
 
 		/* Update the per process system call registers to the new process' one */
 		old_stack = parent->arch.kstack - KSTACK_SIZE;
-		new_stack = new_process->arch.kstack - KSTACK_SIZE;
+		new_stack = new_proc->arch.kstack - KSTACK_SIZE;
 		offset = parent->syscall_regs - old_stack;
-		new_process->syscall_regs = (struct registers *)(new_stack + offset);
+		new_proc->syscall_regs = (struct registers *)(new_stack + offset);
 
-		pid = new_process->id;
+		pid = new_proc->id;
 
 		DEBUG(DL_DBG, ("fork: new process forked, pid %d\n"
 			       "- esp(0x%x), ebp(0x%x), eip(0x%x), ustack(0x%x), mmu(0x%x)\n",
-			       new_process->id, new_process->arch.esp, new_process->arch.ebp,
-			       new_process->arch.eip, new_process->arch.ustack,
-			       new_process->mmu_ctx));
+			       new_proc->id, new_proc->arch.esp, new_proc->arch.ebp,
+			       new_proc->arch.eip, new_proc->arch.ustack,
+			       new_proc->mmu_ctx));
 		
 		irq_enable();
 	} else {
@@ -468,25 +482,27 @@ void switch_to_user_mode(uint32_t location, uint32_t ustack)
  */
 void init_process()
 {
-	struct process *p;
+	struct process *init_proc;
 
 	/* Initialize the scheduler */
 	init_sched();
-	
+
 	/* Relocate the stack so we know where it is, the stack size is 8KB */
 	move_stack((void *)0xE0000000, KSTACK_SIZE);
 
 	/* Malloc the initial process and initialize it, the initial process will
 	 * use kernel mmu context as its mmu context.
 	 */
-	p = (struct process *)kmalloc(sizeof(struct process), 0);
+	init_proc = (struct process *)kmalloc(sizeof(struct process), 0);
 
 	ASSERT(_current_mmu_ctx != NULL);
-	process_ctor(p, NULL, _current_mmu_ctx);
-	
+	process_ctor(init_proc, NULL, _current_mmu_ctx);
+
+	init_proc->arch.kstack = 0xE0000000;
+
 	/* Enqueue the new process */
-	sched_enqueue(p);
+	sched_enqueue(init_proc);
 
 	/* Update the current process pointer */
-	CURR_PROC = p;
+	CURR_PROC = init_proc;
 }
