@@ -23,6 +23,9 @@ struct arch_process {
 	uint32_t ustack;	// User stack location
 	uint32_t entry;		// Entry point of the image
 	size_t size;		// Total size of the image
+
+	/* Per process pointer store the regs on stack of this process */
+	struct registers *syscall_regs;
 };
 typedef struct arch_process arch_process_t;
 
@@ -44,9 +47,6 @@ struct process {
 	struct arch_process arch;	// Architecture process implementation
 	struct fd_table *fds;		// File descriptor table
 
-	/* Per process pointer store the regs on stack of this process */
-	struct registers *syscall_regs;
-	
 	clock_t usr_time;		// User time in ticks
 	clock_t sys_time;		// System time in ticks
 	int8_t priority;		// Current scheduling priority

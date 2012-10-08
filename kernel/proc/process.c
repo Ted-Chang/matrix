@@ -244,10 +244,37 @@ void switch_context()
 		      : "%ebx", "%esp", "%eax");
 }
 
+void fix_kstack(uint32_t new_stack, uint32_t old_stack, uint32_t size)
+{
+	uint32_t i, tmp, off;
+
+	if (new_stack > old_stack) {
+		off = new_stack - old_stack;
+	} else {
+		off = old_stack - new_stack;
+	}
+
+	for (i = new_stack; i < (new_stack - size); i -= 4) {
+		tmp = *((uint32_t *)i);
+		if ((tmp < old_stack) && (tmp > (old_stack - size))) {
+			uint32_t *tmp2;
+
+			if (new_stack > old_stack) {
+				tmp += off;
+			} else {
+				tmp -= off;
+			}
+			
+			tmp2 = (uint32_t *)i;
+			*tmp2 = tmp;
+		}
+	}
+}
+
 int fork()
 {
 	pid_t pid = 0;
-	uint32_t magic = 'ksaT';
+	uint32_t magic = 'corP';
 	struct process *parent;
 	struct process *new_proc;
 	struct mmu_ctx *ctx;
@@ -273,41 +300,41 @@ int fork()
 
 	/* We could be the parent or the child here */
 	if (CURR_PROC == parent) {
-		uint32_t old_stack, new_stack, offset;
+		uint32_t offset;
 
 		/* We are the parent, so setup the esp/ebp/eip for our child */
 		asm volatile("mov %%esp, %0" : "=r"(esp));
 		asm volatile("mov %%ebp, %0" : "=r"(ebp));
 
+		/* Update the per process system call registers to the new process' one */
 		if (parent->arch.kstack > new_proc->arch.kstack) {
-			new_proc->arch.esp = esp -
-				(parent->arch.kstack - new_proc->arch.kstack);
-			new_proc->arch.ebp = ebp -
-				(parent->arch.kstack - new_proc->arch.kstack);
+			offset = parent->arch.kstack - new_proc->arch.kstack;
+			new_proc->arch.esp = esp - offset;
+			new_proc->arch.ebp = ebp - offset;
 		} else {
 			/* Can parent and child use the same stack? */
 			ASSERT(parent->arch.kstack != new_proc->arch.kstack);
-			new_proc->arch.esp = esp +
-				(new_proc->arch.kstack - parent->arch.kstack);
-			new_proc->arch.ebp = ebp +
-				(new_proc->arch.kstack - parent->arch.kstack);
+			offset = new_proc->arch.kstack - parent->arch.kstack;
+			new_proc->arch.esp = esp + offset;
+			new_proc->arch.ebp = ebp + offset;
 		}
 		
 		new_proc->arch.eip = eip;
 
-		/* Copy the kernel stack from this process to the new process */
+		/* Copy the kernel stack from parent process to the new process */
 		memcpy((void *)new_proc->arch.kstack - KSTACK_SIZE,
 		       (void *)parent->arch.kstack - KSTACK_SIZE,
 		       KSTACK_SIZE);
-		
+
+		/* Fix the kernel stack */
+		fix_kstack(new_proc->arch.kstack, parent->arch.kstack, KSTACK_SIZE);
+
 		DEBUG(DL_DBG, ("fork: kstack(0x%x -> 0x%x).\n",
 			       parent->arch.kstack, new_proc->arch.kstack));
 
-		/* Update the per process system call registers to the new process' one */
-		old_stack = parent->arch.kstack - KSTACK_SIZE;
-		new_stack = new_proc->arch.kstack - KSTACK_SIZE;
-		offset = parent->syscall_regs - old_stack;
-		new_proc->syscall_regs = (struct registers *)(new_stack + offset);
+		offset =  parent->arch.kstack - (uint32_t)parent->arch.syscall_regs;
+		new_proc->arch.syscall_regs =
+			(struct registers *)(new_proc->arch.kstack - offset);
 
 		pid = new_proc->id;
 
@@ -322,7 +349,7 @@ int fork()
 		/* We are the child, at this point we can't access the data even on
 		 * the stack. We're just rescheduled.
 		 */
-		ASSERT(magic == 'ksaT');	// Make sure we have a correct stack
+		ASSERT(magic == 'corP');	// Make sure we have a correct stack
 		DEBUG(DL_DBG, ("fork: child process.\n"));
 	}
 	
@@ -345,8 +372,8 @@ int exec(char *path, int argc, char **argv)
 		return -1;
 	}
 
-	/* Map some pages to the address for this process, this is used for storing the ELF
-	 * file content
+	/* Map some pages to the address from mmu context of this process, the mapped
+	 * memory page is used for storing the ELF file content
 	 */
 	for (virt = 0x30000000;	virt < (0x30000000 + n->length); virt += PAGE_SIZE) {
 		page = mmu_get_page(_current_mmu_ctx, virt, TRUE, 0);
@@ -379,7 +406,9 @@ int exec(char *path, int argc, char **argv)
 		goto out;
 	}
 
-	/* Load the loadable segments from the executive */
+	/* Load the loadable segments from the executive to the address which was
+	 * specified in the ELF and for Matrix, default is 0x20000000.
+	 */
 	rc = elf_load_sections(&(CURR_PROC->arch), ehdr);
 	DEBUG(DL_DBG, ("exec: elf_load_sections done.\n"));
 	if (rc != 0) {
@@ -398,7 +427,7 @@ int exec(char *path, int argc, char **argv)
 		page_free(page);
 	}
 
-	/* Map some pages to the user mode stack */
+	/* Map some pages for the user mode stack from current process' mmu context */
 	for (virt = USTACK_BOTTOM; virt <= (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
 		page = mmu_get_page(_current_mmu_ctx, virt, TRUE, 0);
 		if (!page) {
@@ -487,7 +516,9 @@ void init_process()
 	/* Initialize the scheduler */
 	init_sched();
 
-	/* Relocate the stack so we know where it is, the stack size is 8KB */
+	/* Relocate the stack so we know where it is, the stack size is 8KB. Note
+	 * that this was done in the context of kernel mmu.
+	 */
 	move_stack((void *)0xE0000000, KSTACK_SIZE);
 
 	/* Malloc the initial process and initialize it, the initial process will

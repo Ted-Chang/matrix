@@ -17,7 +17,8 @@ gcc -o mkinitrd make_initrd.c
 blist
 
 * trace the registers after each command
-trace-on
+trace-reg on
+trace-reg off
 
 * translate linear address to physical address
 page 0xC00ab000

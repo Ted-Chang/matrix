@@ -417,17 +417,21 @@ void syscall_handler(struct registers *regs)
 {
 	int rc;
 	void *location;
+	uint32_t syscall_id, magic = 'csyS';
 
 	/* Firstly, check if the requested syscall number is valid.
 	 * The syscall number is found in EAX.
 	 */
-	if (regs->eax >= _nr_syscalls)
+	syscall_id = regs->eax;
+	if (syscall_id >= _nr_syscalls) {
+		DEBUG(DL_WRN, ("syscall_handler: invalid syscall(%d)", syscall_id));
 		return;
+	}
 
-	location = _syscalls[regs->eax];
+	location = _syscalls[syscall_id];
 
 	/* Update the syscall registers for this process */
-	CURR_PROC->syscall_regs = regs;
+	CURR_PROC->arch.syscall_regs = regs;
 
 	/* We don't know how many parameters the function wants, so we just
 	 * push them all onto the stack in the correct order. The function
@@ -449,8 +453,12 @@ void syscall_handler(struct registers *regs)
 		     " : "=a"(rc) : "r"(regs->edi), "r"(regs->esi), "r"(regs->edx), "r"(regs->ecx), "r"(regs->ebx), "r"(location));
 
 	/* The syscall handler may have moved the register pointer, so update
-	 * the pointer here.
+	 * the pointer here. It is important for system call such as fork because
+	 * it will copy the parent's stack as its own stack. You should use the pointer
+	 * of yourself.
 	 */
-	regs = CURR_PROC->syscall_regs;
+	regs = CURR_PROC->arch.syscall_regs;
 	regs->eax = rc;
+
+	ASSERT(magic == 'csyS');
 }

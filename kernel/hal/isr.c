@@ -27,8 +27,9 @@ void isr_handler(struct registers regs)
 	hook = _irq_handlers[int_no];
 	while (hook) {
 		isr_t handler = hook->handler;
-		if (handler)
+		if (handler) {
 			handler(&regs);
+		}
 		hook = hook->next;
 		processed = TRUE;
 	}
