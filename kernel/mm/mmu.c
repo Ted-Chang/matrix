@@ -62,8 +62,7 @@ static struct ptbl *clone_ptbl(struct ptbl *src, uint32_t *phys_addr)
 	/* Clear the content of the new page table */
 	memset(ptbl, 0, sizeof(struct ptbl));
 
-	DEBUG(DL_DBG, ("clone_ptbl: src pt(0x%x), new pt(0x%x)\n", src, ptbl));
-
+	/* Clone each of the page frames */
 	for (i = 0; i < 1024; i++) {
 		/* If the source entry has a frame associated with it */
 		if (src->pte[i].frame) {
@@ -141,17 +140,20 @@ int mmu_map_page(struct mmu_ctx *ctx, uint32_t virt, phys_addr_t phys,
 	}
 
 	/* Check if the mapping already exists */
-	if (page->present)
+	if (page->present) {
 		PANIC("Virtual address already mapped.");
+	}
 
 	/* Set the PTE */
 	page->present = 1;
 
-	if (write)
+	if (write) {
 		page->rw = 1;
+	}
 
-	if (!IS_KERNEL_CTX(ctx))
+	if (!IS_KERNEL_CTX(ctx)) {
 		page->user = 1;
+	}
 
 	page->frame = phys >> 12;
 
@@ -171,8 +173,9 @@ int mmu_unmap_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t shared,
 
 	/* If the mapping doesn't exist we did nothing */
 	pte = (virt / PAGE_SIZE) % 1024;
-	if (!ptbl->pte[pte].present)
+	if (!ptbl->pte[pte].present) {
 		return -1;
+	}
 
 	/* Save the physical address */
 	paddr = ptbl->pte[pte].frame << 12;
@@ -180,8 +183,9 @@ int mmu_unmap_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t shared,
 	/* Clear the entry and invalidate the TLB entry */
 	memset(&ptbl->pte[pte], 0, sizeof(struct page));
 
-	if (phys)
+	if (phys) {
 		*phys = paddr;
+	}
 
 	return 0;
 }
@@ -253,8 +257,10 @@ void mmu_copy_ctx(struct mmu_ctx *dst, struct mmu_ctx *src)
 	 * do not make a new copy.
 	 */
 	for (i = 0; i < 1024; i++) {
-		if (!src_dir->ptbl[i])
+		if (!src_dir->ptbl[i]) {
+			/* Already allocated */
 			continue;
+		}
 		
 		if (krn_dir->ptbl[i] == src_dir->ptbl[i]) {
 			/* It's in the kernel, so just use the same page table
@@ -265,7 +271,9 @@ void mmu_copy_ctx(struct mmu_ctx *dst, struct mmu_ctx *src)
 		} else {
 			/* Physically clone the page table if it's not kernel stuff */
 			uint32_t pde;
-			
+
+			DEBUG(DL_DBG, ("mmu_cpy_ctx: dst(0x%x), src(0x%x), addr(0x%x).\n",
+				       dst, src, i * 1024 * PAGE_SIZE));
 			dst_dir->ptbl[i] = clone_ptbl(src_dir->ptbl[i], &pde);
 			dst_dir->pde[i] = pde | 0x07;
 		}
@@ -278,8 +286,9 @@ struct mmu_ctx *mmu_create_ctx()
 	uint32_t pdbr;
 
 	ctx = kmem_alloc(sizeof(struct mmu_ctx), 0);
-	if (!ctx)
+	if (!ctx) {
 		return NULL;
+	}
 
 	ctx->pdir = kmem_alloc_p(sizeof(struct pdir), &pdbr, MM_ALIGN);
 	if (!ctx->pdir) {
@@ -317,8 +326,9 @@ void init_mmu()
 	 * but not page_alloc. this cause the page tables to be created when necessary.
 	 * We can't allocate page yet because they need to be identity mapped first.
 	 */
-	for (i = KHEAP_START; i < (KHEAP_START + KHEAP_INITIAL_SIZE); i += PAGE_SIZE)
+	for (i = KHEAP_START; i < (KHEAP_START + KHEAP_INITIAL_SIZE); i += PAGE_SIZE) {
 		mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
+	}
 
 	/* Do identity map (physical addr == virtual addr) for the memory we used. */
 	for (i = 0; i < (_placement_addr + PAGE_SIZE); i += PAGE_SIZE) {

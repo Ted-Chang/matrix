@@ -41,7 +41,7 @@ static pid_t id_alloc()
 	return _next_pid++;
 }
 
-void move_stack(void *new_stack, uint32_t size)
+void move_stack(uint32_t new_stack, uint32_t size)
 {
 	uint32_t i, pd_addr;
 	uint32_t old_esp, old_ebp;
@@ -49,10 +49,7 @@ void move_stack(void *new_stack, uint32_t size)
 	uint32_t offset;
 
 	/* Allocate some space for the new stack */
-	for (i = (uint32_t)new_stack;
-	     i >= ((uint32_t)new_stack - size);
-	     i -= PAGE_SIZE) {
-
+	for (i = new_stack; i >= (new_stack - size); i -= PAGE_SIZE) {
 		/* General purpose stack is in user-mode */
 		struct page *page;
 		
@@ -244,7 +241,8 @@ void switch_context()
 		      : "%ebx", "%esp", "%eax");
 }
 
-void fix_kstack(uint32_t new_stack, uint32_t old_stack, uint32_t size)
+/* Relocate the stack, this must be done when you copy the stack to another place */
+static void relocate_stack(uint32_t new_stack, uint32_t old_stack, uint32_t size)
 {
 	uint32_t i, tmp, off;
 
@@ -254,7 +252,7 @@ void fix_kstack(uint32_t new_stack, uint32_t old_stack, uint32_t size)
 		off = old_stack - new_stack;
 	}
 
-	for (i = new_stack; i < (new_stack - size); i -= 4) {
+	for (i = new_stack; i > (new_stack - size); i -= 4) {
 		tmp = *((uint32_t *)i);
 		if ((tmp < old_stack) && (tmp > (old_stack - size))) {
 			uint32_t *tmp2;
@@ -326,13 +324,13 @@ int fork()
 		       (void *)parent->arch.kstack - KSTACK_SIZE,
 		       KSTACK_SIZE);
 
-		/* Fix the kernel stack */
-		fix_kstack(new_proc->arch.kstack, parent->arch.kstack, KSTACK_SIZE);
+		/* Relocate the kernel stack */
+		relocate_stack(new_proc->arch.kstack, parent->arch.kstack, KSTACK_SIZE);
 
 		DEBUG(DL_DBG, ("fork: kstack(0x%x -> 0x%x).\n",
 			       parent->arch.kstack, new_proc->arch.kstack));
 
-		offset =  parent->arch.kstack - (uint32_t)parent->arch.syscall_regs;
+		offset = parent->arch.kstack - (uint32_t)parent->arch.syscall_regs;
 		new_proc->arch.syscall_regs =
 			(struct registers *)(new_proc->arch.kstack - offset);
 
@@ -519,7 +517,7 @@ void init_process()
 	/* Relocate the stack so we know where it is, the stack size is 8KB. Note
 	 * that this was done in the context of kernel mmu.
 	 */
-	move_stack((void *)0xE0000000, KSTACK_SIZE);
+	move_stack(0xE0000000, KSTACK_SIZE);
 
 	/* Malloc the initial process and initialize it, the initial process will
 	 * use kernel mmu context as its mmu context.
