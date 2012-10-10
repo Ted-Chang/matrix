@@ -368,6 +368,30 @@ int sleep(uint32_t ms)
 	return 0;
 }
 
+int wait(int pid)
+{
+	int rc = -1;
+	struct process *proc;
+	
+	if (pid < 1) {
+		DEBUG(DL_DBG, ("wait: group wait not supported, pid(%d).\n", pid));
+		rc = 0;
+		goto out;
+	}
+
+	/* Get the process corresponding to the process id */
+	proc = pid_2_process(pid);
+	if (!proc) {
+		goto out;
+	}
+
+	rc = proc->status;
+	/* TODO: destroy the process */
+
+out:
+	return rc;
+}
+
 /*
  * NOTE: When adding a system call, please add the following items:
  *   [1] _nr_syscalls - number of the system calls
@@ -400,6 +424,7 @@ static void *_syscalls[] = {
 	setgid,
 	getpid,
 	sleep,
+	wait,
 	NULL
 };
 
@@ -417,7 +442,7 @@ void syscall_handler(struct registers *regs)
 {
 	int rc;
 	void *location;
-	uint32_t syscall_id, magic = 'csyS';
+	uint32_t syscall_id;
 
 	/* Firstly, check if the requested syscall number is valid.
 	 * The syscall number is found in EAX.
@@ -459,6 +484,4 @@ void syscall_handler(struct registers *regs)
 	 */
 	regs = CURR_PROC->arch.syscall_regs;
 	regs->eax = rc;
-
-	ASSERT(magic == 'csyS');
 }

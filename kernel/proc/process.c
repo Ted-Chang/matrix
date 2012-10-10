@@ -154,6 +154,8 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 
 	/* Initialize the file descriptor table */
 	p->fds = fd_table_create(parent ? parent->fds : NULL);
+
+	p->status = 0;
 }
 
 /**

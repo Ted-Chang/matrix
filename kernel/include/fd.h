@@ -18,5 +18,6 @@ int fd_detach(struct process *p, int fd);
 fd_table_t *fd_table_create(fd_table_t *parent);
 void fd_table_destroy(fd_table_t *table);
 fd_table_t *fd_table_clone(fd_table_t *src);
+struct process *pid_2_process(pid_t pid);
 
 #endif	/* __FD_H__ */

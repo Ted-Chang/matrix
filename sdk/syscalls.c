@@ -32,6 +32,7 @@ DEFN_SYSCALL0(getgid, 19)
 DEFN_SYSCALL1(setgid, 20, uint32_t)
 DEFN_SYSCALL0(getpid, 21)
 DEFN_SYSCALL1(sleep, 22, uint32_t)
+DEFN_SYSCALL1(wait, 23, int)
 
 
 int open(const char *file, int flags, int mode)
@@ -142,4 +143,15 @@ int getpid()
 int sleep(int ms)
 {
 	return mtx_sleep(ms);
+}
+
+pid_t wait(int *status)
+{
+	printf("wait: not supported, pid(%d)", getpid());
+	return -1;
+}
+
+pid_t waitpid(pid_t pid, int *status, int options)
+{
+	return mtx_wait(pid);
 }

@@ -29,8 +29,6 @@ struct arch_process {
 };
 typedef struct arch_process arch_process_t;
 
-typedef int pid_t;
-
 /* Forward declaration, used to pass arguments */
 struct process_create;
 
@@ -60,8 +58,10 @@ struct process {
 		PROCESS_RUNNING,
 		PROCESS_DEAD
 	} state;
+
+	int status;			// Exit status
 	
-	struct process_create *create;// Internal creation info structure
+	struct process_create *create;	// Internal creation info structure
 };
 typedef struct process process_t;
 

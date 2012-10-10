@@ -39,4 +39,7 @@ typedef int64_t useconds_t;
 typedef uint32_t uid_t;
 typedef uint32_t gid_t;
 
+/* Process id */
+typedef int pid_t;
+
 #endif	/* __TYPES_H__ */

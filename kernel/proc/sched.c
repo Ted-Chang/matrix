@@ -37,8 +37,6 @@ static void pick_process()
 			break;
 		}
 	}
-
-	//DEBUG(DL_DBG, ("process %d picked.\n", _next_proc->id));
 }
 
 /**

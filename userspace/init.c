@@ -36,12 +36,14 @@ int main(int argc, char **argv)
 
 void start_crond()
 {
-	int pid;
+	int pid, status;
 
 	pid = fork();
 	if (pid == 0) {
 		printf("start_crond: fork in child.\n");
 	} else {
 		printf("start_crond: fork in parent.\n");
+		status = 0;
+		waitpid(pid, &status, 0);
 	}
 }
