@@ -50,10 +50,6 @@ int kmain(u_long addr, uint32_t initial_stack)
 		"/init",
 		NULL
 	};
-	char *crond_argv[] = {
-		"/crond",
-		NULL
-	};
 
 	/* Make the debugger available as soon as possible */
 	kd_init();
@@ -130,8 +126,6 @@ int kmain(u_long addr, uint32_t initial_stack)
 
 	/* Ready to run init process from executable file init */
 	system(init_argv[0], 1, init_argv);
-
-	//system(crond_argv[0], 1, crond_argv);
 
 	return rc;
 }

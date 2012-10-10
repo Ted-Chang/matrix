@@ -37,10 +37,15 @@ int main(int argc, char **argv)
 void start_crond()
 {
 	int pid, status;
+	char *crond[] = {
+		"/crond",
+		NULL
+	};
 
 	pid = fork();
 	if (pid == 0) {
 		printf("start_crond: fork in child.\n");
+		execve(crond[0], crond, NULL);
 	} else {
 		printf("start_crond: fork in parent.\n");
 		status = 0;
