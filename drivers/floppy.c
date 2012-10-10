@@ -1,10 +1,10 @@
 #include <types.h>
 #include <stddef.h>
 #include "matrix/matrix.h"
-#include "hal/hal.h"
-#include "hal/lirq.h"
-#include "hal/isr.h"
+#include "hal.h"
+#include "isr.h"
 #include "floppy.h"
+#include "util.h"
 #include "matrix/debug.h"
 
 
@@ -276,7 +276,7 @@ static void stop_motor(struct fdd *f)
 	}
 }
 
-static void flpy_callback(struct intr_frame *regs)
+static void flpy_callback(struct registers *regs)
 {
 	_irq_signaled = TRUE;
 	kprintf("flpy_callback: interrupt received!\n");

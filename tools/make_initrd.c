@@ -14,14 +14,21 @@ static void usage();
 
 void main(int argc, char **argv)
 {
-	int rc = 0;
-	int nr_headers = (argc - 1)/2;
+	int rc = 0, i;
+	int nr_headers;
 	struct initrd_header headers[64];
-	unsigned int off = sizeof(struct initrd_header)*64 + sizeof(int);
-	int i;
+	unsigned int off;
 	FILE *wfp;
 	unsigned char *data;
 
+	if (argc <= 2) {
+		usage();
+		goto out;
+	}
+
+	nr_headers = (argc - 1)/2;
+	off = sizeof(struct initrd_header)*64 + sizeof(int);
+	
 	printf("size of header: %d\n", sizeof(struct initrd_header));
 
 	for (i = 0; i < nr_headers; i++) {
@@ -44,7 +51,7 @@ void main(int argc, char **argv)
 		headers[i].magic = 0xBF;
 	}
 
-	wfp = fopen("./initrd.img", "w");
+	wfp = fopen("./initrd", "w");
 	if (wfp == 0) {
 		printf("Failed to open file: initrd.img\n");
 		goto out;
@@ -67,12 +74,15 @@ void main(int argc, char **argv)
 	fclose(wfp);
 	free(data);
 
- out:
+out:
 
 	exit(rc);
 }
 
 void usage()
 {
-	printf("usage:\n");
+	printf("usage: mkinitrd srcpath1 dstfile1 srcpath2 dstfile2 ...\n"
+	       "note: maximum number of files is 64\n"
+	       "example: mkinitrd ../bin/init init\n"
+	       "         mkinitrd ../bin/echo echo ../bin/ls ls ../bin/cat cat\n");
 }
