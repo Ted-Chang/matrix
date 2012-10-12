@@ -1,13 +1,14 @@
 # Makefile for tests module
 CFLAGS := -Wall -nostdlib -nostdinc -fno-builtin -fno-stack-protector
 
-OBJ := ../bin/lib
+OBJ := ../bin/obji386
 
 TARGETOBJ := \
 	$(OBJ)/print_test.o \
 	$(OBJ)/list_test.o \
 	$(OBJ)/lock_test.o \
 	$(OBJ)/mem_test.o \
+	$(OBJ)/avltree_test.o \
 	$(OBJ)/tests.o \
 
 
