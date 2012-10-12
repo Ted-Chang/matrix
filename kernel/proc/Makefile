@@ -13,6 +13,7 @@ TARGETOBJ := \
 	$(OBJ)/fd.o \
 	$(OBJ)/elf.o \
 	$(OBJ)/misc.o \
+	$(OBJ)/avltree.o \
 
 .PHONY: clean help
 

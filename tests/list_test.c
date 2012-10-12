@@ -1,7 +1,8 @@
 #include <types.h>
 #include <stddef.h>
-#include "list.h"
+#include "matrix/matrix.h"
 #include "matrix/debug.h"
+#include "list.h"
 
 void list_test()
 {
@@ -14,14 +15,11 @@ void list_test()
 	LIST_INIT(&header);
 	kprintf("header:0x%x, prev:0x%x, next:0x%x\n",
 		&header, header.prev, header.next);
-	ASSERT(list_empty(&header));
 
 	LIST_INIT(&entry1);
-	ASSERT(list_empty(&entry1));
 	list_add_tail(&entry1, &header);
 
 	LIST_INIT(&entry2);
-	ASSERT(list_empty(&entry2));
 	list_add_tail(&entry2, &header);
 
 	i = 0;

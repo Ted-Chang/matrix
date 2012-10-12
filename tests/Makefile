@@ -1,9 +1,10 @@
 # Makefile for tests module
-include ../Makefile.inc
+CFLAGS := -Wall -nostdlib -nostdinc -fno-builtin -fno-stack-protector
 
-OBJ := ../bin/obji386
+OBJ := ../bin/lib
 
-TARGETOBJ := $(OBJ)/print_test.o \
+TARGETOBJ := \
+	$(OBJ)/print_test.o \
 	$(OBJ)/list_test.o \
 	$(OBJ)/lock_test.o \
 	$(OBJ)/mem_test.o \
@@ -15,7 +16,7 @@ TARGETOBJ := $(OBJ)/print_test.o \
 all: $(TARGETOBJ)
 
 $(OBJ)/%.o: %.c
-	$(CC) -m32 -D_X86_ -g -I../include $(CFLAGS_global) -c -o $@ $<
+	$(CC) $(CFLAGS) -m32 -D_X86_ -g -I../sdk/include -I../kernel/include -c -o $@ $<
 
 clean:
 	$(RM) $(TARGETOBJ)

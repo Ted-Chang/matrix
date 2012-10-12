@@ -30,6 +30,9 @@ struct process_create {
 
 static pid_t _next_pid = 1;
 
+/* Tree of all processes */
+static struct avl_tree _proc_tree;
+
 extern uint32_t _initial_esp;
 extern struct process *_next_proc;
 
@@ -156,6 +159,25 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	p->fds = fd_table_create(parent ? parent->fds : NULL);
 
 	p->status = 0;
+
+	// TODO: Use a lock to protect this operation
+	
+	/* Insert this process into process tree */
+	avl_tree_insert_node(&_proc_tree, &p->tree_link, p->id, p);
+}
+
+/**
+ * Lookup a process of the specified pid
+ */
+struct process *process_lookup(pid_t pid)
+{
+	struct process *proc;
+
+	// TODO: Use a lock to protect this operation
+	
+	proc = avl_tree_lookup(&_proc_tree, pid);
+
+	return proc;
 }
 
 /**
@@ -166,6 +188,11 @@ static void process_dtor(void *obj)
 	struct process *p;
 
 	p = (struct process *)obj;
+
+	// TODO: Use a lock to protect this operation
+
+	/* Remove this process from the process tree */
+	avl_tree_remove_node(&_proc_tree, &p->tree_link);
 	
 	kfree((void *)p->arch.kstack - KSTACK_SIZE);
 	// FixMe: cleanup the page directory owned by this process

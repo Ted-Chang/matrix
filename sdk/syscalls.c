@@ -32,7 +32,7 @@ DEFN_SYSCALL0(getgid, 19)
 DEFN_SYSCALL1(setgid, 20, uint32_t)
 DEFN_SYSCALL0(getpid, 21)
 DEFN_SYSCALL1(sleep, 22, uint32_t)
-DEFN_SYSCALL1(wait, 23, int)
+DEFN_SYSCALL1(waitpid, 23, int)
 
 
 int open(const char *file, int flags, int mode)
@@ -153,5 +153,5 @@ pid_t wait(int *status)
 
 pid_t waitpid(pid_t pid, int *status, int options)
 {
-	return mtx_wait(pid);
+	return mtx_waitpid(pid);
 }

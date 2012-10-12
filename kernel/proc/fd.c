@@ -117,8 +117,3 @@ fd_table_t *fd_table_clone(fd_table_t *src)
 {
 	return NULL;
 }
-
-struct process *pid_2_process(pid_t pid)
-{
-	return NULL;
-}

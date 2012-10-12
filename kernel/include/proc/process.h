@@ -1,11 +1,14 @@
 #ifndef __PROCESS_H__
 #define __PROCESS_H__
 
+#include <types.h>
 #include <sys/time.h>
 #include "matrix/const.h"
+#include "matrix/matrix.h"
 #include "priv.h"
 #include "fs.h"
 #include "fd.h"			// File descriptors
+#include "avltree.h"
 
 /* Our kernel stack size is 8192 bytes */
 #define KSTACK_SIZE	0x2000
@@ -59,6 +62,8 @@ struct process {
 		PROCESS_DEAD
 	} state;
 
+	/* Other process information */
+	struct avl_tree_node tree_link;	// Link to the process tree
 	int status;			// Exit status
 	
 	struct process_create *create;	// Internal creation info structure
@@ -87,6 +92,7 @@ int getpid();
 void switch_to_user_mode(uint32_t location, uint32_t ustack);
 int exec(char *path, int argc, char **argv);
 int system(char *path, int argc, char **argv);
+struct process *process_lookup(pid_t pid);
 void init_process();
 
 #endif	/* __PROCESS_H__ */

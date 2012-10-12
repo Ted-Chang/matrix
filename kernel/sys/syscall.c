@@ -368,20 +368,21 @@ int sleep(uint32_t ms)
 	return 0;
 }
 
-int wait(int pid)
+int waitpid(int pid)
 {
 	int rc = -1;
 	struct process *proc;
 	
 	if (pid < 1) {
-		DEBUG(DL_DBG, ("wait: group wait not supported, pid(%d).\n", pid));
+		DEBUG(DL_DBG, ("waitpid: group wait not supported, pid(%d).\n", pid));
 		rc = 0;
 		goto out;
 	}
 
 	/* Get the process corresponding to the process id */
-	proc = pid_2_process(pid);
+	proc = process_lookup(pid);
 	if (!proc) {
+		DEBUG(DL_DBG, ("waitpid: pid(%d) not found in process tree.\n", pid));
 		goto out;
 	}
 
@@ -424,7 +425,7 @@ static void *_syscalls[] = {
 	setgid,
 	getpid,
 	sleep,
-	wait,
+	waitpid,
 	NULL
 };
 
