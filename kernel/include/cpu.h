@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include "matrix/matrix.h"	// For INLINE
 #include "list.h"
+#include "hal.h"
 
 /* Model Specific Register */
 #define X86_MSR_TSC		0x10		// Time Stamp Counter (TSC)
@@ -45,8 +46,8 @@
 #define X86_CPUID_ADDRESS_SIZE	0x80000008
 
 struct cpu_features {
-	uint32_t highest_standard;	// Highest standard function
-	uint32_t highest_extended;	// Highest extended function
+	uint32_t highest_standard;		// Highest standard function
+	uint32_t highest_extended;		// Highest extended function
 
 	/* Standard CPUID features (EDX) */
 	union {
@@ -123,6 +124,28 @@ struct cpu_features {
 		};
 		uint32_t standard_ecx;
 	};
+
+	/* Extended CPUID Features (EDX) */
+	union {
+		struct {
+			unsigned :11;
+			unsigned syscall:1;
+			unsigned :8;
+			unsigned xd:1;
+			unsigned :8;
+			unsigned lmode:1;
+		};
+		uint32_t extended_edx;
+	};
+
+	/* Extended CPUID Features (ECX) */
+	union {
+		struct {
+			unsigned lahf:1;
+			unsigned :31;
+		};
+		uint32_t extended_ecx;
+	};
 };
 typedef struct cpu_features cpu_features_t;
 
@@ -133,6 +156,8 @@ struct arch_cpu {
 	struct cpu *parent;
 
 	/* Per CPU structures */
+	struct gdt gdt[NR_GDT_ENTRIES];	// Array of GDT descriptors
+	struct tss tss;			// Task State Segment
 	void *double_fault_stack;	// Pointer to the stack for double faults
 
 	/* CPU information */
@@ -216,7 +241,8 @@ static INLINE struct cpu *cpu_get_pointer()
 {
 	uint32_t addr;
 	
-	addr = (uint32_t)x86_read_msr(X86_MSR_GS_BASE);
+	//addr = (uint32_t)x86_read_msr(X86_MSR_GS_BASE);
+	addr = &_boot_cpu;
 	return (struct cpu *)addr;
 }
 
@@ -234,7 +260,9 @@ static INLINE void cpu_idle()
 	asm volatile("sti;hlt;cli");
 }
 
-
+extern void preinit_per_cpu();
+extern void preinit_cpu();
+extern void init_per_cpu();
 extern void init_cpu();
 
 #endif	/* __CPU_H__ */

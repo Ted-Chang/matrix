@@ -4,12 +4,51 @@
 #include "pit.h"
 #include "hal.h"
 #include "matrix/debug.h"
+#include "mm/mlayout.h"
+#include "mm/page.h"
+
+extern struct idt_ptr _idt_ptr;
+extern struct irq_hook *_irq_handlers[];
+extern void init_idt();
+extern void idt_flush();
+extern void init_gdt(struct cpu *c);
+extern void init_tss(struct cpu *c);
+
+/* Feature set present on all CPUs */
+struct cpu_features _cpu_features;
 
 /* Boot CPU structure */
 struct cpu _boot_cpu;
 
+/* Information about all CPUs */
 size_t _nr_cpus;
 size_t _highest_cpu_id;
+
+struct list _running_cpus = {
+	.prev = &_running_cpus,
+	.next = &_running_cpus,
+};
+
+/* Double fault handler stack for the boot CPU */
+static u_char _boot_double_fault_stack[KSTACK_SIZE]__attribute__((aligned(PAGE_SIZE)));
+
+cpu_id_t cpu_id()
+{
+	return 0;
+}
+
+static void init_descriptor(struct cpu *c)
+{
+	/* Initialize and load GDT/TSS */
+	init_gdt(c);
+	init_tss(c);
+
+	/* Point this CPU to the global IDT */
+	idt_flush((uint32_t)&_idt_ptr);
+
+	DEBUG(DL_DBG, ("GDT and TSS installed for cpu(%d) at 0x%p\n",
+		       c->id, &_idt_ptr));
+}
 
 static void cpu_ctor(struct cpu *c, cpu_id_t id, int state)
 {
@@ -117,26 +156,109 @@ static uint64_t calculate_cpu_freq()
 	return cycles * (PIT_BASE_FREQ / ticks);
 }
 
-cpu_id_t cpu_id()
+static void arch_preinit_cpu()
 {
-	return 0;
+	/* Initialize the global IDT and interrupt handler table */
+	init_idt();
+
+	/* Clear the irq handlers table and initialize them */
+	memset(&_irq_handlers[0], 0, sizeof(struct irq_hook *) * 256);
+	init_exception_handlers();
 }
 
-void init_cpu()
+static void arch_preinit_per_cpu(struct cpu *c)
 {
 	struct cpu_features features;
-	
+
+	DEBUG(DL_DBG, ("arch_preinit_per_cpu\n"));
+
+	/* If this is the boot CPU, a double fault stack will not have been
+	 * allocated. Use the pre-allocated one in this case.
+	 */
+	if (c == &_boot_cpu) {
+		c->arch.double_fault_stack = _boot_double_fault_stack;
+	}
+
+	/* Initialize and load descriptor tables */
+	init_descriptor(c);
+
+	/* Detect CPU features and information */
+	detect_cpu_features(c, &features);
+
+	/* If this is the boot CPU, copy features to the global features
+	 * structure. Otherwise, check that the feature set matches the global
+	 * features. We do not allow SMP configurations with different features
+	 * on different CPUs.
+	 */
+	if (c == &_boot_cpu) {
+		memcpy(&_cpu_features, &features, sizeof(_cpu_features));
+	} else {
+		if ((_cpu_features.highest_standard != features.highest_standard) ||
+		    (_cpu_features.highest_extended != features.highest_extended) ||
+		    (_cpu_features.standard_edx != features.standard_edx) ||
+		    (_cpu_features.standard_ecx != features.standard_ecx) ||
+		    (_cpu_features.extended_edx != features.extended_edx) ||
+		    (_cpu_features.extended_ecx != features.extended_ecx)) {
+			PANIC("CPU has different feature set to boot CPU");
+		}
+	}
+
+	/* Check for the required features. Enable them when you need to use these
+	 * features.
+	 */
+	if (features.highest_standard < X86_CPUID_FEATURE_INFO) {
+		PANIC("CPUID feature information not supported");
+	} else if (!_cpu_features.fpu || !_cpu_features.fxsr) {
+		PANIC("CPU does not support FPU/FXSR");
+	} else if (!_cpu_features.tsc) {
+		PANIC("CPU does not support TSC");
+	} else if (!_cpu_features.pge) {
+		PANIC("CPU does not support PGE");
+	}
+
+	/* Get the CPU frequency */
+	if (c == &_boot_cpu) {
+		c->arch.cpu_freq = calculate_cpu_freq();
+	} else {
+		c->arch.cpu_freq = _boot_cpu.arch.cpu_freq;
+	}
+
+	/* Initialize the TSC target */
+}
+
+static void arch_init_per_cpu()
+{
+	/* TODO: Initialize LAPIC */
+	;
+}
+
+void preinit_per_cpu(struct cpu *c)
+{
+	arch_preinit_per_cpu(c);
+}
+
+void preinit_cpu()
+{
 	/* The boot CPU is initially assigned an ID of 0. It will be corrected
 	 * once we have the ability to get the read ID.
 	 */
 	cpu_ctor(&_boot_cpu, 0, CPU_RUNNING);
+	list_add_tail(&_boot_cpu.link, &_running_cpus);
 
-	/* Detect CPU feature and information. */
-	detect_cpu_features(&_boot_cpu, &features);
+	/* Perform architecture specific initialization. This initialize some
+	 * state shared between all CPUs
+	 */
+	arch_preinit_cpu();
+}
 
-	/* Get the CPU frequency */
-	_boot_cpu.arch.cpu_freq = calculate_cpu_freq();
-	
+void init_per_cpu()
+{
+	arch_init_per_cpu();
+}
+
+void init_cpu()
+{
+	/* Get the ID of the boot CPU */
 	_boot_cpu.id = _highest_cpu_id = cpu_id();
 	_nr_cpus = 1;
 

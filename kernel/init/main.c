@@ -31,8 +31,6 @@
 uint32_t _initial_esp;
 struct multiboot_info *_mbi;
 
-extern struct irq_hook *_irq_handlers[];
-
 void init_syscalls();
 
 static void announce();
@@ -66,24 +64,16 @@ int kmain(u_long addr, uint32_t initial_stack)
 	_initial_esp = initial_stack;
 
 	/* Initialize the CPU */
-	init_cpu();
-	kprintf("CPU initialized.\n");
-
-	/* Install the gdt and idt */
-	init_gdt();
-	init_idt();
-	memset(&_irq_handlers[0], 0, sizeof(struct irq_hook *)*256);
-	kprintf("Gdt and idt installed.\n");
-
-	init_exception_handlers();
-	kprintf("Exception handlers installed.\n");
+	preinit_cpu();
+	preinit_per_cpu(&_boot_cpu);
+	kprintf("CPU preinitialization done.\n");
 
 	/* Enable interrupt so our timer can work */
 	irq_enable();
 
 	/* Initialize our timer */
 	init_clock();
-	kprintf("System PIT initialized.\n");
+	kprintf("System PIT initialization done.\n");
 
 	/* Find the location of our initial ramdisk */
 	initrd_location = *((uint32_t *)_mbi->mods_addr);
@@ -101,11 +91,22 @@ int kmain(u_long addr, uint32_t initial_stack)
 	init_malloc();
 	DEBUG(DL_DBG, ("Kernel memory allocator initialization done.\n"));
 
-	kprintf("Memory manager initialized.\n");
+	kprintf("Memory manager initialization done.\n");
+
+	/* Perform more per-CPU initialization that can be done after the
+	 * memory management subsystem was up
+	 */
+	init_per_cpu();
+	DEBUG(DL_DBG, ("Per-CPU initialization done.\n"));
+	/* Properly initialize the CPU and detect other CPUs */
+	init_cpu();
+	DEBUG(DL_DBG, ("CPU initialization done.\n"));
+
+	kprintf("CPU initialization done.\n");
 
 	/* Start multitasking now */
 	init_process();
-	kprintf("Multitask initialized.\n");
+	kprintf("Multitask initialization done.\n");
 
 	/* Initialize the initial ramdisk and set it as the root filesystem */
 	_root_node = init_initrd(initrd_location);
@@ -113,13 +114,13 @@ int kmain(u_long addr, uint32_t initial_stack)
 		initrd_location, initrd_end);
 
 	init_syscalls();
-	kprintf("System call initialized.\n");
+	kprintf("System call initialization done.\n");
 
 	init_keyboard();
-	kprintf("Keyboard driver initialized.\n");
+	kprintf("Keyboard driver initialization done.\n");
 
 	init_floppy();
-	kprintf("Floppy driver initialized.\n");
+	kprintf("Floppy driver initialization done.\n");
 
 	/* Print the banner */
 	announce();

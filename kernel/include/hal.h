@@ -26,7 +26,7 @@
 #define ICW4_SFNM	0x10		// Special fully nested (not)
 
 
-#define MAX_GDT_DESCRIPTORS	5
+#define NR_GDT_ENTRIES	6
 
 /*
  * The definition of GDT entry.
@@ -45,7 +45,7 @@ struct gdt_ptr {
 	uint32_t base;
 } __attribute__((packed));
 
-#define X86_MAX_INTERRUPTS	256
+#define NR_IDT_ENTRIES	256
 
 /*
  * The definition of IDT entry
@@ -115,8 +115,6 @@ extern uint16_t inportw(uint16_t port);
 extern void irq_enable();
 extern void irq_disable();
 extern void irq_done(uint32_t int_no);
-extern void init_gdt();
-extern void init_idt();
 extern void set_kernel_stack(uint32_t stack);
 extern void register_irq_handler(uint8_t irq, struct irq_hook *hook, isr_t handler);
 extern void unregister_irq_handler(struct irq_hook *hook);

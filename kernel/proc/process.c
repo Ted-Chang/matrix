@@ -8,6 +8,7 @@
 #include "matrix/matrix.h"
 #include "matrix/const.h"
 #include "hal.h"
+#include "cpu.h"
 #include "mm/page.h"
 #include "mm/mmu.h"
 #include "mm/malloc.h"
@@ -499,6 +500,8 @@ int getpid()
  */
 void switch_to_user_mode(uint32_t location, uint32_t ustack)
 {
+	ASSERT(CURR_CPU == &_boot_cpu);
+	
 	/* Setup our kernel stack, note that the stack was grow from high address
 	 * to low address
 	 */

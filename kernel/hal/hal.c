@@ -3,23 +3,19 @@
  */
 
 #include <types.h>
+#include <stddef.h>
 #include "hal.h"
 #include "cpu.h"
 #include "string.h"	// memset
+#include "matrix/debug.h"
 
-struct idt _idt_entries[X86_MAX_INTERRUPTS];
+struct idt _idt_entries[NR_IDT_ENTRIES];
 struct idt_ptr _idt_ptr;
-struct tss _tss_entry;
-struct gdt _gdt_entries[MAX_GDT_DESCRIPTORS];
-struct gdt_ptr _gdt_ptr;
 
-static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags);
-static void write_tss(int32_t num, uint16_t ss0, uint32_t esp0);
-static void gdt_set_gate(uint32_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t granu);
-
-void idt_flush(uint32_t);
-void tss_flush();
-void gdt_flush(uint32_t);
+/* Functions defined in ASM code */
+extern void idt_flush(uint32_t);
+extern void tss_flush();
+extern void gdt_flush(uint32_t);
 
 void outportb(uint16_t port, uint8_t value)
 {
@@ -69,7 +65,7 @@ void irq_done(uint32_t int_no)
 
 static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags)
 {
-	if (num >= X86_MAX_INTERRUPTS)
+	if (num >= NR_IDT_ENTRIES)
 		return;
 	if (!base)
 		return;
@@ -107,6 +103,9 @@ static void pic_remap(int offset1, int offset2)
 	outportb(0xA1, 0x0);
 }
 
+/**
+ * Global IDT initialization
+ */
 void init_idt()
 {
 	_idt_ptr.limit = sizeof(struct idt) * 256 - 1;
@@ -174,22 +173,77 @@ void init_idt()
 	idt_flush((uint32_t)&_idt_ptr);
 }
 
-static void write_tss(int32_t num, uint16_t ss0, uint32_t esp0)
+static void gdt_set_gate(struct gdt *g, uint32_t base, uint32_t limit,
+			 uint8_t access, uint8_t granu)
+{
+	g->base_low = (base & 0xFFFF);
+	g->base_middle = (base >> 16) & 0xFF;
+	g->base_high = (base >> 24) & 0xFF;
+
+	g->limit_low = (limit & 0xFFFF);
+	g->granularity = (limit >> 16) & 0x0F;
+
+	g->granularity |= granu & 0xF0;
+	g->access = access;
+}
+
+static void write_tss(struct gdt *g, struct tss *t)
 {
 	uint32_t base, limit;
 
 	/* Firstly, let's compute the base and limit of our entry into the GDT */
-	base = (uint32_t)&_tss_entry;
+	base = (uint32_t)t;
 	limit = base + sizeof(struct tss);
 
 	/* Now, add our TSS descriptor's address to the GDT */
-	gdt_set_gate(num, base, limit, 0xE9, 0x00);
+	gdt_set_gate(g, base, limit, 0xE9, 0x00);
+}
 
+/**
+ * Per CPU gdt initialization.
+ */
+void init_gdt(struct cpu *c)
+{
+	struct gdt_ptr ptr;
+	struct gdt *d = c->arch.gdt;
+	
+	/* 5 GDT entry and a TSS entry */
+	ptr.limit = (sizeof(c->arch.gdt)) - 1;
+	ptr.base = (uint32_t)&c->arch.gdt;
+
+	/* The NULL segment */
+	gdt_set_gate(&d[0], 0, 0, 0, 0);
+	
+	gdt_set_gate(&d[1], 0, 0xFFFFFFFF, 0x9A, 0xCF);	// Kernel code segment
+	gdt_set_gate(&d[2], 0, 0xFFFFFFFF, 0x92, 0xCF);	// Kernel data segment
+	gdt_set_gate(&d[3], 0, 0xFFFFFFFF, 0xFA, 0xCF);	// Usermode code segment
+	gdt_set_gate(&d[4], 0, 0xFFFFFFFF, 0xF2, 0xCF);	// Usermode data segment
+
+	write_tss(&d[5], &c->arch.tss);
+
+	gdt_flush((uint32_t)&ptr);
+
+	/* Although once the thread system is up the OS base is pointed at the
+	 * architecture thread data, we need _curr_cpu to work before that. Our
+	 * CPU data has a pointer at the start which we can use, so point the GS
+	 * base at that for later use by cpu_get_pointer()
+	 */
+	c->arch.parent = c;
+	x86_write_msr(X86_MSR_GS_BASE, (uint64_t)c);	// FixMe: the GS register will be overridden
+	x86_write_msr(X86_MSR_K_GS_BASE, 0);
+	ASSERT(CURR_CPU == c);
+}
+
+void init_tss(struct cpu *c)
+{
 	/* Ensure the descriptor is initially zero */
-	memset(&_tss_entry, 0, sizeof(struct tss));
+	memset(&c->arch.tss, 0, sizeof(struct tss));
 
-	_tss_entry.ss0 = ss0;	// Set the kernel stack segment
-	_tss_entry.esp0 = esp0;	// Set the kernel stack pointer
+	/* 0x10 is the offset of kernel data segment in GDT */
+	c->arch.tss.ss0 = 0x10;	// Set the kernel stack segment
+	
+	/* 0 is the value the stack-pointer shall get at a system call */
+	c->arch.tss.esp0 = 0;	// Set the kernel stack pointer
 
 	/* Here we set the cs, ss, ds, es, fs and gs entries in the TSS. These specify
 	 * what segments should be laoded when the processor switches to kernel mode.
@@ -198,63 +252,20 @@ static void write_tss(int32_t num, uint16_t ss0, uint32_t esp0)
 	 * of these bits sets the RPL (requested privilege level) to 3, meaning that TSS
 	 * can be used to switch to kernel mode from ring 3.
 	 */
-	_tss_entry.cs = 0x0b;
-	_tss_entry.ss = _tss_entry.ds =
-		_tss_entry.es =
-		_tss_entry.fs =
-		_tss_entry.gs =
+	c->arch.tss.cs = 0x0B;
+	c->arch.tss.ss = c->arch.tss.ds =
+		c->arch.tss.es =
+		c->arch.tss.fs =
+		c->arch.tss.gs =
 		0x13;
-}
 
-static void gdt_set_gate(uint32_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t granu)
-{
-	_gdt_entries[num].base_low = (base & 0xFFFF);
-	_gdt_entries[num].base_middle = (base >> 16) & 0xFF;
-	_gdt_entries[num].base_high = (base >> 24) & 0xFF;
+	/* 104 is the size of TSS */
+	c->arch.tss.iomap_base = 104;
 
-	_gdt_entries[num].limit_low = (limit & 0xFFFF);
-	_gdt_entries[num].granularity = (limit >> 16) & 0x0F;
-
-	_gdt_entries[num].granularity |= granu & 0xF0;
-	_gdt_entries[num].access = access;
-}
-
-static void __init_gdt()
-{
-	/* 5 GDT entry and a TSS entry */
-	_gdt_ptr.limit = (sizeof(struct gdt) * 6) - 1;
-	_gdt_ptr.base = (uint32_t)&_gdt_entries;
-
-	/* The NULL segment */
-	gdt_set_gate(0, 0, 0, 0, 0);
-	
-	gdt_set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF);	// Kernel code segment
-	gdt_set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF);	// Kernel data segment
-	gdt_set_gate(3, 0, 0xFFFFFFFF, 0xFA, 0xCF);	// Usermode code segment
-	gdt_set_gate(4, 0, 0xFFFFFFFF, 0xF2, 0xCF);	// Usermode data segment
-
-	write_tss(5, 0x10, 0);
-
-	gdt_flush((uint32_t)&_gdt_ptr);
-
-	/* flush the TSS */
 	tss_flush();
-
-	/* Although once the thread system is up the OS base is pointed at the
-	 * architecture thread data, we need _curr_cpu to work before that. Our
-	 * CPU data has a pointer at the start which we can use, so point the GS
-	 * base at that for later use by cpu_get_pointer()
-	 */
-	x86_write_msr(X86_MSR_GS_BASE, (uint64_t)&_boot_cpu);
-	x86_write_msr(X86_MSR_K_GS_BASE, 0);
-}
-
-void init_gdt()
-{
-	__init_gdt();
 }
 
 void set_kernel_stack(uint32_t stack)
 {
-	_tss_entry.esp0 = stack;
+	CURR_CPU->arch.tss.esp0 = stack;
 }

@@ -10,11 +10,8 @@
 #include "fs.h"
 #include "fd.h"			// File descriptors
 #include "avltree.h"
+#include "mm/mlayout.h"		// For memory layout
 
-/* Our kernel stack size is 8192 bytes */
-#define KSTACK_SIZE	0x2000
-/* Our user stack size is 65536 bytes */
-#define USTACK_SIZE	0x10000
 /* Bottom of the user stack */
 #define USTACK_BOTTOM	0x10000000
 
