@@ -61,12 +61,14 @@ useconds_t time_to_unix(uint32_t year, uint32_t mon, uint32_t day,
 	/* If this is a leap year and we've past February, we need to
 	 * add another day.
 	 */
-	if (mon > 2 && LEAPYEAR(year))
+	if (mon > 2 && LEAPYEAR(year)) {
 		seconds += 24 * 60 * 60;
+	}
 
 	/* Add the days in each year before this year from 1970 */
-	for (i = 1970; i < year; i++)
+	for (i = 1970; i < year; i++) {
 		seconds += DAYS(i) * 24 * 60 * 60;
+	}
 
 	return SECS2USECS(seconds);
 }
@@ -111,7 +113,6 @@ static void clock_callback(struct registers *regs)
 	 * process is running, charge the billable process for system time as well.
 	 * Thus the unbillable process' user time is the billable user's system time.
 	 */
-	CURR_PROC->usr_time += ticks;
 	if (FLAG_ON(CURR_PROC->priv.flags, PREEMPTIBLE)) {
 		CURR_PROC->ticks_left -= ticks;	// Consume the quantum
 	}

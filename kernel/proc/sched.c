@@ -1,10 +1,40 @@
 #include <types.h>
 #include <stddef.h>
 #include <string.h>
+#include "matrix/debug.h"
 #include "hal.h"
+#include "cpu.h"
+#include "spinlock.h"
 #include "proc/process.h"
 #include "proc/sched.h"
-#include "matrix/debug.h"
+
+/* Number of priority levels */
+#define NR_PRIORITIES	32
+
+/* Time quantum to give to threads */
+#define THREAD_QUANTUM
+
+/* Run queue structure */
+struct sched_queue {
+	uint32_t bitmap;			// Bitmap of queues with data
+	struct list threads[NR_PRIORITIES];	// Queues of runnable threads
+};
+typedef struct sched_queue sched_queue_t;
+
+/* Per-CPU scheduling information structure */
+struct sched_cpu {
+	struct spinlock lock;			// Lock to protect information/queues
+	
+	struct thread *prev_thread;		// Previously executed thread
+	struct thread *idle_thread;		// Thread scheduled when no other threads runnable
+	
+	struct sched_queue *active;		// Active queue
+	struct sched_queue *expired;		// Expired queue
+	struct sched_queue queues[2];		// Active and expired queues
+	
+	size_t total;				// Total running/ready thread count
+};
+typedef struct sched_cpu sched_cpu_t;
 
 /* The schedule queue for our kernel */
 struct process *_ready_head[NR_SCHED_QUEUES];
@@ -16,6 +46,20 @@ volatile struct process *_prev_proc = NULL;
 volatile struct process *_curr_proc = NULL;		// Current running process
 
 static void sched(struct process *tp, int *queue, boolean_t *front);
+
+static struct cpu *sched_alloc_cpu(struct thread *t)
+{
+	struct cpu *cpu, *other;
+
+	/* On UP systems, the only choice is current CPU */
+	if (_nr_cpus == 1) {
+		return CURR_CPU;
+	}
+
+	cpu = NULL;
+	
+	return cpu;
+}
 
 /**
  * pick_process only update the _next_proc pointer.
@@ -141,10 +185,6 @@ static void sched(struct process *p, int *queue, boolean_t *front)
 	 */
 	if (!time_left) {				// Quantum consumed ?
 		p->ticks_left = p->quantum;		// Give new quantum
-		//if (_prev_proc == tp)
-		//	penalty++;			// Priority boost
-		//else
-		//	penalty--;			// Give slow way back
 		_prev_proc = p;				// Store ptr for next
 	}
 

@@ -16,8 +16,8 @@ static INLINE boolean_t spinlock_held(struct spinlock *lock)
 	return lock->value != 1;
 }
 
-void spinlock_init(struct spinlock *lock, const char *name);
-void spinlock_acquire(struct spinlock *lock);
-void spinlock_release(struct spinlock *lock);
+extern void spinlock_init(struct spinlock *lock, const char *name);
+extern void spinlock_acquire(struct spinlock *lock);
+extern void spinlock_release(struct spinlock *lock);
 
 #endif	/* __SPINLOCK_H__ */

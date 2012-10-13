@@ -1,12 +1,25 @@
 #ifndef __CPU_H__
 #define __CPU_H__
 
+#include <types.h>
+#include <stddef.h>
 #include "matrix/matrix.h"	// For INLINE
 #include "list.h"
 
 /* Model Specific Register */
 #define X86_MSR_TSC		0x10		// Time Stamp Counter (TSC)
 #define X86_MSR_APIC_BASE	0x1B		// LAPIC base address
+#define X86_MSR_MTRR_BASE0	0x200		// Base of the variable length MTRR base register
+#define X86_MSR_MTRR_MASK0	0x201		// Base of the variable length MTRR mask register
+#define X86_MSR_CR_PAT		0x277		// PAT
+#define X86_MSR_MTRR_DEF_TYPE	0x2FF		// Default MTRR type
+#define X86_MSR_EFER		0xC0000080	// Extended Feature Enable register
+#define X86_MSR_STAR		0xC0000081	// System Call Target Address
+#define X86_MSR_LSTAR		0xC0000082	// 64-bit System Call Target Address
+#define X86_MSR_FMASK		0xC0000084	// System Call Flag Mask
+#define X86_MSR_FS_BASE		0xC0000100	// FS segment base register
+#define X86_MSR_GS_BASE		0xC0000101	// GS segment base register
+#define X86_MSR_K_GS_BASE	0xC0000102	// GS base switch to with SWAPGS
 
 /* Standard CPUID function definitions */
 #define X86_CPUID_VENDOR_ID	0x00000000
@@ -144,10 +157,21 @@ struct cpu {
 		CPU_OFFLINE,
 		CPU_RUNNING,
 	} state;
+
+	/* Scheduler information */
+	struct sched_cpu *sched;	// Scheduler run queues/timers
+	struct thread *thread;		// Currently executing thread
+	struct mmu_ctx *aspace;		// Address space currently in use
+	struct list timers;		// List of active timers
 };
 typedef struct cpu cpu_t;
 
+/* Expands to a pointer to the CPU structure of the current CPU */
+#define CURR_CPU	((struct cpu *)cpu_get_pointer())
+
 extern struct cpu _boot_cpu;
+extern size_t _nr_cpus;
+extern size_t _highest_cpu_id;
 
 /* Read an MSR */
 static INLINE uint64_t x86_read_msr(uint32_t msr)
@@ -185,6 +209,17 @@ static INLINE uint64_t x86_rdtsc()
 	return ((uint64_t)high << 32) | low;
 }
 
+/* Get the current CPU pointer, the pointer was set when we initialize
+ * the GDT for the CPU
+ */
+static INLINE struct cpu *cpu_get_pointer()
+{
+	uint32_t addr;
+	
+	addr = (uint32_t)x86_read_msr(X86_MSR_GS_BASE);
+	return (struct cpu *)addr;
+}
+
 /* Halt the CPU */
 static INLINE void cpu_halt()
 {
@@ -200,6 +235,6 @@ static INLINE void cpu_idle()
 }
 
 
-void init_cpu();
+extern void init_cpu();
 
 #endif	/* __CPU_H__ */

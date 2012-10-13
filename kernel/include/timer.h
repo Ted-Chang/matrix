@@ -14,13 +14,13 @@ struct timer {
 	void *timer_ctx;
 };
 
-void init_clock();
-void stop_clock();
-clock_t get_uptime();
-u_long read_clock();
-void init_timer(struct timer *t);
-void set_timer(struct timer *t, clock_t exp_time, timer_func_t callback);
-void cancel_timer(struct timer *t);
-void timer_delay(uint32_t msec);
+extern void init_clock();
+extern void stop_clock();
+extern clock_t get_uptime();
+extern u_long read_clock();
+extern void init_timer(struct timer *t);
+extern void set_timer(struct timer *t, clock_t exp_time, timer_func_t callback);
+extern void cancel_timer(struct timer *t);
+extern void timer_delay(uint32_t msec);
 
 #endif	/* __TIMER_H__ */

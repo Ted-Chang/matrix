@@ -8,8 +8,8 @@
 /* Boot CPU structure */
 struct cpu _boot_cpu;
 
-static size_t _nr_cpus;
-static size_t _highest_cpu_id;
+size_t _nr_cpus;
+size_t _highest_cpu_id;
 
 static void cpu_ctor(struct cpu *c, cpu_id_t id, int state)
 {
@@ -17,6 +17,9 @@ static void cpu_ctor(struct cpu *c, cpu_id_t id, int state)
 	LIST_INIT(&c->link);
 	c->id = id;
 	c->state = state;
+
+	/* Initialize timer information */
+	LIST_INIT(&c->timers);
 }
 
 void dump_cpu(struct cpu *c)

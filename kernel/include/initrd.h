@@ -14,6 +14,6 @@ struct initrd_file_header {
 	uint32_t length;	// Length of the file
 };
 
-struct vfs_node *init_initrd(uint32_t location);
+extern struct vfs_node *init_initrd(uint32_t location);
 
 #endif	/* __INITRD_H__ */

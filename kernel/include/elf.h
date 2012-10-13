@@ -142,7 +142,7 @@ typedef struct {
 typedef Elf32_Ehdr elf_ehdr_t;
 typedef Elf32_Shdr elf_shdr_t;
 
-boolean_t elf_ehdr_check(elf_ehdr_t *ehdr);
-int elf_load_sections(struct arch_process *arch, elf_ehdr_t *ehdr);
+extern boolean_t elf_ehdr_check(elf_ehdr_t *ehdr);
+extern int elf_load_sections(struct arch_process *arch, elf_ehdr_t *ehdr);
 
 #endif	/* __ELF_H__ */

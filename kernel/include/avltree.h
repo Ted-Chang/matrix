@@ -33,11 +33,11 @@ static INLINE void avl_tree_init(struct avl_tree *tree)
 	tree->root = NULL;
 }
 
-void avl_tree_insert(struct avl_tree *tree, key_t key, void *value);
-void avl_tree_remove(struct avl_tree *tree, key_t key);
-void avl_tree_insert_node(struct avl_tree *tree, struct avl_tree_node *node,
-			  key_t key, void *value);
-void avl_tree_remove_node(struct avl_tree *tree, struct avl_tree_node *node);
-void *avl_tree_lookup(struct avl_tree *tree, key_t key);
+extern void avl_tree_insert(struct avl_tree *tree, key_t key, void *value);
+extern void avl_tree_remove(struct avl_tree *tree, key_t key);
+extern void avl_tree_insert_node(struct avl_tree *tree, struct avl_tree_node *node,
+				 key_t key, void *value);
+extern void avl_tree_remove_node(struct avl_tree *tree, struct avl_tree_node *node);
+extern void *avl_tree_lookup(struct avl_tree *tree, key_t key);
 
 #endif	/* __AVLTREE_H__ */

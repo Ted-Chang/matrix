@@ -42,6 +42,6 @@ struct fdd {
 };
 
 
-void init_floppy();
+extern void init_floppy();
 
 #endif	/* __FLOPPY_H__ */

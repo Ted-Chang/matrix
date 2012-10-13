@@ -14,6 +14,7 @@ TARGETOBJ := \
 	$(OBJ)/elf.o \
 	$(OBJ)/misc.o \
 	$(OBJ)/avltree.o \
+	$(OBJ)/thread.o \
 
 .PHONY: clean help
 

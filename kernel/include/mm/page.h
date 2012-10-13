@@ -22,8 +22,8 @@ struct page {
 
 extern phys_addr_t _placement_addr;
 
-void page_alloc(struct page *p, boolean_t kernel, boolean_t write);
-void page_free(struct page *p);
-void init_page();
+extern void page_alloc(struct page *p, boolean_t kernel, boolean_t write);
+extern void page_free(struct page *p);
+extern void init_page();
 
 #endif	/* __PAGE_H__ */

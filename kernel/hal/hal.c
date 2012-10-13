@@ -4,6 +4,7 @@
 
 #include <types.h>
 #include "hal.h"
+#include "cpu.h"
 #include "string.h"	// memset
 
 struct idt _idt_entries[X86_MAX_INTERRUPTS];
@@ -238,6 +239,14 @@ static void __init_gdt()
 
 	/* flush the TSS */
 	tss_flush();
+
+	/* Although once the thread system is up the OS base is pointed at the
+	 * architecture thread data, we need _curr_cpu to work before that. Our
+	 * CPU data has a pointer at the start which we can use, so point the GS
+	 * base at that for later use by cpu_get_pointer()
+	 */
+	x86_write_msr(X86_MSR_GS_BASE, (uint64_t)&_boot_cpu);
+	x86_write_msr(X86_MSR_K_GS_BASE, 0);
 }
 
 void init_gdt()

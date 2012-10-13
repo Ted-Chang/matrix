@@ -5,6 +5,7 @@
 #include <sys/time.h>
 #include "matrix/const.h"
 #include "matrix/matrix.h"
+#include "list.h"
 #include "priv.h"
 #include "fs.h"
 #include "fd.h"			// File descriptors
@@ -48,13 +49,13 @@ struct process {
 	struct arch_process arch;	// Architecture process implementation
 	struct fd_table *fds;		// File descriptor table
 
-	clock_t usr_time;		// User time in ticks
-	clock_t sys_time;		// System time in ticks
 	int8_t priority;		// Current scheduling priority
 	int8_t max_priority;		// Max priority of the process
 	int8_t ticks_left;		// Number of scheduling ticks left
 	int8_t quantum;			// Quantum in ticks
 	char name[P_NAME_LEN];		// Name of the process, include `\0'
+
+	struct list threads;		// List of threads
 
 	/* State of the process */
 	enum {
@@ -86,13 +87,13 @@ extern volatile struct process *_curr_proc;
 /* Macro that retrieve the pointer of the current process */
 #define CURR_PROC	(_curr_proc)
 
-void switch_context();
-int fork();
-int getpid();
-void switch_to_user_mode(uint32_t location, uint32_t ustack);
-int exec(char *path, int argc, char **argv);
-int system(char *path, int argc, char **argv);
-struct process *process_lookup(pid_t pid);
-void init_process();
+extern void switch_context();
+extern int fork();
+extern int getpid();
+extern void switch_to_user_mode(uint32_t location, uint32_t ustack);
+extern int exec(char *path, int argc, char **argv);
+extern int system(char *path, int argc, char **argv);
+extern struct process *process_lookup(pid_t pid);
+extern void init_process();
 
 #endif	/* __PROCESS_H__ */

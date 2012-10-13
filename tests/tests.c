@@ -8,6 +8,7 @@ void unit_test()
 	list_test();
 	lock_test();
 	mem_test();
+	avl_tree_test();
 	
 	while (1);
 }

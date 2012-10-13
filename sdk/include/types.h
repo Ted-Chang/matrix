@@ -42,4 +42,7 @@ typedef uint32_t gid_t;
 /* Process id */
 typedef int pid_t;
 
+/* Thread id */
+typedef int tid_t;
+
 #endif	/* __TYPES_H__ */

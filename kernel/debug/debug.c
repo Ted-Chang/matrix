@@ -48,10 +48,6 @@ void check_runqueues(char *when)
 		}
 
 		for (p = _ready_head[q]; p != NULL; p = p->next) {
-			if (p->priority != q) {
-				kprintf("wrong priority: %s\n", when);
-				PANIC("Scheduling error!");
-			}
 			if ((p->next == NULL) && (_ready_tail[q] != p)) {
 				kprintf("last element not tail: %s\n", when);
 				PANIC("Scheduling error!");

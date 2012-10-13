@@ -129,8 +129,6 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	p->quantum = P_QUANTUM;
 	p->ticks_left = 0;		// Initial ticks is 0
 	p->priv.flags = PREEMPTIBLE;
-	p->usr_time = 0;
-	p->sys_time = 0;
 	p->name[0] = '\0';
 
 	/* Initialize the architecture specific fields */
