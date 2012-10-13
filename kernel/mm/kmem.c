@@ -3,6 +3,7 @@
 #include "util.h"
 #include "vector.h"
 #include "mm/mm.h"
+#include "mm/mlayout.h"
 #include "mm/mmu.h"
 #include "mm/kmem.h"
 #include "matrix/matrix.h"
@@ -455,7 +456,7 @@ void init_kmem()
 	struct mmu_ctx *ctx;
 	
 	/* Create kernel heap */
-	_kheap = create_heap(KHEAP_START, KHEAP_START + KHEAP_INITIAL_SIZE,
+	_kheap = create_heap(KERNEL_KMEM_START, KERNEL_KMEM_START + KERNEL_KMEM_SIZE,
 			     0xCFFFF000, FALSE, FALSE);
 
 	/* Clone the page directory and switch to it. This makes the kernel page
