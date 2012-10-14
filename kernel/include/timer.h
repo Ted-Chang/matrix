@@ -1,6 +1,9 @@
 #ifndef __TIMER_H__
 #define __TIMER_H__
 
+#include "matrix/matrix.h"
+#include "list.h"
+
 #define TIMER_NEVER	(-1)
 
 struct timer;
@@ -8,7 +11,7 @@ struct timer;
 typedef void (*timer_func_t)(struct timer *tp);
 
 struct timer {
-	struct timer *next;
+	struct list link;
 	clock_t exp_time;
 	timer_func_t timer_func;
 	void *timer_ctx;

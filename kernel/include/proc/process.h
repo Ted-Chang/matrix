@@ -2,7 +2,7 @@
 #define __PROCESS_H__
 
 #include <types.h>
-#include <sys/time.h>
+#include "sys/time.h"
 #include "matrix/const.h"
 #include "matrix/matrix.h"
 #include "list.h"

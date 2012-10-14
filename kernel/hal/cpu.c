@@ -1,8 +1,8 @@
 #include <types.h>
 #include <string.h>
-#include "cpu.h"
+#include "hal/cpu.h"
+#include "hal/hal.h"
 #include "pit.h"
-#include "hal.h"
 #include "matrix/debug.h"
 #include "mm/mlayout.h"
 #include "mm/page.h"

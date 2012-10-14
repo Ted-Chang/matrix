@@ -7,8 +7,8 @@
 #include <string.h>
 #include "matrix/matrix.h"
 #include "matrix/const.h"
-#include "hal.h"
-#include "cpu.h"
+#include "hal/hal.h"
+#include "hal/cpu.h"
 #include "mm/page.h"
 #include "mm/mmu.h"
 #include "mm/malloc.h"

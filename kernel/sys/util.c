@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "matrix/debug.h"
-#include "hal.h"	// outportb
+#include "hal/hal.h"	// outportb
 
 #ifndef DBG_BUFF_SIZE
 #define DBG_BUFF_SIZE	512

@@ -5,7 +5,7 @@
 #ifndef __MMGR_H__
 #define __MMGR_H__
 
-#include <isr.h>	// For struct registers
+#include "hal/isr.h"	// For struct registers
 #include "page.h"
 
 struct pdir;

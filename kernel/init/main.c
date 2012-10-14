@@ -4,15 +4,15 @@
 
 #include <types.h>
 #include <stddef.h>
-#include <sys/time.h>
 #include <string.h>
 #include <stdarg.h>
+#include "sys/time.h"
 #include "matrix/matrix.h"
 #include "matrix/debug.h"
 #include "multiboot.h"
+#include "hal/hal.h"
+#include "hal/isr.h"
 #include "util.h"
-#include "hal.h"
-#include "isr.h"
 #include "mm/kmem.h"
 #include "mm/mmu.h"
 #include "mm/malloc.h"

@@ -1,6 +1,6 @@
 #include <types.h>
 #include <stddef.h>
-#include "hal.h"
+#include "hal/hal.h"
 #include "matrix/debug.h"
 #include "proc/process.h"
 

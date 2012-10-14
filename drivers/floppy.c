@@ -1,8 +1,8 @@
 #include <types.h>
 #include <stddef.h>
 #include "matrix/matrix.h"
-#include "hal.h"
-#include "isr.h"
+#include "hal/hal.h"
+#include "hal/isr.h"
 #include "floppy.h"
 #include "util.h"
 #include "matrix/debug.h"

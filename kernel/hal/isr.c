@@ -4,8 +4,8 @@
 
 #include <types.h>
 #include <stddef.h>
-#include "isr.h"
-#include "hal.h"
+#include "hal/isr.h"
+#include "hal/hal.h"
 #include "util.h"
 #include "matrix/debug.h"
 

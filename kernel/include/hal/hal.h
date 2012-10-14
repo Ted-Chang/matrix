@@ -1,7 +1,7 @@
 #ifndef __HAL_H__
 #define __HAL_H__
 
-#include <isr.h>
+#include "hal/isr.h"
 #include "matrix/matrix.h"
 
 #define PIC1		0x20		// IO base address for master PIC

@@ -4,9 +4,10 @@
 
 #include <types.h>
 #include <string.h>	// memset
-#include "hal.h"
-#include "isr.h"	// register interrupt handler
+#include "hal/hal.h"
+#include "hal/isr.h"	// register interrupt handler
 #include "mm/mm.h"
+#include "mm/mlayout.h"
 #include "mm/mmu.h"
 #include "mm/kmem.h"
 #include "matrix/debug.h"
@@ -326,7 +327,9 @@ void init_mmu()
 	 * but not page_alloc. this cause the page tables to be created when necessary.
 	 * We can't allocate page yet because they need to be identity mapped first.
 	 */
-	for (i = KHEAP_START; i < (KHEAP_START + KHEAP_INITIAL_SIZE); i += PAGE_SIZE) {
+	for (i = KERNEL_KMEM_START;
+	     i < (KERNEL_KMEM_START + KERNEL_KMEM_SIZE);
+	     i += PAGE_SIZE) {
 		mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
 	}
 
@@ -340,7 +343,9 @@ void init_mmu()
 	/* Allocate those pages we mapped earlier, our kernel heap start from
 	 * address 0xC0000000 and size is 0x1000000
 	 */
-	for (i = KHEAP_START; i < (KHEAP_START + KHEAP_INITIAL_SIZE); i += PAGE_SIZE) {
+	for (i = KERNEL_KMEM_START;
+	     i < (KERNEL_KMEM_START + KERNEL_KMEM_SIZE);
+	     i += PAGE_SIZE) {
 		page = mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
 		page_alloc(page, FALSE, FALSE);
 	}

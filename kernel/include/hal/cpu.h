@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include "matrix/matrix.h"	// For INLINE
 #include "list.h"
-#include "hal.h"
+#include "hal/hal.h"
 
 /* Model Specific Register */
 #define X86_MSR_TSC		0x10		// Time Stamp Counter (TSC)

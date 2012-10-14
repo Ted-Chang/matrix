@@ -1,6 +1,6 @@
 #include <types.h>
-#include "hal.h"
-#include "isr.h"
+#include "hal/hal.h"
+#include "hal/isr.h"
 #include "matrix/debug.h"
 
 static struct irq_hook _exceptn_hooks[17];

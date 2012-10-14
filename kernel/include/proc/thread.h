@@ -3,9 +3,9 @@
 
 #include <types.h>
 #include "list.h"
-#include "cpu.h"
+#include "hal/cpu.h"
+#include "hal/spinlock.h"
 #include "avltree.h"
-#include "spinlock.h"
 #include "proc/process.h"
 
 struct process;

@@ -5,9 +5,9 @@
 #include <stddef.h>
 #include <string.h>
 #include "sys/time.h"
-#include "hal.h"
+#include "hal/hal.h"
+#include "hal/isr.h"	// register_irq_handler
 #include "mm/malloc.h"
-#include "isr.h"	// register_irq_handler
 #include "util.h"	// putstr
 #include "dirent.h"
 #include "sys/stat.h"

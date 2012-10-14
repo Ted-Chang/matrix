@@ -2,9 +2,9 @@
 #include <stddef.h>
 #include <string.h>
 #include "matrix/debug.h"
-#include "hal.h"
-#include "cpu.h"
-#include "spinlock.h"
+#include "hal/hal.h"
+#include "hal/cpu.h"
+#include "hal/spinlock.h"
 #include "proc/process.h"
 #include "proc/sched.h"
 

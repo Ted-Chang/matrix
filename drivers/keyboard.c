@@ -1,7 +1,7 @@
 #include <types.h>
-#include "hal.h"
+#include "hal/hal.h"
+#include "hal/isr.h"
 #include "util.h"
-#include "isr.h"
 #include "keyboard.h"
 #include "matrix/debug.h"
 

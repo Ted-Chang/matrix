@@ -4,8 +4,8 @@
 
 #include <types.h>
 #include <stddef.h>
-#include "hal.h"
-#include "cpu.h"
+#include "hal/hal.h"
+#include "hal/cpu.h"
 #include "string.h"	// memset
 #include "matrix/debug.h"
 
