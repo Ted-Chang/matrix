@@ -12,6 +12,7 @@
 #include "multiboot.h"
 #include "hal/hal.h"
 #include "hal/isr.h"
+#include "hal/cpu.h"
 #include "util.h"
 #include "mm/kmem.h"
 #include "mm/mmu.h"
@@ -26,7 +27,6 @@
 #include "floppy.h"
 #include "system.h"
 #include "kd.h"
-#include "cpu.h"
 
 uint32_t _initial_esp;
 struct multiboot_info *_mbi;

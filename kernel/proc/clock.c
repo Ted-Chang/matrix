@@ -5,13 +5,13 @@
 #include "matrix/const.h"
 #include "hal/isr.h"
 #include "hal/hal.h"
+#include "hal/cpu.h"
 #include "clock.h"
 #include "timer.h"
 #include "proc/process.h"
 #include "proc/sched.h"
 #include "matrix/debug.h"
 #include "div64.h"
-#include "cpu.h"
 #include "pit.h"
 
 #define LEAPYEAR(y)	(((y) % 4) == 0 && (((y) % 100) != 0 || ((y) % 400) == 0))
