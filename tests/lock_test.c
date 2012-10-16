@@ -1,6 +1,6 @@
 #include <types.h>
 #include <stddef.h>
-#include "spinlock.h"
+#include "hal/spinlock.h"
 
 uint32_t _test_global_var;
 

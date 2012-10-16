@@ -9,6 +9,7 @@ TARGETOBJ := \
 	$(OBJ)/lock_test.o \
 	$(OBJ)/mem_test.o \
 	$(OBJ)/avltree_test.o \
+	$(OBJ)/tmr_test.o \
 	$(OBJ)/tests.o \
 
 
