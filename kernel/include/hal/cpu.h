@@ -260,9 +260,9 @@ static INLINE void cpu_idle()
 	asm volatile("sti;hlt;cli");
 }
 
-extern void preinit_per_cpu();
+extern void preinit_cpu_percpu();
 extern void preinit_cpu();
-extern void init_per_cpu();
+extern void init_cpu_percpu();
 extern void init_cpu();
 
 #endif	/* __CPU_H__ */

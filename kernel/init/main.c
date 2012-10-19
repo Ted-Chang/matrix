@@ -33,7 +33,6 @@ struct multiboot_info *_mbi;
 
 void init_syscalls();
 
-static void announce();
 static void dump_mbi(struct multiboot_info *mbi);
 
 /**
@@ -65,7 +64,7 @@ int kmain(u_long addr, uint32_t initial_stack)
 
 	/* Initialize the CPU */
 	preinit_cpu();
-	preinit_per_cpu(&_boot_cpu);
+	preinit_cpu_percpu(&_boot_cpu);
 	kprintf("CPU preinitialization done.\n");
 
 	/* Enable interrupt so our timer can work */
@@ -96,7 +95,7 @@ int kmain(u_long addr, uint32_t initial_stack)
 	/* Perform more per-CPU initialization that can be done after the
 	 * memory management subsystem was up
 	 */
-	init_per_cpu();
+	init_cpu_percpu();
 	DEBUG(DL_DBG, ("Per-CPU initialization done.\n"));
 	/* Properly initialize the CPU and detect other CPUs */
 	init_cpu();
@@ -122,22 +121,10 @@ int kmain(u_long addr, uint32_t initial_stack)
 	init_floppy();
 	kprintf("Floppy driver initialization done.\n");
 
-	/* Print the banner */
-	announce();
-
 	/* Ready to run init process from executable file init */
 	system(init_argv[0], 1, init_argv);
 
 	return rc;
-}
-
-void announce()
-{
-	/* Display the Matrix startup banner */
-	kprintf("\nMatrix %d.%d "
-		"Copyright(c) 2012, Ted Chang, Beijing, China.\n"
-		"Build date and time: %s, %s\n",
-		MATRIX_VERSION, MATRIX_RELEASE, __TIME__, __DATE__);
 }
 
 void dump_mbi(struct multiboot_info *mbi)

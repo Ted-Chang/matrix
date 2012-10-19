@@ -166,7 +166,7 @@ static void arch_preinit_cpu()
 	init_exception_handlers();
 }
 
-static void arch_preinit_per_cpu(struct cpu *c)
+static void arch_preinit_cpu_percpu(struct cpu *c)
 {
 	struct cpu_features features;
 
@@ -226,15 +226,15 @@ static void arch_preinit_per_cpu(struct cpu *c)
 	/* Initialize the TSC target */
 }
 
-static void arch_init_per_cpu()
+static void arch_init_cpu_percpu()
 {
 	/* TODO: Initialize LAPIC */
 	;
 }
 
-void preinit_per_cpu(struct cpu *c)
+void preinit_cpu_percpu(struct cpu *c)
 {
-	arch_preinit_per_cpu(c);
+	arch_preinit_cpu_percpu(c);
 }
 
 void preinit_cpu()
@@ -251,9 +251,9 @@ void preinit_cpu()
 	arch_preinit_cpu();
 }
 
-void init_per_cpu()
+void init_cpu_percpu()
 {
-	arch_init_per_cpu();
+	arch_init_cpu_percpu();
 }
 
 void init_cpu()

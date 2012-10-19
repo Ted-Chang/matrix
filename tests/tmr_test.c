@@ -23,8 +23,4 @@ static void timer_callback(struct timer *tp)
 void timer_test()
 {
 	set_timer(&tmr, 1000, timer_callback);
-
-	while(TRUE) {
-		;
-	}
 }

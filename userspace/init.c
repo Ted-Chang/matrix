@@ -1,8 +1,10 @@
 #include <types.h>
 #include <stddef.h>
 #include <syscall.h>
+#include "matrix/matrix.h"
 
-void start_crond();
+static void announce();
+static void start_crond();
 
 int main(int argc, char **argv)
 {
@@ -25,6 +27,10 @@ int main(int argc, char **argv)
 	gid = getgid();
 	printf("init: uid(%d), gid(%d)\n", uid, gid);
 
+	/* Print our banner */
+	announce();
+
+	/* Start the cron daemon */
 	start_crond();
 	
 	while (TRUE) {
@@ -52,3 +58,13 @@ void start_crond()
 		waitpid(pid, &status, 0);
 	}
 }
+
+void announce()
+{
+	/* Display the Matrix startup banner */
+	printf("\nMatrix %d.%d "
+	       "Copyright(c) 2012, Ted Chang, Beijing, China.\n"
+	       "Build date and time: %s, %s\n",
+	       MATRIX_VERSION, MATRIX_RELEASE, __TIME__, __DATE__);
+}
+

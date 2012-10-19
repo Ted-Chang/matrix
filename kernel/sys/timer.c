@@ -8,6 +8,7 @@
 
 extern void pit_delay(uint32_t usec);
 
+extern clock_t _real_time;
 extern clock_t _next_timeout;
 
 clock_t tmrs_clrtimer(struct list *head, struct timer *t)
@@ -109,10 +110,11 @@ void init_timer(struct timer *t)
 void set_timer(struct timer *t, clock_t exp_time, timer_func_t callback)
 {
 	struct timer *at;
+	clock_t time_out = _real_time + exp_time;
 	
 	ASSERT(t != NULL);
-	
-	tmrs_settimer(&CURR_CPU->timers, t, exp_time, callback);
+
+	tmrs_settimer(&CURR_CPU->timers, t, time_out, callback);
 	ASSERT(!LIST_EMPTY(&CURR_CPU->timers));
 
 	at = LIST_ENTRY(&CURR_CPU->timers.next, struct timer, link);
