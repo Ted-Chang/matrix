@@ -22,6 +22,7 @@
 #include "fs.h"
 #include "initrd.h"
 #include "proc/process.h"
+#include "proc/sched.h"
 #include "exceptn.h"
 #include "keyboard.h"
 #include "floppy.h"
@@ -96,16 +97,24 @@ int kmain(u_long addr, uint32_t initial_stack)
 	 * memory management subsystem was up
 	 */
 	init_cpu_percpu();
-	DEBUG(DL_DBG, ("Per-CPU initialization done.\n"));
+	DEBUG(DL_DBG, ("Per-CPU CPU initialization done.\n"));
 	/* Properly initialize the CPU and detect other CPUs */
 	init_cpu();
 	DEBUG(DL_DBG, ("CPU initialization done.\n"));
 
 	kprintf("CPU initialization done.\n");
 
-	/* Start multitasking now */
+	/* Start process sub system now */
 	init_process();
-	kprintf("Multitask initialization done.\n");
+	kprintf("Process initialization done.\n");
+
+	/* Initialize the scheduler */
+	init_sched_percpu();
+	DEBUG(DL_DBG, ("Per-CPU scheduler initialization done.\n"));
+	init_sched();
+	DEBUG(DL_DBG, ("Scheduler initialization done.\n"));
+
+	kprintf("Scheduler initialization done.\n");
 
 	/* Initialize the initial ramdisk and set it as the root filesystem */
 	_root_node = init_initrd(initrd_location);

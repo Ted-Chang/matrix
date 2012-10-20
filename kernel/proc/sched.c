@@ -5,6 +5,9 @@
 #include "hal/hal.h"
 #include "hal/cpu.h"
 #include "hal/spinlock.h"
+#include "mm/malloc.h"
+#include "sys/time.h"
+#include "timer.h"
 #include "proc/process.h"
 #include "proc/sched.h"
 
@@ -27,7 +30,8 @@ struct sched_cpu {
 	
 	struct thread *prev_thread;		// Previously executed thread
 	struct thread *idle_thread;		// Thread scheduled when no other threads runnable
-	
+
+	struct timer timer;			// Preemption timer
 	struct sched_queue *active;		// Active queue
 	struct sched_queue *expired;		// Expired queue
 	struct sched_queue queues[2];		// Active and expired queues
@@ -44,6 +48,8 @@ struct process *_ready_tail[NR_SCHED_QUEUES];
 volatile struct process *_next_proc = NULL;
 volatile struct process *_prev_proc = NULL;
 volatile struct process *_curr_proc = NULL;		// Current running process
+
+boolean_t _sched_initialized = FALSE;
 
 static void sched(struct process *tp, int *queue, boolean_t *front);
 
@@ -207,8 +213,32 @@ static void sched(struct process *p, int *queue, boolean_t *front)
 	*front = time_left;
 }
 
+void init_sched_percpu()
+{
+	int i, j;
+
+	CURR_CPU->sched = kmalloc(sizeof(struct sched_cpu), 0);
+	CURR_CPU->sched->total = 0;
+	CURR_CPU->sched->active = &CURR_CPU->sched->queues[0];
+	CURR_CPU->sched->expired = &CURR_CPU->sched->queues[1];
+
+	/* Create the preemption timer */
+	init_timer(&CURR_CPU->sched->timer);
+
+	/* Initialize queues */
+	for (i = 0; i < 2; i++) {
+		CURR_CPU->sched->queues[i].bitmap = 0;
+		for (j = 0; j < NR_PRIORITIES; j++) {
+			LIST_INIT(&CURR_CPU->sched->queues[i].threads[j]);
+		}
+	}
+}
+
 void init_sched()
 {
+	if (_sched_initialized) return;
+	
+	_sched_initialized = TRUE;
 	memset(&_ready_head[0], 0, sizeof(struct process *) * NR_SCHED_QUEUES);
 	memset(&_ready_tail[0], 0, sizeof(struct process *) * NR_SCHED_QUEUES);
 }

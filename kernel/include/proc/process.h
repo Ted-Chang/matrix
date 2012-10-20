@@ -6,7 +6,6 @@
 #include "matrix/const.h"
 #include "matrix/matrix.h"
 #include "list.h"
-#include "priv.h"
 #include "fs.h"
 #include "fd.h"			// File descriptors
 #include "avltree.h"
@@ -37,7 +36,6 @@ struct process_create;
 struct process {
 	struct process *next;		// Next process
 
-	struct priv priv;		// System privileges structure
 	struct mmu_ctx *mmu_ctx;	// MMU context
 
 	pid_t id;			// Process ID

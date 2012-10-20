@@ -75,8 +75,7 @@ useconds_t time_to_unix(uint32_t year, uint32_t mon, uint32_t day,
 void do_clocktick()
 {
 	/* We will not switch task if the task didn't use up a full quantum. */
-	if ((_prev_proc->ticks_left <= 0) &&
-	    (FLAG_ON(_prev_proc->priv.flags, PREEMPTIBLE))) {
+	if ((_prev_proc->ticks_left <= 0)) {
 
 		sched_dequeue(_prev_proc);
 		sched_enqueue(_prev_proc);
@@ -119,9 +118,7 @@ static void clock_callback(struct registers *regs)
 	 * process is running, charge the billable process for system time as well.
 	 * Thus the unbillable process' user time is the billable user's system time.
 	 */
-	if (FLAG_ON(CURR_PROC->priv.flags, PREEMPTIBLE)) {
-		CURR_PROC->ticks_left -= ticks;	// Consume the quantum
-	}
+	CURR_PROC->ticks_left -= ticks;		// Consume the quantum
 	
 	/* Check if do_clocktick() must be called. Done for alarms and scheduling.
 	 */

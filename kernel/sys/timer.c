@@ -104,6 +104,8 @@ void init_timer(struct timer *t)
 	ASSERT(t != NULL);
 	
 	t->exp_time = TIMER_NEVER;
+	t->timer_func = NULL;
+	t->timer_ctx = NULL;
 	LIST_INIT(&t->link);
 }
 
@@ -114,6 +116,8 @@ void set_timer(struct timer *t, clock_t exp_time, timer_func_t callback)
 	
 	ASSERT(t != NULL);
 
+	t->cpu = CURR_CPU;
+	
 	tmrs_settimer(&CURR_CPU->timers, t, time_out, callback);
 	ASSERT(!LIST_EMPTY(&CURR_CPU->timers));
 

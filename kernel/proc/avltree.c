@@ -3,6 +3,7 @@
 #include "matrix/matrix.h"
 #include "matrix/debug.h"
 #include "avltree.h"
+#include "mm/malloc.h"
 
 static int avl_tree_subtree_height(struct avl_tree_node *node)
 {
