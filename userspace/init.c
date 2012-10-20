@@ -1,6 +1,7 @@
 #include <types.h>
 #include <stddef.h>
 #include <syscall.h>
+#include <errno.h>
 #include "matrix/matrix.h"
 
 static void announce();

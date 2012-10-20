@@ -1,6 +1,7 @@
 #include <types.h>
 #include <stddef.h>
 #include <syscall.h>
+#include <errno.h>
 
 int main(int argc, char **argv)
 {
