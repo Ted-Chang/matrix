@@ -8,7 +8,6 @@ TARGETOBJ := \
 	$(OBJ)/process.o \
 	$(OBJ)/misc.o \
 	$(OBJ)/timer.o \
-	$(OBJ)/clock.o \
 	$(OBJ)/sched.o \
 	$(OBJ)/fd.o \
 	$(OBJ)/elf.o \

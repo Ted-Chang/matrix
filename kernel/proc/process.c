@@ -7,14 +7,15 @@
 #include <string.h>
 #include "matrix/matrix.h"
 #include "matrix/const.h"
+#include "matrix/debug.h"
 #include "hal/hal.h"
 #include "hal/cpu.h"
 #include "mm/page.h"
 #include "mm/mmu.h"
 #include "mm/malloc.h"
 #include "proc/process.h"
-#include "matrix/debug.h"
 #include "proc/sched.h"
+#include "proc/thread.h"
 #include "elf.h"
 
 struct process_create {
@@ -34,8 +35,11 @@ static pid_t _next_pid = 1;
 /* Tree of all processes */
 static struct avl_tree _proc_tree;
 
-extern uint32_t _initial_esp;
+/* Process containing all kernel-mode threads */
+struct process *_kernel_proc = NULL;
+
 extern struct process *_next_proc;
+extern uint32_t _initial_esp;
 
 extern uint32_t read_eip();
 extern void sched_init();
@@ -179,6 +183,26 @@ struct process *process_lookup(pid_t pid)
 }
 
 /**
+ * Attach a thread to a process
+ */
+void process_attach(struct process *p, struct thread *t)
+{
+	t->owner = p;
+	ASSERT(p->state != PROCESS_DEAD);
+}
+
+/**
+ * Detach a thread from its owner
+ */
+void process_detach(struct thread *t)
+{
+	struct process *p;
+
+	p = t->owner;
+	t->owner = NULL;
+}
+
+/**
  * Destruct a process
  */
 static void process_dtor(void *obj)
@@ -200,7 +224,7 @@ static void process_dtor(void *obj)
 /**
  * Switch to next process' context
  */
-void switch_context()
+void process_switch(struct process *proc)
 {
 	uint32_t esp, ebp, eip;
 
@@ -232,7 +256,7 @@ void switch_context()
 	CURR_PROC->arch.ebp = ebp;
 
 	/* Switch to next process context */
-	CURR_PROC = _next_proc;
+	CURR_PROC = proc;
 	eip = CURR_PROC->arch.eip;
 	esp = CURR_PROC->arch.esp;
 	ebp = CURR_PROC->arch.ebp;
@@ -482,7 +506,7 @@ int system(char *path, int argc, char **argv)
 		exec(path, argc, argv);
 		return -1;
 	} else {
-		switch_context();
+		process_switch(_next_proc);
 		return -1;
 	}
 }
@@ -538,11 +562,6 @@ void switch_to_user_mode(uint32_t location, uint32_t ustack)
  */
 void init_process()
 {
-	struct process *init_proc;
-
-	/* Initialize the scheduler */
-	init_sched();
-
 	/* Relocate the stack so we know where it is, the stack size is 8KB. Note
 	 * that this was done in the context of kernel mmu.
 	 */
@@ -551,16 +570,10 @@ void init_process()
 	/* Malloc the initial process and initialize it, the initial process will
 	 * use kernel mmu context as its mmu context.
 	 */
-	init_proc = (struct process *)kmalloc(sizeof(struct process), 0);
+	_kernel_proc = (struct process *)kmalloc(sizeof(struct process), 0);
 
 	ASSERT(_current_mmu_ctx != NULL);
-	process_ctor(init_proc, NULL, _current_mmu_ctx);
+	process_ctor(_kernel_proc, NULL, _current_mmu_ctx);
 
-	init_proc->arch.kstack = 0xE0000000;
-
-	/* Enqueue the new process */
-	sched_enqueue(init_proc);
-
-	/* Update the current process pointer */
-	CURR_PROC = init_proc;
+	_kernel_proc->arch.kstack = 0xE0000000;
 }

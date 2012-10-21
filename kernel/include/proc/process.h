@@ -77,18 +77,23 @@ typedef struct process process_t;
 #define IDLE_Q			15
 
 /* Pointer to the current process in the system */
-extern volatile struct process *_curr_proc;
+extern struct process *_curr_proc;
 
 /* Macro that retrieve the pointer of the current process */
 #define CURR_PROC	(_curr_proc)
 
-extern void switch_context();
+/* Pointer to the kernel process */
+extern struct process *_kernel_proc;
+
 extern int fork();
 extern int getpid();
 extern void switch_to_user_mode(uint32_t location, uint32_t ustack);
 extern int exec(char *path, int argc, char **argv);
 extern int system(char *path, int argc, char **argv);
 extern struct process *process_lookup(pid_t pid);
+extern void process_attach(struct process *p, struct thread *t);
+extern void process_detach(struct thread *t);
+extern void process_switch(struct process *proc);
 extern void init_process();
 
 #endif	/* __PROCESS_H__ */

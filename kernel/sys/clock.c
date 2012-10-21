@@ -18,6 +18,7 @@
 #define DAYS(y)		(LEAPYEAR(y) ? 366 : 365)
 
 extern struct process *_prev_proc;
+extern struct process *_next_proc;
 extern void tmrs_exptimers(struct list *head, clock_t now);
 
 int _current_frequency = 0;
@@ -81,7 +82,7 @@ void do_clocktick()
 		sched_enqueue(_prev_proc);
 		
 		/* Task scheduling was done, then do context switch */
-		switch_context();
+		process_switch(_next_proc);
 	}
 
 	/* Check if a clock timer is expired and call its callback function */

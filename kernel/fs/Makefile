@@ -3,7 +3,9 @@ include ../Makefile.inc
 
 OBJ := ../../bin/obji386
 
-TARGETOBJ := $(OBJ)/vfs.o
+TARGETOBJ := \
+	$(OBJ)/vfs.o \
+	$(OBJ)/initrd.o \
 
 .PHONY: clean help
 

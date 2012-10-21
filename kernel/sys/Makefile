@@ -6,8 +6,8 @@ OBJ := ../../bin/obji386
 
 TARGETOBJ := \
 	$(OBJ)/exceptn.o \
+	$(OBJ)/clock.o \
 	$(OBJ)/timer.o \
-	$(OBJ)/initrd.o \
 	$(OBJ)/syscall.o \
 	$(OBJ)/system.o \
 	$(OBJ)/util.o \

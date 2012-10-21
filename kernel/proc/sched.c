@@ -45,11 +45,9 @@ struct process *_ready_head[NR_SCHED_QUEUES];
 struct process *_ready_tail[NR_SCHED_QUEUES];
 
 /* Pointer to our various task */
-volatile struct process *_next_proc = NULL;
-volatile struct process *_prev_proc = NULL;
-volatile struct process *_curr_proc = NULL;		// Current running process
-
-boolean_t _sched_initialized = FALSE;
+struct process *_next_proc = NULL;
+struct process *_prev_proc = NULL;
+struct process *_curr_proc = NULL;		// Current running process
 
 static void sched(struct process *tp, int *queue, boolean_t *front);
 
@@ -217,6 +215,7 @@ void init_sched_percpu()
 {
 	int i, j;
 
+	/* Initialize the scheduler for the current CPU */
 	CURR_CPU->sched = kmalloc(sizeof(struct sched_cpu), 0);
 	CURR_CPU->sched->total = 0;
 	CURR_CPU->sched->active = &CURR_CPU->sched->queues[0];
@@ -236,9 +235,12 @@ void init_sched_percpu()
 
 void init_sched()
 {
-	if (_sched_initialized) return;
-	
-	_sched_initialized = TRUE;
 	memset(&_ready_head[0], 0, sizeof(struct process *) * NR_SCHED_QUEUES);
 	memset(&_ready_tail[0], 0, sizeof(struct process *) * NR_SCHED_QUEUES);
+
+	/* Enqueue the kernel process which is the first process in our system */
+	sched_enqueue(_kernel_proc);
+	
+	/* At this time we can schedule the process now */
+	CURR_PROC = _kernel_proc;
 }
