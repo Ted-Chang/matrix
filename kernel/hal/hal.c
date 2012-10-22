@@ -53,6 +53,18 @@ void irq_disable()
 }
 
 /*
+ * Restore the hardware interrupts
+ */
+void irq_restore(boolean_t state)
+{
+	if (state) {
+		asm volatile("sti");
+	} else {
+		asm volatile("cli");
+	}
+}
+
+/*
  * Notify the HAL interrupt handler was done
  */
 void irq_done(uint32_t int_no)

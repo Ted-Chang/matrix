@@ -5,7 +5,6 @@
 #include "list.h"
 #include "hal/cpu.h"
 #include "hal/spinlock.h"
-#include "proc/process.h"
 #include "avltree.h"
 
 struct process;

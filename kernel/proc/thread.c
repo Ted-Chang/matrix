@@ -2,10 +2,11 @@
 #include <stddef.h>
 #include "matrix/matrix.h"
 #include "matrix/debug.h"
+#include "mm/kmem.h"
 #include "mm/malloc.h"
 #include "mm/slab.h"
-#include "proc/process.h"
 #include "proc/thread.h"
+#include "proc/process.h"
 #include "proc/sched.h"
 
 /* Thread structure cache */

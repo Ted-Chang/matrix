@@ -17,8 +17,6 @@
 #define LEAPYEAR(y)	(((y) % 4) == 0 && (((y) % 100) != 0 || ((y) % 400) == 0))
 #define DAYS(y)		(LEAPYEAR(y) ? 366 : 365)
 
-extern struct process *_prev_proc;
-extern struct process *_next_proc;
 extern void tmrs_exptimers(struct list *head, clock_t now);
 
 int _current_frequency = 0;
@@ -76,13 +74,12 @@ useconds_t time_to_unix(uint32_t year, uint32_t mon, uint32_t day,
 void do_clocktick()
 {
 	/* We will not switch task if the task didn't use up a full quantum. */
-	if ((_prev_proc->ticks_left <= 0)) {
+	if ((CURR_PROC->ticks_left <= 0)) {
 
-		sched_dequeue(_prev_proc);
-		sched_enqueue(_prev_proc);
-		
-		/* Task scheduling was done, then do context switch */
-		process_switch(_next_proc);
+		/* This was called in the interrupt handler, so don't need to
+		 * disable interrupt.
+		 */
+		sched_reschedule(FALSE);
 	}
 
 	/* Check if a clock timer is expired and call its callback function */
@@ -124,7 +121,6 @@ static void clock_callback(struct registers *regs)
 	/* Check if do_clocktick() must be called. Done for alarms and scheduling.
 	 */
 	if ((_next_timeout <= _real_time) || (CURR_PROC->ticks_left <= 0)) {
-		_prev_proc = CURR_PROC;		// Store running task
 		do_clocktick();
 	}
 }
