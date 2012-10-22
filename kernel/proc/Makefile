@@ -7,9 +7,7 @@ OBJ := ../../bin/obji386
 TARGETOBJ := \
 	$(OBJ)/process.o \
 	$(OBJ)/misc.o \
-	$(OBJ)/timer.o \
 	$(OBJ)/sched.o \
-	$(OBJ)/fd.o \
 	$(OBJ)/elf.o \
 	$(OBJ)/misc.o \
 	$(OBJ)/avltree.o \

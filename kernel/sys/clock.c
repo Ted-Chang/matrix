@@ -23,6 +23,7 @@ int _current_frequency = 0;
 uint32_t _lost_ticks = 0;
 clock_t _real_time = 0;
 clock_t _next_timeout = 0;
+useconds_t _boot_time;
 static struct irq_hook _clock_hook;
 
 /* Table containing number of days before a month */
@@ -71,7 +72,14 @@ useconds_t time_to_unix(uint32_t year, uint32_t mon, uint32_t day,
 	return SECS2USECS(seconds);
 }
 
-void do_clocktick()
+useconds_t sys_time()
+{
+	useconds_t value = 0;
+	
+	return value;
+}
+
+static void do_clocktick()
 {
 	/* We will not switch task if the task didn't use up a full quantum. */
 	if ((CURR_PROC->ticks_left <= 0)) {
@@ -152,6 +160,8 @@ void init_clock()
 
 	outportb(0x40, low);
 	outportb(0x40, high);
+
+	_boot_time = platform_time_from_cmos() - sys_time();
 }
 
 void stop_clock()

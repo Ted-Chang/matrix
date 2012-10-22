@@ -23,7 +23,7 @@ struct vfs_node {
 	struct vfs_node *(*finddir)(struct vfs_node *, char *);
 };
 
-/* Flags for vfs_node */
+/* Types for vfs_node */
 #define VFS_FILE	0x01
 #define VFS_DIRECTORY	0x02
 #define VFS_CHARDEVICE	0x03
