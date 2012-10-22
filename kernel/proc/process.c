@@ -223,7 +223,7 @@ static void process_dtor(void *obj)
 /**
  * Switch to next process' context
  */
-void process_switch(struct process *proc)
+void process_switch(struct process *curr, struct process *prev)
 {
 	uint32_t esp, ebp, eip;
 
@@ -249,22 +249,23 @@ void process_switch(struct process *proc)
 		return;
 	}
 
-	/* Save the current process context */
-	CURR_PROC->arch.eip = eip;
-	CURR_PROC->arch.esp = esp;
-	CURR_PROC->arch.ebp = ebp;
+	/* Save the process context for previous process */
+	if (prev) {
+		prev->arch.eip = eip;
+		prev->arch.esp = esp;
+		prev->arch.ebp = ebp;
+	}
 
 	/* Switch to next process context */
-	CURR_PROC = proc;
-	eip = CURR_PROC->arch.eip;
-	esp = CURR_PROC->arch.esp;
-	ebp = CURR_PROC->arch.ebp;
+	eip = curr->arch.eip;
+	esp = curr->arch.esp;
+	ebp = curr->arch.ebp;
 
 	/* Make sure the memory manager knows we've changed the page directory */
-	_current_mmu_ctx = CURR_PROC->mmu_ctx;
+	_current_mmu_ctx = curr->mmu_ctx;
 
 	/* Switch the kernel stack in TSS to the process's kernel stack */
-	set_kernel_stack(CURR_PROC->arch.kstack);
+	set_kernel_stack(curr->arch.kstack);
 
 	/* Here we:
 	 * [1] Disable interrupts so we don't get bothered.

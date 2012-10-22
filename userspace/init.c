@@ -35,6 +35,7 @@ int main(int argc, char **argv)
 	start_crond();
 	
 	while (TRUE) {
+		printf("init: sleeping...\n");
 		sleep(1000);
 	}
 

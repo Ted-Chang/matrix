@@ -94,7 +94,7 @@ extern int system(char *path, int argc, char **argv);
 extern struct process *process_lookup(pid_t pid);
 extern void process_attach(struct process *p, struct thread *t);
 extern void process_detach(struct thread *t);
-extern void process_switch(struct process *proc);
+extern void process_switch(struct process *curr, struct process *prev);
 extern void init_process();
 
 #endif	/* __PROCESS_H__ */

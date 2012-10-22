@@ -199,9 +199,7 @@ void sched_reschedule(boolean_t state)
 	 * one.
 	 */
 	if (CURR_PROC != _prev_proc) {
-		DEBUG(DL_DBG, ("sched_reschedule: switch to proc(%p).\n", CURR_PROC));
-		process_switch(CURR_PROC);
-		DEBUG(DL_DBG, ("sched_reschedule: done.\n"));
+		process_switch(CURR_PROC, _prev_proc);
 		irq_restore(state);
 	} else {
 		irq_restore(state);
@@ -241,6 +239,8 @@ void init_sched()
 	/* At this time we can schedule the process now */
 	CURR_PROC = _kernel_proc;
 
-	/* Switch to current process */
-	process_switch(CURR_PROC);
+	/* Switch to current process, we set previous process to CURR_PROC so we
+	 * the context can get initialized.
+	 */
+	process_switch(CURR_PROC, CURR_PROC);
 }
