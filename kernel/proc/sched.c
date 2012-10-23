@@ -16,7 +16,7 @@
 #define NR_PRIORITIES	32
 
 /* Time quantum to give to threads */
-#define THREAD_QUANTUM
+#define THREAD_QUANTUM	32
 
 /* Run queue structure */
 struct sched_queue {

@@ -97,8 +97,9 @@ struct vfs_node *vfs_clone(struct vfs_node *src)
 {
 	struct vfs_node *node;
 	
-	if (!src)
+	if (!src) {
 		return NULL;
+	}
 
 	node = (struct vfs_node *)kmalloc(sizeof(struct vfs_node), 0);
 	memcpy(node, src, sizeof(struct vfs_node));
@@ -186,8 +187,9 @@ struct vfs_node *vfs_lookup(const char *path, int type)
 	char *dup = NULL;
 	size_t len;
 	
-	if (!_root_node || !path || !path[0])
+	if (!_root_node || !path || !path[0]) {
 		goto out;
+	}
 
 	/* Start from the current directory if the path is relative */
 	if (path[0] != '/'); {
@@ -198,22 +200,24 @@ struct vfs_node *vfs_lookup(const char *path, int type)
 	/* Duplicate path so that vfs_lookup_internal can modify it */
 	len = strlen(path) + 1;
 	dup = (char *)kmalloc(len, 0);
-	if (!dup)
+	if (!dup) {
 		goto out;
+	}
 	strcpy(dup, path);
 
 	/* Look up the path string */
 	n = vfs_lookup_internal(c, dup);
 	if (n) {
-		/* if ((type >= 0) && (n->type != type)) { */
-		/* 	vfs_node_deref(n); */
-		/* 	n = NULL; */
-		/* } */
+		if ((type >= 0) && (n->type != type)) {
+			vfs_node_deref(n);
+			n = NULL;
+		}
 	}
 
 out:
-	if (dup)
+	if (dup) {
 		kfree(dup);
+	}
 	return n;
 }
 

@@ -28,11 +28,11 @@ static char _hostname[MAX_HOSTNAME_LEN + 1];
 
 int open(const char *file, int flags, int mode)
 {
-	int fd = -1, rc = 0;
+	int fd = -1, rc = 0, file_type = VFS_FILE;
 	struct vfs_node *n;
 
 	/* Lookup file system node */
-	n = vfs_lookup(file, 0);
+	n = vfs_lookup(file, file_type);
 	DEBUG(DL_DBG, ("open: file(%s), n(0x%x)\n", file, n));
 	if (!n && FLAG_ON(flags, 0x600)) {
 

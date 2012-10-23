@@ -48,7 +48,7 @@ static pid_t id_alloc()
 	return _next_pid++;
 }
 
-void move_stack(uint32_t new_stack, uint32_t size)
+static void move_stack(uint32_t new_stack, uint32_t size)
 {
 	uint32_t i, pd_addr;
 	uint32_t old_esp, old_ebp;
@@ -175,7 +175,6 @@ struct process *process_lookup(pid_t pid)
 	struct process *proc;
 
 	// TODO: Use a lock to protect this operation
-	
 	proc = avl_tree_lookup(&_proc_tree, pid);
 
 	return proc;
@@ -414,7 +413,7 @@ int exec(char *path, int argc, char **argv)
 	boolean_t is_elf;
 
 	/* Lookup the file from the file system */
-	n = vfs_lookup(path, 0);
+	n = vfs_lookup(path, VFS_FILE);
 	if (!n) {
 		DEBUG(DL_DBG, ("exec: file(%s) not found.\n", path));
 		return -1;

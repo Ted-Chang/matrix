@@ -11,6 +11,8 @@ TARGETOBJ := \
 	$(OBJ)/syscall.o \
 	$(OBJ)/system.o \
 	$(OBJ)/util.o \
+	$(OBJ)/fd.o \
+	$(OBJ)/rtc.o \
 
 .PHONY: clean help
 
