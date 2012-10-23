@@ -1,9 +1,10 @@
 #include <types.h>
+#include <stddef.h>
 #include "hal/hal.h"
 #include "hal/isr.h"
+#include "matrix/debug.h"
 #include "util.h"
 #include "keyboard.h"
-#include "matrix/debug.h"
 
 /* Keyboard I/O ports */
 #define KBD_STATUS_PORT		0x64

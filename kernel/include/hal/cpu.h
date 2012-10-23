@@ -45,6 +45,7 @@
 #define X86_CPUID_ADVANCED_PM	0x80000007
 #define X86_CPUID_ADDRESS_SIZE	0x80000008
 
+/* Features the CPU supported */
 struct cpu_features {
 	uint32_t highest_standard;		// Highest standard function
 	uint32_t highest_extended;		// Highest extended function
@@ -197,6 +198,7 @@ typedef struct cpu cpu_t;
 extern struct cpu _boot_cpu;
 extern size_t _nr_cpus;
 extern size_t _highest_cpu_id;
+extern struct list _running_cpus;
 
 /* Read an MSR */
 static INLINE uint64_t x86_read_msr(uint32_t msr)

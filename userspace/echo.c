@@ -14,5 +14,5 @@ int main(int argc, char **argv)
 
 void usage()
 {
-	printf("\n");
+	printf("echo\n");
 }

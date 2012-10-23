@@ -41,6 +41,9 @@ struct sched_cpu {
 };
 typedef struct sched_cpu sched_cpu_t;
 
+/* Total number of running or ready threads across all CPUs */
+static int _nr_running_threads = 0;
+
 /* The schedule queue for our kernel */
 struct process *_ready_head[NR_SCHED_QUEUES];
 struct process *_ready_tail[NR_SCHED_QUEUES];
@@ -49,16 +52,32 @@ struct process *_ready_tail[NR_SCHED_QUEUES];
 struct process *_prev_proc = NULL;
 struct process *_curr_proc = NULL;		// Current running process
 
+/* Allocate a CPU for a thread to run on */
 static struct cpu *sched_alloc_cpu(struct thread *t)
 {
+	size_t load, average, total;
 	struct cpu *cpu, *other;
+	struct list *l;
 
 	/* On UP systems, the only choice is current CPU */
 	if (_nr_cpus == 1) {
 		return CURR_CPU;
 	}
 
-	cpu = NULL;
+	/* Add 1 to the total number of threads to account for the thread we
+	 * are adding.
+	 */
+	total = _nr_running_threads + 1;
+	average = total / _nr_cpus;
+
+	LIST_FOR_EACH(l, &_running_cpus) {
+		other = LIST_ENTRY(l, struct cpu, link);
+		load = other->sched->total;
+		if (load < average) {
+			cpu = other;
+			break;
+		}
+	}
 	
 	return cpu;
 }
@@ -230,6 +249,7 @@ void init_sched_percpu()
 
 void init_sched()
 {
+	/* Initialize the priority queues for process */
 	memset(&_ready_head[0], 0, sizeof(struct process *) * NR_SCHED_QUEUES);
 	memset(&_ready_tail[0], 0, sizeof(struct process *) * NR_SCHED_QUEUES);
 
@@ -240,7 +260,7 @@ void init_sched()
 	CURR_PROC = _kernel_proc;
 
 	/* Switch to current process, we set previous process to CURR_PROC so we
-	 * the context can get initialized.
+	 * can get the context initialized.
 	 */
 	process_switch(CURR_PROC, CURR_PROC);
 }
