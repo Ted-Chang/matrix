@@ -35,7 +35,7 @@ struct process_create;
 
 /* Definition of the process structure */
 struct process {
-	struct process *next;		// Next process
+	struct list link;		// Link to next process
 
 	struct mmu_ctx *mmu_ctx;	// MMU context
 
@@ -66,16 +66,6 @@ struct process {
 	struct process_create *create;	// Internal creation info structure
 };
 typedef struct process process_t;
-
-/* Scheduling priority for our processes. Value must start at zero (highest
- * priority) and increment.
- */
-#define NR_SCHED_QUEUES		16
-#define PROCESS_Q		0
-#define MAX_USER_Q		0
-#define USER_Q			7
-#define MIN_USER_Q		14
-#define IDLE_Q			15
 
 /* Pointer to the current process in the system */
 extern struct process *_curr_proc;

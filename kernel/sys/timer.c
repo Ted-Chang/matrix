@@ -32,7 +32,7 @@ clock_t tmrs_clrtimer(struct list *head, struct timer *t)
 	LIST_FOR_EACH(l, head) {
 		at = LIST_ENTRY(l, struct timer, link);
 		if (at == t) {
-			list_del(&at->link);
+			list_del(l);
 		}
 	}
 
@@ -92,7 +92,7 @@ void tmrs_exptimers(struct list *head, clock_t now)
 	LIST_FOR_EACH_SAFE(l, p, head) {
 		t = LIST_ENTRY(l, struct timer, link);
 		if (t->exp_time <= now) {
-			list_del(&t->link);
+			list_del(l);
 			t->exp_time = TIMER_NEVER;
 			t->timer_func(t);
 		}

@@ -45,8 +45,7 @@ typedef struct sched_cpu sched_cpu_t;
 static int _nr_running_threads = 0;
 
 /* The schedule queue for our kernel */
-struct process *_ready_head[NR_SCHED_QUEUES];
-struct process *_ready_tail[NR_SCHED_QUEUES];
+struct list _ready_queue[NR_PRIORITIES];
 
 /* Pointer to our various task */
 struct process *_prev_proc = NULL;
@@ -93,14 +92,18 @@ static void sched_adjust_priority(struct sched_cpu *c, struct process *p)
 static struct process *sched_pick_process(struct sched_cpu *c)
 {
 	struct process *p;
+	struct list *l;
 	int q;
 
 	/* Check each of the scheduling queues for ready processes. The number of
 	 * queues is defined in process.h. The lowest queue contains IDLE, which
 	 * is always ready.
 	 */
-	for (q = 0; q < NR_SCHED_QUEUES; q++) {
-		if ((p = _ready_head[q]) != NULL) {
+	for (q = 0; q < NR_PRIORITIES; q++) {
+		if (!LIST_EMPTY(&_ready_queue[q])) {
+			l = &_ready_queue[q].next;
+			p = LIST_ENTRY(l, struct process, link);
+			ASSERT(p != NULL);
 			break;
 		}
 	}
@@ -116,7 +119,6 @@ static struct process *sched_pick_process(struct sched_cpu *c)
 void sched_enqueue(struct process *p)
 {
 	int q;
-	struct sched_cpu *c;
 
 #ifdef _DEBUG_SCHED
 	check_runqueues("sched_enqueue:begin");
@@ -125,15 +127,9 @@ void sched_enqueue(struct process *p)
 	/* Determine where to insert the process */
 	q = p->priority;
 	
-	/* Now add the process to the queue. */
-	if (_ready_head[q] == NULL) {			// Add to empty queue
-		_ready_head[q] = _ready_tail[q] = p;
-		p->next = NULL;
-	} else {					// Add to tail of queue
-		_ready_tail[q]->next = p;
-		_ready_tail[q] = p;
-		p->next = NULL;
-	}
+	/* Now add the process to the tail of the queue. */
+	ASSERT(q < NR_PRIORITIES);
+	list_add_tail(&p->link, &_ready_queue[q]);
 
 #ifdef _DEBUG_SCHED
 	check_runqueues("sched_enqueue:end");
@@ -148,9 +144,8 @@ void sched_dequeue(struct process *p)
 {
 	int q;
 	boolean_t proc_found = FALSE;
-	struct process **xpp;
-	struct process *prev_ptr;
-	struct sched_cpu *c;
+	struct process *proc;
+	struct list *l;
 
 	q = p->priority;
 
@@ -161,20 +156,17 @@ void sched_dequeue(struct process *p)
 	/* Now make sure that the process is not in its ready queue. Remove the process
 	 * if it was found.
 	 */
-	prev_ptr = NULL;
-	for (xpp = &_ready_head[q]; *xpp != NULL; xpp = &((*xpp)->next)) {
-		
-		if (*xpp == p) {			// Found process to remove
-			*xpp = (*xpp)->next;		// Replace with the next in chain
-			if (p == _ready_tail[q]) {	// Queue tail removed
-				_ready_tail[q] = prev_ptr; // Set new tail
-			} else if (p == _ready_head[q]) {  // Queue head removed
-				_ready_head[q] = *xpp;
-			}
+	ASSERT(q < NR_PRIORITIES);
+	/* You can also just remove the specified process, but I just make sure it is
+	 * really in our ready queue.
+	 */
+	LIST_FOR_EACH(l, &_ready_queue[q]) {
+		proc = LIST_ENTRY(l, struct process, link);
+		if (proc == p) {
+			list_del(l);
 			proc_found = TRUE;
-			break;				// Break out the for loop
+			break;
 		}
-		prev_ptr = *xpp;
 	}
 
 	ASSERT(proc_found == TRUE);			// The process should be found
@@ -249,9 +241,12 @@ void init_sched_percpu()
 
 void init_sched()
 {
+	int i;
+
 	/* Initialize the priority queues for process */
-	memset(&_ready_head[0], 0, sizeof(struct process *) * NR_SCHED_QUEUES);
-	memset(&_ready_tail[0], 0, sizeof(struct process *) * NR_SCHED_QUEUES);
+	for (i = 0; i < NR_PRIORITIES; i++) {
+		LIST_INIT(&_ready_queue[i]);
+	}
 
 	/* Enqueue the kernel process which is the first process in our system */
 	sched_enqueue(_kernel_proc);

@@ -123,13 +123,13 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	struct process *p;
 
 	p = (struct process *)obj;
-	p->next = NULL;
+	LIST_INIT(&p->link);
 	p->mmu_ctx = ctx;
 	p->id = id_alloc();		// Allocate an ID for the process
 	p->uid = 500;			// FixMe: set it to the currently logged user
 	p->gid = 500;			// FixMe: set it to the current user's group
-	p->priority = USER_Q;		// Default priority
-	p->max_priority = PROCESS_Q;	// Max priority for the process
+	p->priority = 16;		// Default priority
+	p->max_priority = 31;		// Max priority for the process
 	p->quantum = P_QUANTUM;
 	p->ticks_left = 0;		// Initial ticks is 0
 	p->name[0] = '\0';
