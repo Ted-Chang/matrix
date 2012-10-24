@@ -81,6 +81,77 @@ static struct cpu *sched_alloc_cpu(struct thread *t)
 	return cpu;
 }
 
+/**
+ * Add `p' to one of the queues of runnable processes. This function is responsible
+ * for inserting a process into one of the scheduling queues. `p' must not in the
+ * scheduling queues before enqueue.
+ */
+static void sched_enqueue(struct list *queue, struct process *p)
+{
+	int q;
+#ifdef _DEBUG_SCHED
+	boolean_t proc_found = FALSE;
+	struct process *proc;
+	struct list *l;
+#endif	/* _DEBUG_SCHED */
+
+	/* Determine where to insert the process */
+	q = p->priority;
+	
+	/* Now add the process to the tail of the queue. */
+	ASSERT(q < NR_PRIORITIES);
+	list_add_tail(&p->link, &_ready_queue[q]);
+
+#ifdef _DEBUG_SCHED
+	LIST_FOR_EACH(l, &_ready_queue[q]) {
+		proc = LIST_ENTRY(l, struct process, link);
+		if (proc == p) {
+			proc_found = TRUE;
+			break;
+		}
+	}
+
+	ASSERT(proc_found == TRUE);
+#endif	/* _DEBUG_SCHED */
+}
+
+/**
+ * A process must be removed from the scheduling queues, for example, because it has
+ * been blocked.
+ */
+static void sched_dequeue(struct list *queue, struct process *p)
+{
+	int q;
+#ifdef _DEBUG_SCHED
+	boolean_t proc_found = FALSE;
+	struct process *proc;
+	struct list *l;
+#endif	/* _DEBUG_SCHED */
+
+	q = p->priority;
+
+	/* Now make sure that the process is not in its ready queue. Remove the process
+	 * if it was found.
+	 */
+	ASSERT(q < NR_PRIORITIES);
+	list_del(&p->link);
+	
+#ifdef _DEBUG_SCHED
+	/* You can also just remove the specified process, but I just make sure it is
+	 * really in our ready queue.
+	 */
+	LIST_FOR_EACH(l, &_ready_queue[q]) {
+		proc = LIST_ENTRY(l, struct process, link);
+		if (proc == p) {
+			proc_found = TRUE;
+			break;
+		}
+	}
+
+	ASSERT(proc_found == FALSE);		// The process should not be found
+#endif	/* _DEBUG_SCHED */
+}
+
 static void sched_adjust_priority(struct sched_cpu *c, struct process *p)
 {
 	;
@@ -101,7 +172,7 @@ static struct process *sched_pick_process(struct sched_cpu *c)
 	 */
 	for (q = 0; q < NR_PRIORITIES; q++) {
 		if (!LIST_EMPTY(&_ready_queue[q])) {
-			l = &_ready_queue[q].next;
+			l = _ready_queue[q].next;
 			p = LIST_ENTRY(l, struct process, link);
 			ASSERT(p != NULL);
 			break;
@@ -111,69 +182,9 @@ static struct process *sched_pick_process(struct sched_cpu *c)
 	return p;
 }
 
-/**
- * Add `p' to one of the queues of runnable processes. This function is responsible
- * for inserting a process into one of the scheduling queues. `p' must not in the
- * scheduling queues before enqueue.
- */
-void sched_enqueue(struct process *p)
+void sched_insert_proc(struct process *proc)
 {
-	int q;
-
-#ifdef _DEBUG_SCHED
-	check_runqueues("sched_enqueue:begin");
-#endif
-	
-	/* Determine where to insert the process */
-	q = p->priority;
-	
-	/* Now add the process to the tail of the queue. */
-	ASSERT(q < NR_PRIORITIES);
-	list_add_tail(&p->link, &_ready_queue[q]);
-
-#ifdef _DEBUG_SCHED
-	check_runqueues("sched_enqueue:end");
-#endif
-}
-
-/**
- * A process must be removed from the scheduling queues, for example, because it has
- * been blocked.
- */
-void sched_dequeue(struct process *p)
-{
-	int q;
-	boolean_t proc_found = FALSE;
-	struct process *proc;
-	struct list *l;
-
-	q = p->priority;
-
-#ifdef _DEBUG_SCHED
-	check_runqueues("sched_dequeue:begin");
-#endif
-
-	/* Now make sure that the process is not in its ready queue. Remove the process
-	 * if it was found.
-	 */
-	ASSERT(q < NR_PRIORITIES);
-	/* You can also just remove the specified process, but I just make sure it is
-	 * really in our ready queue.
-	 */
-	LIST_FOR_EACH(l, &_ready_queue[q]) {
-		proc = LIST_ENTRY(l, struct process, link);
-		if (proc == p) {
-			list_del(l);
-			proc_found = TRUE;
-			break;
-		}
-	}
-
-	ASSERT(proc_found == TRUE);			// The process should be found
-
-#ifdef _DEBUG_SCHED
-	check_runqueues("sched_dequeue:end");
-#endif
+	sched_enqueue(NULL, proc);	// FixMe: Choose which queue to insert
 }
 
 /**
@@ -191,8 +202,8 @@ void sched_reschedule(boolean_t state)
 	sched_adjust_priority(c, CURR_PROC);
 
 	/* Enqueue and dequeue the current process to update the process queue */
-	sched_dequeue(CURR_PROC);
-	sched_enqueue(CURR_PROC);
+	sched_dequeue(NULL, CURR_PROC);
+	sched_enqueue(NULL, CURR_PROC);
 	
 	/* Find a new process to run. A NULL return value means no processes are
 	 * ready, so we schedule the idle process in this case.
@@ -248,9 +259,14 @@ void init_sched()
 		LIST_INIT(&_ready_queue[i]);
 	}
 
+	/* Disable irq first as sched_insert_proc and process_switch requires */
+	irq_disable();
+
 	/* Enqueue the kernel process which is the first process in our system */
-	sched_enqueue(_kernel_proc);
+	sched_insert_proc(_kernel_proc);
 	
+	DEBUG(DL_DBG, ("init_sched: kernel process(0x%x).\n", _kernel_proc));
+
 	/* At this time we can schedule the process now */
 	CURR_PROC = _kernel_proc;
 
@@ -258,4 +274,7 @@ void init_sched()
 	 * can get the context initialized.
 	 */
 	process_switch(CURR_PROC, CURR_PROC);
+
+	/* Restore the irq */
+	irq_restore(TRUE);
 }

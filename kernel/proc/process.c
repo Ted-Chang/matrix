@@ -340,7 +340,7 @@ int fork()
 	process_ctor(new_proc, parent, ctx);
 
 	/* Enqueue the forked new process */
-	sched_enqueue(new_proc);
+	sched_insert_proc(new_proc);
 	DEBUG(DL_DBG, ("fork: parent(%p), child(%p).\n", parent, new_proc));
 	
 	eip = read_eip();

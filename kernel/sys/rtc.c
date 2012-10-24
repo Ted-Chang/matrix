@@ -1,5 +1,6 @@
 #include <types.h>
 #include <stddef.h>
+#include "sys/time.h"
 #include "hal/hal.h"
 #include "matrix/debug.h"
 #include "clock.h"
