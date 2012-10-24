@@ -300,9 +300,16 @@ int process_wait(struct process *p)
 	int rc = -1;
 	
 	ASSERT(p != NULL);
-	if (p->state == PROCESS_RUNNING) {
+	if (p->state != PROCESS_DEAD) {
+		/* Set the process to wait state */
+		CURR_PROC->state = PROCESS_WAIT;
+		
 		// TODO: Provide a function here for later use
 		notifier_register(&p->death_notifier, NULL, CURR_PROC);
+
+		/* Reschedule to next process */
+		irq_disable();
+		sched_reschedule(TRUE);
 		rc = 0;
 	} else {
 		rc = 0;

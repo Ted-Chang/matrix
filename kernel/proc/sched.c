@@ -46,6 +46,7 @@ static int _nr_running_threads = 0;
 
 /* The schedule queue for our kernel */
 struct list _ready_queue[NR_PRIORITIES];
+struct list _expired_queue[NR_PRIORITIES];
 
 /* Pointer to our various task */
 struct process *_prev_proc = NULL;
@@ -92,7 +93,7 @@ static void sched_enqueue(struct list *queue, struct process *p)
 #ifdef _DEBUG_SCHED
 	boolean_t proc_found = FALSE;
 	struct process *proc;
-	struct list *l;
+	struct list *l, *temp;
 #endif	/* _DEBUG_SCHED */
 
 	/* Determine where to insert the process */
@@ -100,10 +101,23 @@ static void sched_enqueue(struct list *queue, struct process *p)
 	
 	/* Now add the process to the tail of the queue. */
 	ASSERT(q < NR_PRIORITIES);
-	list_add_tail(&p->link, &_ready_queue[q]);
+	if (p->state == PROCESS_RUNNING) {
+		list_add_tail(&p->link, &_ready_queue[q]);
+	} else if (p->state == PROCESS_WAIT) {
+		DEBUG(DL_DBG, ("sched_enqueue: added to expire queue, pid(%d).\n", p->id));
+		list_add_tail(&p->link, &_expired_queue[q]);
+	}
 
 #ifdef _DEBUG_SCHED
-	LIST_FOR_EACH(l, &_ready_queue[q]) {
+	if (p->state == PROCESS_RUNNING) {
+		temp = _ready_queue;
+	} else if (p->state == PROCESS_WAIT) {
+		temp = _expired_queue;
+	} else {
+		ASSERT(FALSE);
+	}
+	
+	LIST_FOR_EACH(l, &temp[q]) {
 		proc = LIST_ENTRY(l, struct process, link);
 		if (proc == p) {
 			proc_found = TRUE;
@@ -125,7 +139,7 @@ static void sched_dequeue(struct list *queue, struct process *p)
 #ifdef _DEBUG_SCHED
 	boolean_t proc_found = FALSE;
 	struct process *proc;
-	struct list *l;
+	struct list *l, *temp;
 #endif	/* _DEBUG_SCHED */
 
 	q = p->priority;
@@ -140,7 +154,15 @@ static void sched_dequeue(struct list *queue, struct process *p)
 	/* You can also just remove the specified process, but I just make sure it is
 	 * really in our ready queue.
 	 */
-	LIST_FOR_EACH(l, &_ready_queue[q]) {
+	if (p->state == PROCESS_RUNNING) {
+		temp = _ready_queue;
+	} else if (p->state == PROCESS_WAIT) {
+		temp = _expired_queue;
+	} else {
+		ASSERT(FALSE);
+	}
+	
+	LIST_FOR_EACH(l, &temp[q]) {
 		proc = LIST_ENTRY(l, struct process, link);
 		if (proc == p) {
 			proc_found = TRUE;
@@ -158,7 +180,7 @@ static void sched_adjust_priority(struct sched_cpu *c, struct process *p)
 }
 
 /**
- * Pick a new process to run
+ * Pick a new process from the queue to run
  */
 static struct process *sched_pick_process(struct sched_cpu *c)
 {
@@ -219,7 +241,6 @@ void sched_reschedule(boolean_t state)
 
 	/* Move the next process to running state and set it as the current */
 	_prev_proc = CURR_PROC;
-	next->state = PROCESS_RUNNING;
 	CURR_PROC = next;
 
 	/* Perform the process switch if current process is not the same as previous
@@ -262,6 +283,7 @@ void init_sched()
 	/* Initialize the priority queues for process */
 	for (i = 0; i < NR_PRIORITIES; i++) {
 		LIST_INIT(&_ready_queue[i]);
+		LIST_INIT(&_expired_queue[i]);
 	}
 
 	/* Disable irq first as sched_insert_proc and process_switch requires */

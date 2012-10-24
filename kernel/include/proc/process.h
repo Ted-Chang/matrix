@@ -6,12 +6,12 @@
 #include "matrix/const.h"
 #include "matrix/matrix.h"
 #include "list.h"
-#include "fs.h"
-#include "fd.h"			// File descriptors
 #include "avltree.h"
 #include "notifier.h"
 #include "mm/mlayout.h"		// For memory layout
 #include "proc/thread.h"
+#include "fs.h"
+#include "fd.h"			// File descriptors
 
 /* Bottom of the user stack */
 #define USTACK_BOTTOM	0x10000000
@@ -59,7 +59,8 @@ struct process {
 	/* State of the process */
 	enum {
 		PROCESS_RUNNING,
-		PROCESS_DEAD
+		PROCESS_WAIT,		// TODO: We don't need this state in the future
+		PROCESS_DEAD,
 	} state;
 
 	/* Other process information */

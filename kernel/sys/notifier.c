@@ -17,7 +17,14 @@ void init_notifier(struct notifier *n)
 
 void notifier_clear(struct notifier *n)
 {
-	;
+	struct list *l;
+	struct notifier_func *nf;
+	
+	LIST_FOR_EACH(l, &n->functions) {
+		nf = LIST_ENTRY(l, struct notifier_func, link);
+		list_del(&nf->link);
+		kfree(nf);
+	}
 }
 
 void notifier_register(struct notifier *n, void (*func)(void *), void *data)
