@@ -2,7 +2,6 @@
 #include "matrix/matrix.h"
 #include "atomic.h"
 #include "barrier.h"
-#include "hal/lirq.h"
 #include "hal/spinlock.h"
 #include "matrix/debug.h"
 
@@ -20,7 +19,7 @@ void spinlock_acquire(struct spinlock *lock)
 {
 	boolean_t state;
 
-	state = local_irq_disable();
+	state = irq_disable();
 
 	spinlock_lock_internal(lock);
 	lock->state = state;
@@ -45,7 +44,7 @@ void spinlock_release(struct spinlock *lock)
 
 	leave_cs_barrier();
 	lock->value = 1;
-	local_irq_restore(state);
+	irq_restore(state);
 }
 
 /**
