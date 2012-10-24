@@ -112,8 +112,8 @@ struct irq_hook {
 extern void outportb(uint16_t port, uint8_t value);
 extern uint8_t inportb(uint16_t port);
 extern uint16_t inportw(uint16_t port);
-extern void irq_enable();
-extern void irq_disable();
+extern boolean_t irq_enable();
+extern boolean_t irq_disable();
 extern void irq_restore(boolean_t state);
 extern void irq_done(uint32_t int_no);
 extern void set_kernel_stack(uint32_t stack);

@@ -298,24 +298,42 @@ void process_switch(struct process *curr, struct process *prev)
 int process_wait(struct process *p)
 {
 	int rc = -1;
+	boolean_t state;
 	
 	ASSERT(p != NULL);
 	if (p->state != PROCESS_DEAD) {
-		/* Set the process to wait state */
-		CURR_PROC->state = PROCESS_WAIT;
-		
 		// TODO: Provide a function here for later use
 		notifier_register(&p->death_notifier, NULL, CURR_PROC);
 
 		/* Reschedule to next process */
-		irq_disable();
-		sched_reschedule(TRUE);
+		state = irq_disable();
+
+		/* Set the process to wait state */
+		CURR_PROC->state = PROCESS_WAIT;
+		
+		sched_reschedule(state);
 		rc = 0;
 	} else {
 		rc = 0;
 	}
 
 	return rc;
+}
+
+void process_exit(int status)
+{
+	boolean_t state;
+	
+	CURR_PROC->status = status;
+
+	notifier_run(&CURR_PROC->death_notifier);
+
+	state = irq_disable();
+
+	/* Set the process to dead state */
+	CURR_PROC->state = PROCESS_DEAD;
+
+	sched_reschedule(state);
 }
 
 /* Relocate the stack, this must be done when you copy the stack to another place */
@@ -354,8 +372,9 @@ int fork()
 	struct process *new_proc;
 	struct mmu_ctx *ctx;
 	uint32_t eip, esp, ebp;
+	boolean_t state;
 	
-	irq_disable();
+	state = irq_disable();
 
 	/* Take a pointer to this process' process struct for later reference */
 	parent = (struct process *)CURR_PROC;
@@ -420,7 +439,7 @@ int fork()
 			       new_proc->arch.eip, new_proc->arch.ustack,
 			       new_proc->mmu_ctx));
 		
-		irq_enable();
+		irq_restore(state);
 	} else {
 		/* We are the child, at this point we can't access the data even on
 		 * the stack. We're just rescheduled.
@@ -527,6 +546,7 @@ out:
 int system(char *path, int argc, char **argv)
 {
 	int c;
+	boolean_t state;
 
 	c = fork();
 	if (c == 0) {
@@ -534,9 +554,10 @@ int system(char *path, int argc, char **argv)
 		exec(path, argc, argv);
 		return -1;
 	} else {
-		irq_disable();
+		state = irq_disable();
+		ASSERT(state == TRUE);
 		DEBUG(DL_DBG, ("system: parent, c(%d).\n", c));
-		sched_reschedule(TRUE);
+		sched_reschedule(state);
 		return -1;
 	}
 }

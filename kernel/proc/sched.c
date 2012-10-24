@@ -279,6 +279,7 @@ void init_sched_percpu()
 void init_sched()
 {
 	int i;
+	boolean_t state;
 
 	/* Initialize the priority queues for process */
 	for (i = 0; i < NR_PRIORITIES; i++) {
@@ -287,7 +288,7 @@ void init_sched()
 	}
 
 	/* Disable irq first as sched_insert_proc and process_switch requires */
-	irq_disable();
+	state = irq_disable();
 
 	/* Enqueue the kernel process which is the first process in our system */
 	sched_insert_proc(_kernel_proc);
@@ -303,5 +304,5 @@ void init_sched()
 	process_switch(CURR_PROC, CURR_PROC);
 
 	/* Restore the irq */
-	irq_restore(TRUE);
+	irq_restore(state);
 }

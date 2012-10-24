@@ -27,6 +27,20 @@ void notifier_clear(struct notifier *n)
 	}
 }
 
+void notifier_run(struct notifier *n)
+{
+	struct list *l;
+	struct notifier_func *nf;
+
+	LIST_FOR_EACH(l, &n->functions) {
+		nf = LIST_ENTRY(l, struct notifier_func, link);
+		ASSERT((nf != NULL) && (nf->func != NULL));
+		list_del(&nf->link);
+		nf->func(nf->data);
+		kfree(nf);
+	}
+}
+
 void notifier_register(struct notifier *n, void (*func)(void *), void *data)
 {
 	struct notifier_func *nf;

@@ -39,17 +39,23 @@ uint16_t inportw(uint16_t port)
 /*
  * Enable the hardware interrupts
  */
-void irq_enable()
+boolean_t irq_enable()
 {
-	asm volatile("sti");
+	unsigned long flags;
+	
+	asm volatile("pushf; sti; pop %0" : "=r"(flags));
+	return (flags & (1<<9)) ? TRUE : FALSE;
 }
 
 /*
  * Disable the hardware interrupts
  */
-void irq_disable()
+boolean_t irq_disable()
 {
-	asm volatile("cli");
+	unsigned long flags;
+	
+	asm volatile("pushf; cli; pop %0" : "=r"(flags));
+	return (flags & (1<<9)) ? TRUE : FALSE;
 }
 
 /*
