@@ -124,6 +124,7 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 
 	p = (struct process *)obj;
 	LIST_INIT(&p->link);
+	p->ref_count = 1;
 	p->mmu_ctx = ctx;
 	p->id = id_alloc();		// Allocate an ID for the process
 	p->uid = 500;			// FixMe: set it to the currently logged user
@@ -158,6 +159,10 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 
 	/* Initialize the file descriptor table */
 	p->fds = fd_table_create(parent ? parent->fds : NULL);
+
+	/* Initialize the death notifier */
+	// TODO: Remember to wake up the waiters when we are going to die
+	init_notifier(&p->death_notifier);
 
 	p->status = 0;
 
@@ -215,6 +220,7 @@ static void process_dtor(void *obj)
 	avl_tree_remove_node(&_proc_tree, &p->tree_link);
 	
 	kfree((void *)p->arch.kstack - KSTACK_SIZE);
+
 	// FixMe: cleanup the page directory owned by this process
 	fd_table_destroy(p->fds);
 }
@@ -287,6 +293,22 @@ void process_switch(struct process *curr, struct process *prev)
 		      "jmp *%%ebx\n"
 		      :: "r"(eip), "r"(esp), "r"(ebp), "r"(_current_mmu_ctx->pdbr)
 		      : "%ebx", "%esp", "%eax");
+}
+
+int process_wait(struct process *p)
+{
+	int rc = -1;
+	
+	ASSERT(p != NULL);
+	if (p->state == PROCESS_RUNNING) {
+		// TODO: Provide a function here for later use
+		notifier_register(&p->death_notifier, NULL, CURR_PROC);
+		rc = 0;
+	} else {
+		rc = 0;
+	}
+
+	return rc;
 }
 
 /* Relocate the stack, this must be done when you copy the stack to another place */

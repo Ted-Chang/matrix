@@ -9,6 +9,7 @@
 #include "fs.h"
 #include "fd.h"			// File descriptors
 #include "avltree.h"
+#include "notifier.h"
 #include "mm/mlayout.h"		// For memory layout
 #include "proc/thread.h"
 
@@ -37,6 +38,8 @@ struct process_create;
 struct process {
 	struct list link;		// Link to next process
 
+	int ref_count;			// Number of handles/threads in the process
+
 	struct mmu_ctx *mmu_ctx;	// MMU context
 
 	pid_t id;			// Process ID
@@ -61,6 +64,8 @@ struct process {
 
 	/* Other process information */
 	struct avl_tree_node tree_link;	// Link to the process tree
+
+	struct notifier death_notifier;	// Notifier list of this process
 	int status;			// Exit status
 	
 	struct process_create *create;	// Internal creation info structure
@@ -85,6 +90,7 @@ extern struct process *process_lookup(pid_t pid);
 extern void process_attach(struct process *p, struct thread *t);
 extern void process_detach(struct thread *t);
 extern void process_switch(struct process *curr, struct process *prev);
+extern int process_wait(struct process *p);
 extern void init_process();
 
 #endif	/* __PROCESS_H__ */

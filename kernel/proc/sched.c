@@ -187,6 +187,11 @@ void sched_insert_proc(struct process *proc)
 	sched_enqueue(NULL, proc);	// FixMe: Choose which queue to insert
 }
 
+void sched_remove_proc(struct process *proc)
+{
+	sched_dequeue(NULL, proc);	// FixMe: This code will be replaced in the future
+}
+
 /**
  * Picks a new process to run and switches to it. Interrupts must be disable.
  * @param state		- Previous interrupt state
@@ -265,7 +270,7 @@ void init_sched()
 	/* Enqueue the kernel process which is the first process in our system */
 	sched_insert_proc(_kernel_proc);
 	
-	DEBUG(DL_DBG, ("init_sched: kernel process(0x%x).\n", _kernel_proc));
+	DEBUG(DL_DBG, ("init_sched: kernel process(%p).\n", _kernel_proc));
 
 	/* At this time we can schedule the process now */
 	CURR_PROC = _kernel_proc;

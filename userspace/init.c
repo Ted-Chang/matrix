@@ -57,7 +57,8 @@ void start_crond()
 	} else {
 		printf("start_crond: fork in parent.\n");
 		status = 0;
-		waitpid(pid, &status, 0);
+		pid = waitpid(pid, &status, 0);
+		printf("start_crond: waitpid pid(%d).\n", pid);
 	}
 }
 

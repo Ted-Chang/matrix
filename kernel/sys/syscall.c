@@ -386,8 +386,15 @@ int waitpid(int pid)
 		goto out;
 	}
 
+	/* Put the current process into the wait queue of proc */
+	rc = process_wait(proc);
+	if (rc != 0) {
+		DEBUG(DL_INF, ("waitpid: process_wait failed, proc(%p).\n", proc));
+		goto out;
+	}
+
 	rc = proc->status;
-	/* TODO: destroy the process */
+	// TODO: destroy the process
 
 out:
 	return rc;
