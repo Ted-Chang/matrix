@@ -295,6 +295,15 @@ void process_switch(struct process *curr, struct process *prev)
 		      : "%ebx", "%esp", "%eax");
 }
 
+static void process_wait_notifier(void *data)
+{
+	struct process *p;
+
+	p = (struct process *)data;
+	p->state = PROCESS_RUNNING;
+	sched_insert_proc(p);
+}
+
 int process_wait(struct process *p)
 {
 	int rc = -1;
@@ -302,8 +311,7 @@ int process_wait(struct process *p)
 	
 	ASSERT(p != NULL);
 	if (p->state != PROCESS_DEAD) {
-		// TODO: Provide a function here for later use
-		notifier_register(&p->death_notifier, NULL, CURR_PROC);
+		notifier_register(&p->death_notifier, process_wait_notifier, CURR_PROC);
 
 		/* Reschedule to next process */
 		state = irq_disable();
@@ -323,8 +331,10 @@ int process_wait(struct process *p)
 void process_exit(int status)
 {
 	boolean_t state;
-	
+
 	CURR_PROC->status = status;
+
+	DEBUG(DL_DBG, ("process_exit: id(%d), status(%d).\n", CURR_PROC->id, status));
 
 	notifier_run(&CURR_PROC->death_notifier);
 

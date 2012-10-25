@@ -103,6 +103,7 @@ int write(int fd, char *buf, int len)
 
 int exit(int rc)
 {
+	process_exit(rc);
 	return rc;
 }
 

@@ -91,42 +91,26 @@ static void sched_enqueue(struct list *queue, struct process *p)
 {
 	int q;
 #ifdef _DEBUG_SCHED
-	boolean_t proc_found = FALSE;
+	size_t found_times = 0;
 	struct process *proc;
-	struct list *l, *temp;
+	struct list *l;
 #endif	/* _DEBUG_SCHED */
 
 	/* Determine where to insert the process */
 	q = p->priority;
-	
-	/* Now add the process to the tail of the queue. */
-	ASSERT(q < NR_PRIORITIES);
-	if (p->state == PROCESS_RUNNING) {
-		list_add_tail(&p->link, &_ready_queue[q]);
-	} else if (p->state == PROCESS_WAIT) {
-		DEBUG(DL_DBG, ("sched_enqueue: added to expire queue, pid(%d).\n", p->id));
-		list_add_tail(&p->link, &_expired_queue[q]);
-	}
 
 #ifdef _DEBUG_SCHED
-	if (p->state == PROCESS_RUNNING) {
-		temp = _ready_queue;
-	} else if (p->state == PROCESS_WAIT) {
-		temp = _expired_queue;
-	} else {
-		ASSERT(FALSE);
-	}
-	
-	LIST_FOR_EACH(l, &temp[q]) {
+	LIST_FOR_EACH(l, &queue[q]) {
 		proc = LIST_ENTRY(l, struct process, link);
 		if (proc == p) {
-			proc_found = TRUE;
-			break;
+			ASSERT(FALSE);
 		}
 	}
-
-	ASSERT(proc_found == TRUE);
 #endif	/* _DEBUG_SCHED */
+	
+	/* Now add the process to the tail of the queue. */
+	ASSERT((q < NR_PRIORITIES) && (q >= 0));
+	list_add_tail(&p->link, &queue[q]);
 }
 
 /**
@@ -137,9 +121,9 @@ static void sched_dequeue(struct list *queue, struct process *p)
 {
 	int q;
 #ifdef _DEBUG_SCHED
-	boolean_t proc_found = FALSE;
+	size_t found_times = 0;
 	struct process *proc;
-	struct list *l, *temp;
+	struct list *l;
 #endif	/* _DEBUG_SCHED */
 
 	q = p->priority;
@@ -147,30 +131,21 @@ static void sched_dequeue(struct list *queue, struct process *p)
 	/* Now make sure that the process is not in its ready queue. Remove the process
 	 * if it was found.
 	 */
-	ASSERT(q < NR_PRIORITIES);
+	ASSERT((q < NR_PRIORITIES) && (q >= 0));
 	list_del(&p->link);
 	
 #ifdef _DEBUG_SCHED
 	/* You can also just remove the specified process, but I just make sure it is
 	 * really in our ready queue.
 	 */
-	if (p->state == PROCESS_RUNNING) {
-		temp = _ready_queue;
-	} else if (p->state == PROCESS_WAIT) {
-		temp = _expired_queue;
-	} else {
-		ASSERT(FALSE);
-	}
-	
-	LIST_FOR_EACH(l, &temp[q]) {
+	LIST_FOR_EACH(l, &queue[q]) {
 		proc = LIST_ENTRY(l, struct process, link);
 		if (proc == p) {
-			proc_found = TRUE;
-			break;
+			found_times++;
 		}
 	}
 
-	ASSERT(proc_found == FALSE);		// The process should not be found
+	ASSERT(found_times == 0);		// The process should not be found
 #endif	/* _DEBUG_SCHED */
 }
 
@@ -197,6 +172,7 @@ static struct process *sched_pick_process(struct sched_cpu *c)
 			l = _ready_queue[q].next;
 			p = LIST_ENTRY(l, struct process, link);
 			ASSERT(p != NULL);
+			sched_dequeue(_ready_queue, p);
 			break;
 		}
 	}
@@ -206,12 +182,7 @@ static struct process *sched_pick_process(struct sched_cpu *c)
 
 void sched_insert_proc(struct process *proc)
 {
-	sched_enqueue(NULL, proc);	// FixMe: Choose which queue to insert
-}
-
-void sched_remove_proc(struct process *proc)
-{
-	sched_dequeue(NULL, proc);	// FixMe: This code will be replaced in the future
+	sched_enqueue(_ready_queue, proc);
 }
 
 /**
@@ -229,8 +200,12 @@ void sched_reschedule(boolean_t state)
 	sched_adjust_priority(c, CURR_PROC);
 
 	/* Enqueue and dequeue the current process to update the process queue */
-	sched_dequeue(NULL, CURR_PROC);
-	sched_enqueue(NULL, CURR_PROC);
+	if (CURR_PROC->state == PROCESS_RUNNING) {
+		sched_enqueue(_ready_queue, CURR_PROC);
+	} else {
+		DEBUG(DL_DBG, ("sched_reschedule: proc(%p), id(%d), state(%d).\n",
+			       CURR_PROC, CURR_PROC->id, CURR_CPU->state));
+	}
 	
 	/* Find a new process to run. A NULL return value means no processes are
 	 * ready, so we schedule the idle process in this case.
@@ -290,9 +265,6 @@ void init_sched()
 	/* Disable irq first as sched_insert_proc and process_switch requires */
 	state = irq_disable();
 
-	/* Enqueue the kernel process which is the first process in our system */
-	sched_insert_proc(_kernel_proc);
-	
 	DEBUG(DL_DBG, ("init_sched: kernel process(%p).\n", _kernel_proc));
 
 	/* At this time we can schedule the process now */

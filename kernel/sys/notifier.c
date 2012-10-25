@@ -29,11 +29,12 @@ void notifier_clear(struct notifier *n)
 
 void notifier_run(struct notifier *n)
 {
-	struct list *l;
+	struct list *l, *p;
 	struct notifier_func *nf;
 
-	LIST_FOR_EACH(l, &n->functions) {
+	LIST_FOR_EACH_SAFE(l, p, &n->functions) {
 		nf = LIST_ENTRY(l, struct notifier_func, link);
+		DEBUG(DL_DBG, ("notifier_run: nf(%p), nf->func(%p).\n", nf, nf->func));
 		ASSERT((nf != NULL) && (nf->func != NULL));
 		list_del(&nf->link);
 		nf->func(nf->data);
@@ -48,8 +49,11 @@ void notifier_register(struct notifier *n, void (*func)(void *), void *data)
 	nf = kmalloc(sizeof(struct notifier), 0);
 	LIST_INIT(&nf->link);
 	nf->data = data;
+	nf->func = func;
 
 	list_add_tail(&nf->link, &n->functions);
+
+	DEBUG(DL_DBG, ("notifier_register: nf(%p), data(%p).\n", nf, data));
 }
 
 void notifier_unregister(struct notifier *n, void (*func)(void *), void *data)
