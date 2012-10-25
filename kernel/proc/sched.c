@@ -46,7 +46,12 @@ static int _nr_running_threads = 0;
 
 /* The schedule queue for our kernel */
 struct list _ready_queue[NR_PRIORITIES];
-struct list _expired_queue[NR_PRIORITIES];
+
+/* Dead process queue */
+static struct list _dead_processes = {
+	.prev = &_dead_processes,
+	.next = &_dead_processes
+};
 
 /* Pointer to our various task */
 struct process *_prev_proc = NULL;
@@ -205,6 +210,9 @@ void sched_reschedule(boolean_t state)
 	} else {
 		DEBUG(DL_DBG, ("sched_reschedule: proc(%p), id(%d), state(%d).\n",
 			       CURR_PROC, CURR_PROC->id, CURR_CPU->state));
+		if (CURR_PROC->state == PROCESS_DEAD) {
+			list_add_tail(&CURR_PROC->link, &_dead_processes);
+		}
 	}
 	
 	/* Find a new process to run. A NULL return value means no processes are
@@ -226,6 +234,26 @@ void sched_reschedule(boolean_t state)
 		irq_restore(state);
 	} else {
 		irq_restore(state);
+	}
+}
+
+static void sched_reaper_proc(void *args)
+{
+	struct process *proc;
+	struct list *l, *p;
+
+	while (TRUE) {
+		/* Sleep for some time */
+		//...
+
+		LIST_FOR_EACH_SAFE(l, p, &_dead_processes) {
+			/* Remove the process from the dead process list */
+			proc = LIST_ENTRY(l, struct process, link);
+			list_del(&proc->link);
+
+			/* Destroy the process */
+			//...
+		}
 	}
 }
 
@@ -259,7 +287,6 @@ void init_sched()
 	/* Initialize the priority queues for process */
 	for (i = 0; i < NR_PRIORITIES; i++) {
 		LIST_INIT(&_ready_queue[i]);
-		LIST_INIT(&_expired_queue[i]);
 	}
 
 	/* Disable irq first as sched_insert_proc and process_switch requires */
