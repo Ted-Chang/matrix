@@ -24,7 +24,7 @@ SECTIONS
 		. = ALIGN(4096);
 	}
 	/*
-	 * Kernel data
+	 * data
 	 */
 	.data : AT(phys + (data - code))
 	{

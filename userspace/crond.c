@@ -9,7 +9,7 @@ int main(int argc, char **argv)
 
 	printf("crond process started.\n");
 
-	while (TRUE) {
+	do {
 		int fd;
 
 		fd = open("/crontab", 0, 0);
@@ -20,10 +20,7 @@ int main(int argc, char **argv)
 			;
 		}
 		
-		break;
-	}
-
-	exit(rc);
+	} while (FALSE);
 
 	return rc;
 }

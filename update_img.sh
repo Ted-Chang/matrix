@@ -2,8 +2,8 @@
 
 # update the matrix kernel in the floopy image
 #sudo losetup /dev/loop0 ~/vm/matrix/matrix.img
-tools/makeinitrd bin/init init bin/crond crond bin/initrd bin/echo echo
-sudo mount /dev/loop0 /media/matrix
-sudo cp bin/matrix /media/matrix
-sudo cp bin/initrd /media/matrix
+tools/make_initrd bin/init init bin/crond crond bni/echo echo bin/initrd
+sudo mount /dev/loop0 /mnt/matrix
+sudo cp bin/matrix /mnt/matrix
+sudo cp bin/initrd /mnt/matrix
 sudo umount /dev/loop0

@@ -210,9 +210,6 @@ void sched_reschedule(boolean_t state)
 	} else {
 		DEBUG(DL_DBG, ("sched_reschedule: proc(%p), id(%d), state(%d).\n",
 			       CURR_PROC, CURR_PROC->id, CURR_CPU->state));
-		if (CURR_PROC->state == PROCESS_DEAD) {
-			list_add_tail(&CURR_PROC->link, &_dead_processes);
-		}
 	}
 	
 	/* Find a new process to run. A NULL return value means no processes are
@@ -263,6 +260,8 @@ void init_sched_percpu()
 
 	/* Initialize the scheduler for the current CPU */
 	CURR_CPU->sched = kmalloc(sizeof(struct sched_cpu), 0);
+	ASSERT(CURR_CPU->sched != NULL);
+	
 	CURR_CPU->sched->total = 0;
 	CURR_CPU->sched->active = &CURR_CPU->sched->queues[0];
 	CURR_CPU->sched->expired = &CURR_CPU->sched->queues[1];

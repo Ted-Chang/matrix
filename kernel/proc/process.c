@@ -313,6 +313,7 @@ int process_wait(struct process *p)
 	boolean_t state;
 	
 	ASSERT(p != NULL);
+	
 	if (p->state != PROCESS_DEAD) {
 		/* Register us to the death notifier of the specified process */
 		notifier_register(&p->death_notifier, process_wait_notifier, CURR_PROC);
@@ -337,8 +338,6 @@ void process_exit(int status)
 	boolean_t state;
 
 	DEBUG(DL_DBG, ("process_exit: id(%d), status(%d).\n", CURR_PROC->id, status));
-
-	CURR_PROC->status = status;
 
 	state = irq_disable();
 
@@ -481,7 +480,7 @@ int exec(char *path, int argc, char **argv)
 		return -1;
 	}
 
-	temp = 0x50000000;
+	temp = 0x50000000;	// A temp address to read the file to
 	
 	/* Map some pages to the address from mmu context of this process, the mapped
 	 * memory page is used for storing the ELF file content
@@ -518,8 +517,8 @@ int exec(char *path, int argc, char **argv)
 	}
 
 	/* Load the loadable segments from the executive to the address which was
-	 * specified in the ELF and for Matrix, default is 0x40000000 which was
-	 * specified by the link script.
+	 * specified in the ELF and for Matrix. default is 0x40000000 which was
+	 * specified in the link script.
 	 */
 	rc = elf_load_sections(&(CURR_PROC->arch), ehdr);
 	DEBUG(DL_DBG, ("exec: elf_load_sections done.\n"));
@@ -532,7 +531,7 @@ int exec(char *path, int argc, char **argv)
 	entry = ehdr->e_entry;
 	DEBUG(DL_DBG, ("exec: entry(0x%08x)\n", entry));
 
-	/* Free the memory we used for the ELF headers and files */
+	/* Free the memory we used for temporarily store the ELF files */
 	for (virt = temp; virt < (temp + n->length); virt += PAGE_SIZE) {
 		page = mmu_get_page(_current_mmu_ctx, virt, FALSE, 0);
 		ASSERT(page != NULL);

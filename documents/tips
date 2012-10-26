@@ -11,6 +11,11 @@
 gcc -o mkinitrd make_initrd.c
 
 
+[Check the ELF Format]
+
+objdump -xfh bin/crond
+
+
 [Debugging tips]
 
 * list the break points
