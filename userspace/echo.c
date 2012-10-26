@@ -3,16 +3,14 @@
 #include <syscall.h>
 #include <errno.h>
 
-static void usage();
-
 int main(int argc, char **argv)
 {
 	int rc = 0;
 
+	printf("\n");
+	
+	exit(rc);
+	
 	return rc;
 }
 
-void usage()
-{
-	printf("echo\n");
-}

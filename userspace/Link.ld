@@ -11,7 +11,7 @@ INPUT(../bin/lib/string.o)
 INPUT(../bin/lib/vsprintf.o)
 INPUT(../bin/lib/stdio.o)
 INPUT(../bin/lib/print.o)
-phys = 0x20000000;
+phys = 0x40000000;
 SECTIONS
 {
 	/*

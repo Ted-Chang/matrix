@@ -72,10 +72,11 @@ void *kmem_alloc(size_t size, int mmflag)
 {
 	void *ret;
 	
-	if (FLAG_ON(mmflag, MM_ALIGN))
+	if (FLAG_ON(mmflag, MM_ALIGN)) {
 		ret = kmem_alloc_int(size, TRUE, NULL);
-	else
+	} else {
 		ret = kmem_alloc_int(size, FALSE, NULL);
+	}
 	
 	return ret;
 }
@@ -84,10 +85,11 @@ void *kmem_alloc_p(size_t size, uint32_t *phys, int mmflag)
 {
 	void *ret;
 
-	if (FLAG_ON(mmflag, MM_ALIGN))
+	if (FLAG_ON(mmflag, MM_ALIGN)) {
 		ret = kmem_alloc_int(size, TRUE, phys);
-	else
+	} else {
 		ret = kmem_alloc_int(size, FALSE, phys);
+	}
 	
 	return ret;
 }
@@ -442,8 +444,9 @@ void free(struct heap *heap, void *p)
 		}
 	}
 
-	if (do_add)
+	if (do_add) {
 		insert_vector(&heap->index, (void *)header);
+	}
 }
 
 void kmem_free(void *p)

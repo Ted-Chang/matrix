@@ -14,7 +14,7 @@
 #include "fd.h"			// File descriptors
 
 /* Bottom of the user stack */
-#define USTACK_BOTTOM	0x10000000
+#define USTACK_BOTTOM	0x20000000
 
 /* Definition of the architecture specific process structure */
 struct arch_process {
