@@ -123,6 +123,7 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	struct process *p;
 
 	p = (struct process *)obj;
+	
 	LIST_INIT(&p->link);
 	p->ref_count = 1;
 	p->mmu_ctx = ctx;
@@ -312,8 +313,6 @@ int process_wait(struct process *p)
 	int rc = -1;
 	boolean_t state;
 	
-	ASSERT(p != NULL);
-	
 	if (p->state != PROCESS_DEAD) {
 		/* Register us to the death notifier of the specified process */
 		notifier_register(&p->death_notifier, process_wait_notifier, CURR_PROC);
@@ -323,10 +322,12 @@ int process_wait(struct process *p)
 
 		/* Set the process to wait state */
 		CURR_PROC->state = PROCESS_WAIT;
-		
+
+		/* Reschedule current process */
 		sched_reschedule(state);
 		rc = 0;
 	} else {
+		DEBUG(DL_INF, ("process_wait: process(%d) dead.", p->id));
 		rc = 0;
 	}
 
@@ -341,6 +342,7 @@ void process_exit(int status)
 
 	state = irq_disable();
 
+	/* Wake up the waiters on the notifier list */
 	notifier_run(&CURR_PROC->death_notifier);
 
 	/* Set the process to dead state */
@@ -479,8 +481,11 @@ int exec(char *path, int argc, char **argv)
 		DEBUG(DL_DBG, ("exec: file(%s) not found.\n", path));
 		return -1;
 	}
-
-	temp = 0x50000000;	// A temp address to read the file to
+	
+	/* Temporarily use address of user stack to load the ELF file, It will be
+	 * unmapped after we loaded the code section in.
+	 */
+	temp = USTACK_BOTTOM;
 	
 	/* Map some pages to the address from mmu context of this process, the mapped
 	 * memory page is used for storing the ELF file content
@@ -530,6 +535,7 @@ int exec(char *path, int argc, char **argv)
 	/* Save the entry point to the code segment */
 	entry = ehdr->e_entry;
 	DEBUG(DL_DBG, ("exec: entry(0x%08x)\n", entry));
+	ASSERT(entry != USTACK_BOTTOM);
 
 	/* Free the memory we used for temporarily store the ELF files */
 	for (virt = temp; virt < (temp + n->length); virt += PAGE_SIZE) {

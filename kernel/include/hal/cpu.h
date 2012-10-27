@@ -244,7 +244,7 @@ static INLINE struct cpu *cpu_get_pointer()
 	uint32_t addr;
 	
 	//addr = (uint32_t)x86_read_msr(X86_MSR_GS_BASE);
-	addr = &_boot_cpu;
+	addr = (uint32_t)&_boot_cpu;
 	return (struct cpu *)addr;
 }
 

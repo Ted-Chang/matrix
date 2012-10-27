@@ -10,7 +10,7 @@
 
 #define DEBUG(level, params) do { \
 		if (_debug_level <= (level)) { \
-			kprintf("[DEBUG] ");   \
+			kprintf("[DBG] ");     \
 			kprintf params;	       \
 		}			       \
 	} while (0)

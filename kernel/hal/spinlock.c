@@ -2,6 +2,7 @@
 #include "matrix/matrix.h"
 #include "atomic.h"
 #include "barrier.h"
+#include "hal/hal.h"
 #include "hal/spinlock.h"
 #include "matrix/debug.h"
 

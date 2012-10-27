@@ -14,7 +14,7 @@
 #include "fd.h"			// File descriptors
 
 /* Bottom of the user stack */
-#define USTACK_BOTTOM	0x40000000
+#define USTACK_BOTTOM	0x30000000
 
 /* Definition of the architecture specific process structure */
 struct arch_process {
@@ -91,6 +91,7 @@ extern struct process *process_lookup(pid_t pid);
 extern void process_attach(struct process *p, struct thread *t);
 extern void process_detach(struct thread *t);
 extern void process_switch(struct process *curr, struct process *prev);
+extern void process_exit(int status);
 extern int process_wait(struct process *p);
 extern void init_process();
 

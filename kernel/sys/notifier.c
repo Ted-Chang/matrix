@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include "matrix/matrix.h"
 #include "matrix/debug.h"
+#include "mm/malloc.h"
 #include "notifier.h"
 
 struct notifier_func {
@@ -19,7 +20,7 @@ void notifier_clear(struct notifier *n)
 {
 	struct list *l;
 	struct notifier_func *nf;
-	
+
 	LIST_FOR_EACH(l, &n->functions) {
 		nf = LIST_ENTRY(l, struct notifier_func, link);
 		list_del(&nf->link);

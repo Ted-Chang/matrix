@@ -96,7 +96,6 @@ static void sched_enqueue(struct list *queue, struct process *p)
 {
 	int q;
 #ifdef _DEBUG_SCHED
-	size_t found_times = 0;
 	struct process *proc;
 	struct list *l;
 #endif	/* _DEBUG_SCHED */
@@ -199,6 +198,10 @@ void sched_reschedule(boolean_t state)
 	struct sched_cpu *c;
 	struct process *next;
 
+	/* Check the interrupt state */
+	ASSERT(irq_disable() == FALSE);
+
+	/* Get current schedule CPU */
 	c = CURR_CPU->sched;
 
 	/* Adjust the priority of the thread based on whether it used up its quantum */
