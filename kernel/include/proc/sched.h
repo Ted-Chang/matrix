@@ -4,6 +4,7 @@
 extern void sched_insert_proc(struct process *proc);
 extern void sched_remove_proc(struct process *proc);
 extern void sched_reschedule(boolean_t state);
+extern void sched_enter();
 extern void init_sched_percpu();
 extern void init_sched();
 

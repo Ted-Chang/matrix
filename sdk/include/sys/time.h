@@ -1,7 +1,7 @@
 #ifndef __TIME_H__
 #define __TIME_H__
 
-typedef long clock_t;
+typedef unsigned long clock_t;
 
 struct tm {
 	int tm_sec;

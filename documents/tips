@@ -15,6 +15,10 @@ gcc -o mkinitrd make_initrd.c
 
 objdump -xfh bin/crond
 
+[disasm the ELF file]
+
+objdump -xfhd bin/matrix
+
 
 [Debugging tips]
 
@@ -121,3 +125,27 @@ Breakpoint 1, kmain (addr=can't compute CFA for this frame
 40	{
 (gdb)
 
+
+
+[debug case study]
+1.search sched_reschedule(0x108742) in matrix.map
+2.search notifier_register(0x106ebf) in matrix.map
+3.lb 0x106ebf
+4.c
+5.lb 0x108742
+6.c
+7.get the linear address of nf variable(0xc00a70a3)
+8.page 0xc00a70a3
+9.Get the physical page(0x1e0000) which linear address 0xc00a70a3 resides on
+10.Get the physical address we interested in(data field of struct notifier).
+11.watch w 0x1e00af 4
+12.search process_switch(0x10773a) in matrix.map
+13.lb 0x10773a
+14.c
+15.u /100
+16.search the first ret(0x1077c6) instruction
+17.lb 0x1077c6
+18.search the first ret(0x108898) instruction
+19.lb 0x108898
+20.lb 0x104623 which is return instruction of irq_handler
+21.c

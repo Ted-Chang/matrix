@@ -59,8 +59,7 @@ void notifier_register(struct notifier *n, void (*func)(void *), void *data)
 	list_add_tail(&nf->link, &n->functions);
 
 	DEBUG(DL_DBG, ("notifier_register: nf(%p), func(%p), data(%p).\n",
-		       nf, func, data));
-	ASSERT((nf->func == func) && (nf->data == data));
+		       nf, nf->func, nf->data));
 }
 
 void notifier_unregister(struct notifier *n, void (*func)(void *), void *data)

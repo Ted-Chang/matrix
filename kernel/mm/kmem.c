@@ -111,7 +111,6 @@ static void expand(struct heap *heap, size_t new_size)
 	ASSERT((heap->start_addr + new_size) < heap->max_addr);
 
 	old_size = heap->end_addr - heap->start_addr;
-
 	i = old_size;
 
 	while (i < new_size) {
@@ -136,8 +135,9 @@ static uint32_t contract(struct heap *heap, size_t new_size)
 	}
 
 	/* Don't contract too much */
-	if (new_size < HEAP_MIN_SIZE)
+	if (new_size < HEAP_MIN_SIZE) {
 		new_size = HEAP_MIN_SIZE;
+	}
 
 	old_size = heap->end_addr - heap->start_addr;
 	i = old_size - PAGE_SIZE;
@@ -214,19 +214,25 @@ static uint32_t find_smallest_hole(struct heap *heap, size_t size, uint8_t page_
 	iterator = 0;
 
 	while (iterator < heap->index.size) {
-		struct header *header = (struct header *)lookup_vector(&heap->index, iterator);
+		struct header *header;
+		header = (struct header *)lookup_vector(&heap->index, iterator);
+		/* If the user has requested the memory be page-aligned */
 		if (page_align) {
-			uint32_t location = (uint32_t)header;
+			/* Page-align the starting point of this header */
+			uint32_t location;
 			int32_t offset = 0;
 			int32_t hole_size;
-			
-			if ((((location + sizeof(struct header))) & 0xFFFFF000) != 0)
-				offset = 0x1000;
+
+			location = (uint32_t)header;
+			if ((((location + sizeof(struct header))) & 0xFFFFF000) != 0) {
+				offset = 0x1000 - ((location + sizeof(struct header)) % 0x1000);
+			}
 			hole_size = (int32_t)header->size - offset;
 			
 			/* Can we fit now ? */
-			if (hole_size >= (int32_t)size)
+			if (hole_size >= (int32_t)size) {
 				break;
+			}
 		} else if (header->size >= size) {
 			break;
 		}
@@ -248,7 +254,10 @@ void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 	struct footer *block_ftr;
 	uint32_t orig_hole_pos, orig_hole_size;
 
-	new_size = sizeof(struct header) + sizeof(struct footer);
+	/* Make sure we take the size of header/footer into account */
+	new_size = sizeof(struct header) + sizeof(struct footer) + size;
+
+	/* Find the smallest hole that will fit */
 	iterator = find_smallest_hole(heap, new_size, page_align);
 	if (iterator == -1) {
 		uint32_t old_length = heap->end_addr - heap->start_addr;
@@ -273,9 +282,11 @@ void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 			iterator++;
 		}
 
+		/* If we didn't find any headers we need to add one */
 		if (idx == -1) {
-			struct header *header = (struct header *)old_end_addr;
+			struct header *header;
 			struct footer *footer;
+			header = (struct header *)old_end_addr;
 			header->magic = HEAP_MAGIC;
 			header->size = new_length - old_length;
 			header->is_hole = 1;
@@ -284,12 +295,12 @@ void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 			footer->hdr = header;
 			insert_vector(&heap->index, (void *)header);
 		} else {
-			/* The last header need adjusting */
 			struct header *header;
-			/* Rewrite the footer */
 			struct footer *footer;
+			/* The last header need adjusting */
 			header = lookup_vector(&heap->index, idx);
 			header->size += (new_length - old_length);
+			/* Rewrite the footer */
 			footer = (struct footer *)((uint32_t)header + header->size - sizeof(struct footer));
 			footer->hdr = header;
 			footer->magic = HEAP_MAGIC;
@@ -303,12 +314,10 @@ void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 	orig_hole_pos = (uint32_t)orig_hole_hdr;
 	orig_hole_size = orig_hole_hdr->size;
 
-	/*
-	 * Here we work out if we should split the hole we found into parts
-	 */
-	if (orig_hole_size - new_size < sizeof(struct header) + sizeof(struct footer)) {
+	/* Here we work out if we should split the hole we found into parts */
+	if ((orig_hole_size - new_size) < (sizeof(struct header) + sizeof(struct footer))) {
 		/* Then just increase the requested size to the hole we found */
-		size += orig_hole_size - new_size;
+		size += (orig_hole_size - new_size);
 		new_size = orig_hole_size;
 	}
 
@@ -317,10 +326,11 @@ void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 	 * in front of our block
 	 */
 	if (page_align && (orig_hole_pos & 0xFFFFF000)) {
-		uint32_t new_location = orig_hole_pos + 0x1000 -
-			(orig_hole_pos & 0xFFF) - sizeof(struct header);
-		struct header *hole_header = (struct header *)orig_hole_pos;
+		uint32_t new_location;
+		struct header *hole_header;
 		struct footer *hole_footer;
+		new_location = orig_hole_pos + 0x1000 - (orig_hole_pos & 0xFFF) - sizeof(struct header);
+		hole_header = (struct header *)orig_hole_pos;
 		hole_header->size = 0x1000;
 		hole_header->magic = HEAP_MAGIC;
 		hole_header->is_hole = 1;
@@ -336,7 +346,7 @@ void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 
 	/* Overwrite the original header ... */
 	block_hdr = (struct header *)orig_hole_pos;
-	block_hdr->magic = HEAP_MAGIC;
+	block_hdr->magic == HEAP_MAGIC;
 	block_hdr->is_hole = 0;
 	block_hdr->size = new_size;
 
@@ -345,18 +355,17 @@ void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 	block_ftr->magic = HEAP_MAGIC;
 	block_ftr->hdr = block_hdr;
 
-	/*
-	 * We may need to write a new hole after the allocated block.
-	 */
+	/* We may need to write a new hole after the allocated block. */
 	if ((orig_hole_size - new_size) > 0) {
-		struct header *hole_hdr = (struct header *)
-			(orig_hole_pos + sizeof(struct header) + size + sizeof(struct footer));
+		struct header *hole_hdr;
 		struct footer *hole_ftr;
+		hole_hdr = (struct header *)
+			(orig_hole_pos + sizeof(struct header) + size + sizeof(struct footer));
 		hole_hdr->magic = HEAP_MAGIC;
 		hole_hdr->is_hole = 1;
 		hole_hdr->size = orig_hole_size - new_size;
-		hole_ftr = (struct footer *)((uint32_t)hole_hdr + orig_hole_size -
-					     new_size - sizeof(struct footer));
+		hole_ftr = (struct footer *)
+			((uint32_t)hole_hdr + orig_hole_size - new_size - sizeof(struct footer));
 		if ((uint32_t)hole_ftr < heap->end_addr) {
 			hole_ftr->magic = HEAP_MAGIC;
 			hole_ftr->hdr = hole_hdr;
@@ -375,20 +384,23 @@ void free(struct heap *heap, void *p)
 	char do_add;
 	struct header *header, *test_hdr;
 	struct footer *footer, *test_ftr;
+	uint32_t iterator;
 	
-	if (p == 0)
+	if (p == 0) {
 		return;
+	}
 
 	header = (struct header *)((uint32_t)p - sizeof(struct header));
 	footer = (struct footer *)((uint32_t)header + header->size - sizeof(struct footer));
 
 	/* Sanity check */
 	ASSERT(header->magic == HEAP_MAGIC);
-	ASSERT(header->magic == HEAP_MAGIC);
+	ASSERT(footer->magic == HEAP_MAGIC);
 
 	/* Make us a hole */
 	header->is_hole = 1;
-	
+
+	/* Do we want to add this header into the 'free holes' index? */
 	do_add = 1;
 
 	test_ftr = (struct footer *)((uint32_t)header - sizeof(struct footer));
@@ -404,11 +416,10 @@ void free(struct heap *heap, void *p)
 	test_hdr = (struct header *)((uint32_t)footer + sizeof(struct footer));
 	if ((test_hdr->magic == HEAP_MAGIC) &&
 	    (test_hdr->is_hole)) {
-		uint32_t iterator;
 		
 		header->size += test_hdr->size;		// Increase our size
-		test_ftr = (struct footer *)((uint32_t)test_hdr +
-					     test_hdr->size - sizeof(struct footer));
+		test_ftr = (struct footer *)
+			((uint32_t)test_hdr + test_hdr->size - sizeof(struct footer));
 		footer = test_ftr;
 		/* Find and remove this header from the index */
 		iterator = 0;
@@ -428,14 +439,14 @@ void free(struct heap *heap, void *p)
 		uint32_t new_length = contract(heap, (uint32_t)header - heap->start_addr);
 
 		if (header->size - (old_length - new_length) > 0) {
-			header->size -= old_length - new_length;
+			header->size -= (old_length - new_length);
 			footer = (struct footer *)((uint32_t)header + header->size -
 						   sizeof(struct footer));
 			footer->magic = HEAP_MAGIC;
 			footer->hdr = header;
 		} else {
 
-			uint32_t iterator = 0;
+			iterator = 0;
 			while ((iterator < heap->index.size) &&
 			       (lookup_vector(&heap->index, iterator) != (void *)test_hdr))
 				iterator++;

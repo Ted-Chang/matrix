@@ -171,7 +171,7 @@ static struct process *sched_pick_process(struct sched_cpu *c)
 	 * queues is defined in process.h. The lowest queue contains IDLE, which
 	 * is always ready.
 	 */
-	for (q = 0; q < NR_PRIORITIES; q++) {
+	for (q = NR_PRIORITIES - 1; q >= 0; q--) {
 		if (!LIST_EMPTY(&_ready_queue[q])) {
 			l = _ready_queue[q].next;
 			p = LIST_ENTRY(l, struct process, link);
@@ -230,30 +230,16 @@ void sched_reschedule(boolean_t state)
 	 * one.
 	 */
 	if (CURR_PROC != _prev_proc) {
+		/* Switch the address space. */
+		mmu_switch_ctx(CURR_PROC->mmu_ctx);
+
+		/* Perform the process switch */
 		process_switch(CURR_PROC, _prev_proc);
+
+		/* Restore the IRQ */
 		irq_restore(state);
 	} else {
 		irq_restore(state);
-	}
-}
-
-static void sched_reaper_proc(void *args)
-{
-	struct process *proc;
-	struct list *l, *p;
-
-	while (TRUE) {
-		/* Sleep for some time */
-		//...
-
-		LIST_FOR_EACH_SAFE(l, p, &_dead_processes) {
-			/* Remove the process from the dead process list */
-			proc = LIST_ENTRY(l, struct process, link);
-			list_del(&proc->link);
-
-			/* Destroy the process */
-			//...
-		}
 	}
 }
 
@@ -284,26 +270,27 @@ void init_sched_percpu()
 void init_sched()
 {
 	int i;
-	boolean_t state;
 
 	/* Initialize the priority queues for process */
 	for (i = 0; i < NR_PRIORITIES; i++) {
 		LIST_INIT(&_ready_queue[i]);
 	}
 
+	DEBUG(DL_DBG, ("init_sched: sched queues initialization done.\n"));
+}
+
+void sched_enter()
+{
+	boolean_t state;
+
 	/* Disable irq first as sched_insert_proc and process_switch requires */
 	state = irq_disable();
 
-	DEBUG(DL_DBG, ("init_sched: kernel process(%p).\n", _kernel_proc));
+	DEBUG(DL_DBG, ("sched_enter: kernel process(%p).\n", _kernel_proc));
 
 	/* At this time we can schedule the process now */
 	CURR_PROC = _kernel_proc;
 
-	/* Switch to current process, we set previous process to CURR_PROC so we
-	 * can get the context initialized.
-	 */
-	process_switch(CURR_PROC, CURR_PROC);
-
-	/* Restore the irq */
-	irq_restore(state);
+	/* Switch to current process */
+	process_switch(CURR_PROC, NULL);
 }

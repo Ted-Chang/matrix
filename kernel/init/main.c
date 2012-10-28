@@ -42,12 +42,9 @@ static void dump_mbi(struct multiboot_info *mbi);
 int kmain(u_long addr, uint32_t initial_stack)
 {
 	int rc = 0;
+	boolean_t state = FALSE;
 	uint32_t initrd_location;
 	uint32_t initrd_end;
-	char *init_argv[] = {
-		"/init",
-		NULL
-	};
 
 	/* Make the debugger available as soon as possible */
 	kd_init();
@@ -130,8 +127,8 @@ int kmain(u_long addr, uint32_t initial_stack)
 	init_floppy();
 	kprintf("Floppy driver initialization done.\n");
 
-	/* Ready to run init process from executable file init */
-	system(init_argv[0], 1, init_argv);
+	/* Start our scheduler */
+	sched_enter();
 
 	return rc;
 }

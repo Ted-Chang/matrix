@@ -22,7 +22,7 @@ extern void tmrs_exptimers(struct list *head, clock_t now);
 int _current_frequency = 0;
 uint32_t _lost_ticks = 0;
 clock_t _real_time = 0;
-clock_t _next_timeout = 0;
+clock_t _next_timeout = TIMER_NEVER;
 useconds_t _boot_time;
 static struct irq_hook _clock_hook;
 
