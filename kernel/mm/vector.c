@@ -13,30 +13,20 @@ int8_t default_compare(type_t x, type_t y)
 	return (x > y) ? 1 : -1;
 }
 
-struct vector create_vector(uint32_t max_size, compare_t compare)
+struct vector *create_vector(uint32_t max_size, compare_t compare)
 {
-	struct vector to_ret;
+	struct vector *v = NULL;
 
-	to_ret.array = (void *)kmem_alloc(max_size * sizeof(type_t), 0);
-	memset(to_ret.array, 0, max_size * sizeof(type_t));
-	to_ret.size = 0;
-	to_ret.max_size = max_size;
-	to_ret.compare = compare;
-
-	return to_ret;
+	return v;
 }
 
-struct vector place_vector(void *addr, uint32_t max_size, compare_t compare)
+void place_vector(struct vector *v, void *addr, uint32_t max_size, compare_t compare)
 {
-	struct vector to_ret;
-
-	to_ret.array = (type_t *)addr;
-	memset(to_ret.array, 0, max_size * sizeof(type_t));
-	to_ret.size = 0;
-	to_ret.max_size = max_size;
-	to_ret.compare = compare;
-
-	return to_ret;
+	v->array = (type_t *)addr;
+	memset(v->array, 0, max_size * sizeof(type_t));
+	v->size = 0;
+	v->max_size = max_size;
+	v->compare = compare;
 }
 
 void destroy_vector(struct vector *vector)

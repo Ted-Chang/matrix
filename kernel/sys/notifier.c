@@ -51,7 +51,7 @@ void notifier_register(struct notifier *n, void (*func)(void *), void *data)
 {
 	struct notifier_func *nf;
 
-	nf = kmalloc(sizeof(struct notifier), 0);
+	nf = kmalloc(sizeof(struct notifier_func), 0);
 	LIST_INIT(&nf->link);
 	nf->data = data;
 	nf->func = func;

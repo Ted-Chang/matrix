@@ -51,7 +51,7 @@ void *kmem_alloc_int(size_t size, boolean_t align, uint32_t *phys)
 		uint32_t tmp;
 
 		/* If the address is not already page-aligned */
-		if ((align == 1) && (_placement_addr & 0xFFFFF000)) {
+		if ((align == TRUE) && (_placement_addr & 0xFFF)) {
 			/* Align the placement address */
 			_placement_addr &= 0xFFFFF000;
 			_placement_addr += 0x1000;
@@ -172,21 +172,21 @@ struct heap *create_heap(uint32_t start, uint32_t end, uint32_t max,
 	struct heap *heap;
 	struct header *hole;
 
-	ASSERT(start % 0x1000 == 0);
-	ASSERT(end % 0x1000 == 0);
+	ASSERT(start % PAGE_SIZE == 0);
+	ASSERT(end % PAGE_SIZE == 0);
 
 	heap = (struct heap *)kmem_alloc(sizeof(struct heap), 0);
 
 	/* Initialize the index of the heap, size of index is fixed */
-	heap->index = place_vector((void *)start, HEAP_INDEX_SIZE, header_compare);
+	place_vector(&heap->index, (void *)start, HEAP_INDEX_SIZE, header_compare);
 
 	/* Shift the start address forward to resemble where we can start putting data */
-	start += sizeof(type_t) * HEAP_INDEX_SIZE;
+	start += (sizeof(type_t) * HEAP_INDEX_SIZE);
 	
 	/* Make sure the start address is page-aligned */
-	if ((start & 0xFFFFF000) != 0) {
+	if ((start & 0xFFF) != 0) {
 		start &= 0xFFFFF000;
-		start += 0x1000;
+		start += PAGE_SIZE;
 	}
 	
 	heap->start_addr = start;
@@ -216,6 +216,7 @@ static uint32_t find_smallest_hole(struct heap *heap, size_t size, uint8_t page_
 	while (iterator < heap->index.size) {
 		struct header *header;
 		header = (struct header *)lookup_vector(&heap->index, iterator);
+		ASSERT(header->is_hole == TRUE);
 		/* If the user has requested the memory be page-aligned */
 		if (page_align) {
 			/* Page-align the starting point of this header */
@@ -224,8 +225,8 @@ static uint32_t find_smallest_hole(struct heap *heap, size_t size, uint8_t page_
 			int32_t hole_size;
 
 			location = (uint32_t)header;
-			if ((((location + sizeof(struct header))) & 0xFFFFF000) != 0) {
-				offset = 0x1000 - ((location + sizeof(struct header)) % 0x1000);
+			if (((location + sizeof(struct header)) & 0xFFF) != 0) {
+				offset = PAGE_SIZE - ((location + sizeof(struct header)) % PAGE_SIZE);
 			}
 			hole_size = (int32_t)header->size - offset;
 			
@@ -314,33 +315,37 @@ void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 	orig_hole_pos = (uint32_t)orig_hole_hdr;
 	orig_hole_size = orig_hole_hdr->size;
 
-	/* Here we work out if we should split the hole we found into parts */
+	/* Here we work out if we should split the hole we found into parts
+	 * Is the original hole size - requested hole size less than the overhead
+	 * for adding a new hole?
+	 */
 	if ((orig_hole_size - new_size) < (sizeof(struct header) + sizeof(struct footer))) {
 		/* Then just increase the requested size to the hole we found */
 		size += (orig_hole_size - new_size);
 		new_size = orig_hole_size;
 	}
 
-	/*
-	 * If we need to page-align the data, do it now and make a new hole
+	/* If we need to page-align the data, do it now and make a new hole
 	 * in front of our block
 	 */
-	if (page_align && (orig_hole_pos & 0xFFFFF000)) {
+	if (page_align && ((orig_hole_pos + sizeof(struct header)) & 0xFFF)) {
 		uint32_t new_location;
 		struct header *hole_header;
 		struct footer *hole_footer;
-		new_location = orig_hole_pos + 0x1000 - (orig_hole_pos & 0xFFF) - sizeof(struct header);
+		/* The memory address returned to caller should be page-aligned */
+		new_location = orig_hole_pos + PAGE_SIZE - (orig_hole_pos & 0xFFF) - sizeof(struct header);
 		hole_header = (struct header *)orig_hole_pos;
-		hole_header->size = 0x1000;
+		hole_header->size = PAGE_SIZE - (orig_hole_pos & 0xFFF) - sizeof(struct header);
 		hole_header->magic = HEAP_MAGIC;
 		hole_header->is_hole = 1;
 		hole_footer = (struct footer *)(new_location - sizeof(struct footer));
 		hole_footer->magic = HEAP_MAGIC;
 		hole_footer->hdr = hole_header;
+		/* We have made a new hole so don't need to remove it from vector */
 		orig_hole_pos = new_location;
 		orig_hole_size = orig_hole_size - hole_header->size;
 	} else {
-		/* We don't need this hole any more, delete it */
+		/* This hole was allocated, so just remove it */
 		remove_vector(&heap->index, iterator);
 	}
 
@@ -356,7 +361,7 @@ void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 	block_ftr->hdr = block_hdr;
 
 	/* We may need to write a new hole after the allocated block. */
-	if ((orig_hole_size - new_size) > 0) {
+	if (orig_hole_size  > new_size) {
 		struct header *hole_hdr;
 		struct footer *hole_ftr;
 		hole_hdr = (struct header *)
