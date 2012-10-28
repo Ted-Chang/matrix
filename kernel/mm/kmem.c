@@ -46,12 +46,15 @@ void *kmem_alloc_int(size_t size, boolean_t align, uint32_t *phys)
 			page = mmu_get_page(&_kernel_mmu_ctx, (uint32_t)addr, FALSE, 0);
 			*phys = page->frame * 0x1000 + ((uint32_t)addr & 0xFFF);
 		}
+		if (align) {
+			ASSERT(((uint32_t)addr % PAGE_SIZE) == 0);
+		}
 		return addr;
 	} else {	// The heap manager was not initialized
 		uint32_t tmp;
 
 		/* If the address is not already page-aligned */
-		if ((align == TRUE) && (_placement_addr & 0xFFF)) {
+		if ((align) && (_placement_addr & 0xFFF)) {
 			/* Align the placement address */
 			_placement_addr &= 0xFFFFF000;
 			_placement_addr += 0x1000;
@@ -63,7 +66,10 @@ void *kmem_alloc_int(size_t size, boolean_t align, uint32_t *phys)
 
 		tmp = _placement_addr;
 		_placement_addr += size;
-		
+
+		if (align) {
+			ASSERT((tmp % PAGE_SIZE) == 0);
+		}
 		return (void *)tmp;
 	}
 }

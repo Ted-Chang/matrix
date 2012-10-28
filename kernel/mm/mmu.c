@@ -195,14 +195,14 @@ void mmu_switch_ctx(struct mmu_ctx *ctx)
 {
 	uint32_t cr0;
 
-	ASSERT((ctx->pdbr % 4096) == 0);
+	DEBUG(DL_DBG, ("mmu_switch_ctx: switch ctx to %p, pdbr(%p)\n",
+		       ctx, ctx->pdbr));
+
+	ASSERT((ctx->pdbr % PAGE_SIZE) == 0);
 
 	/* Update the current mmu context */
 	_current_mmu_ctx = ctx;
 	
-	DEBUG(DL_DBG, ("mmu_switch_ctx: switch ctx to 0x%08x, pdbr(0x%08x)\n",
-		       ctx, ctx->pdbr));
-
 	/* Set CR3 register */
 	asm volatile("mov %0, %%cr3":: "r"(ctx->pdbr));
 	
@@ -296,8 +296,9 @@ struct mmu_ctx *mmu_create_ctx()
 		kmem_free(ctx);
 		return NULL;
 	}
-	ctx->pdbr = pdbr;
 	memset(ctx->pdir, 0, sizeof(struct pdir));
+	ctx->pdbr = pdbr;
+	ASSERT((ctx->pdbr % PAGE_SIZE) == 0);
 
 	return ctx;
 }

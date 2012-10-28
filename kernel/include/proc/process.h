@@ -34,8 +34,13 @@ typedef struct arch_process arch_process_t;
 /* Forward declaration, used to pass arguments */
 struct process_create;
 
+#define PROC_MAGIC	'corP'
+
 /* Definition of the process structure */
 struct process {
+	uint32_t type;			// Type of this structure
+	uint32_t size;			// Size of this structure
+	
 	struct list link;		// Link to next process
 
 	int ref_count;			// Number of handles/threads in the process

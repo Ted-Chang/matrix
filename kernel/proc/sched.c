@@ -100,6 +100,8 @@ static void sched_enqueue(struct list *queue, struct process *p)
 	struct list *l;
 #endif	/* _DEBUG_SCHED */
 
+	ASSERT((p->type == PROC_MAGIC) && (p->size == sizeof(struct process)));
+	
 	/* Determine where to insert the process */
 	q = p->priority;
 
@@ -129,6 +131,8 @@ static void sched_dequeue(struct list *queue, struct process *p)
 	struct process *proc;
 	struct list *l;
 #endif	/* _DEBUG_SCHED */
+
+	ASSERT((p->type == PROC_MAGIC) && (p->size = sizeof(struct process)));
 
 	q = p->priority;
 
@@ -167,6 +171,7 @@ static struct process *sched_pick_process(struct sched_cpu *c)
 	struct list *l;
 	int q;
 
+	p = NULL;
 	/* Check each of the scheduling queues for ready processes. The number of
 	 * queues is defined in process.h. The lowest queue contains IDLE, which
 	 * is always ready.
@@ -175,7 +180,8 @@ static struct process *sched_pick_process(struct sched_cpu *c)
 		if (!LIST_EMPTY(&_ready_queue[q])) {
 			l = _ready_queue[q].next;
 			p = LIST_ENTRY(l, struct process, link);
-			ASSERT(p != NULL);
+			ASSERT((p->type == PROC_MAGIC) &&
+			       (p->size == sizeof(struct process)));
 			sched_dequeue(_ready_queue, p);
 			break;
 		}
@@ -211,8 +217,8 @@ void sched_reschedule(boolean_t state)
 	if (CURR_PROC->state == PROCESS_RUNNING) {
 		sched_enqueue(_ready_queue, CURR_PROC);
 	} else {
-		DEBUG(DL_DBG, ("sched_reschedule: proc(%p), id(%d), state(%d).\n",
-			       CURR_PROC, CURR_PROC->id, CURR_CPU->state));
+		DEBUG(DL_DBG, ("sched_reschedule: p(%p), id(%d), state(%d).\n",
+			       CURR_PROC, CURR_PROC->id, CURR_PROC->state));
 	}
 	
 	/* Find a new process to run. A NULL return value means no processes are
@@ -230,6 +236,9 @@ void sched_reschedule(boolean_t state)
 	 * one.
 	 */
 	if (CURR_PROC != _prev_proc) {
+		DEBUG(DL_DBG, ("sched_reschedule: curr(%p), prev(%p).\n",
+			       CURR_PROC, _prev_proc));
+		
 		/* Switch the address space. */
 		mmu_switch_ctx(CURR_PROC->mmu_ctx);
 

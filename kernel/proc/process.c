@@ -123,6 +123,9 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	struct process *p;
 
 	p = (struct process *)obj;
+
+	p->type = PROC_MAGIC;		// Initialize the signature
+	p->size = sizeof(struct process);
 	
 	LIST_INIT(&p->link);
 	p->ref_count = 1;
@@ -168,6 +171,8 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	
 	/* Insert this process into process tree */
 	avl_tree_insert_node(&_proc_tree, &p->tree_link, p->id, p);
+
+	p->state = PROCESS_RUNNING;
 }
 
 /**
@@ -323,6 +328,8 @@ int process_wait(struct process *p)
 {
 	int rc = -1;
 	boolean_t state;
+
+	ASSERT((p->type == PROC_MAGIC) && (p->size == sizeof(struct process)));
 	
 	if (p->state != PROCESS_DEAD) {
 		/* Register us to the death notifier of the specified process */
@@ -349,7 +356,11 @@ void process_exit(int status)
 {
 	boolean_t state;
 
-	DEBUG(DL_DBG, ("process_exit: id(%d), status(%d).\n", CURR_PROC->id, status));
+	DEBUG(DL_DBG, ("process_exit: id(%d), status(%d).\n",
+		       CURR_PROC->id, status));
+
+	ASSERT((CURR_PROC->type == PROC_MAGIC) &&
+	       (CURR_PROC->size == sizeof(struct process)));
 
 	state = irq_disable();
 
@@ -412,10 +423,6 @@ int fork()
 	/* Create a new process */
 	new_proc = (struct process *)kmalloc(sizeof(struct process), 0);
 	process_ctor(new_proc, parent, ctx);
-
-	/* Enqueue the forked new process */
-	sched_insert_proc(new_proc);
-	DEBUG(DL_DBG, ("fork: parent(%p), child(%p).\n", parent, new_proc));
 	
 	eip = read_eip();
 
@@ -450,8 +457,9 @@ int fork()
 		/* Relocate the kernel stack */
 		relocate_stack(new_proc->arch.kstack, parent->arch.kstack, KSTACK_SIZE);
 
-		DEBUG(DL_DBG, ("fork: kstack(0x%x -> 0x%x).\n",
-			       parent->arch.kstack, new_proc->arch.kstack));
+		DEBUG(DL_DBG, ("fork: p(%p:%p) kstk(%p:%p) mmu(%p:%p)\n",
+			       parent, new_proc, parent->arch.kstack, new_proc->arch.kstack,
+			       parent->mmu_ctx, new_proc->mmu_ctx));
 
 		offset = parent->arch.kstack - (uint32_t)parent->arch.syscall_regs;
 		new_proc->arch.syscall_regs =
@@ -459,13 +467,15 @@ int fork()
 
 		pid = new_proc->id;
 
-		DEBUG(DL_DBG, ("fork: new process forked, pid %d\n"
-			       "- esp(0x%x), ebp(0x%x), eip(0x%x), ustack(0x%x), mmu(0x%x)\n",
+		DEBUG(DL_DBG, ("fork: new process, pid(%d)\n"
+			       "- esp(0x%x) ebp(0x%x) eip(0x%x) ustk(0x%x)\n",
 			       new_proc->id, new_proc->arch.esp, new_proc->arch.ebp,
-			       new_proc->arch.eip, new_proc->arch.ustack,
-			       new_proc->mmu_ctx));
+			       new_proc->arch.eip, new_proc->arch.ustack));
+
+		/* This must be done after we have initialized all field of the new process */
+		sched_insert_proc(new_proc);
 		
-		irq_restore(state);
+		irq_restore(TRUE);
 	} else {
 		/* We are the child, at this point we can't access the data even on
 		 * the stack. We're just rescheduled.
@@ -516,7 +526,6 @@ int exec(char *path, int argc, char **argv)
 
 	/* Read in the executive content */
 	rc = vfs_read(n, 0, n->length, (uint8_t *)ehdr);
-	DEBUG(DL_DBG, ("exec: vfs_read done.\n"));
 	if (rc == -1 || rc < sizeof(elf_ehdr_t)) {
 		DEBUG(DL_INF, ("exec: read file(%s) failed.\n", path));
 		rc = -1;
@@ -525,7 +534,6 @@ int exec(char *path, int argc, char **argv)
 
 	/* Check whether it is valid ELF */
 	is_elf = elf_ehdr_check(ehdr);
-	DEBUG(DL_DBG, ("exec: elf_ehdr_check done.\n"));
 	if (!is_elf) {
 		DEBUG(DL_INF, ("exec: invalid ELF, file(%s).\n", path));
 		rc = -1;
@@ -537,7 +545,6 @@ int exec(char *path, int argc, char **argv)
 	 * specified in the link script.
 	 */
 	rc = elf_load_sections(&(CURR_PROC->arch), ehdr);
-	DEBUG(DL_DBG, ("exec: elf_load_sections done.\n"));
 	if (rc != 0) {
 		DEBUG(DL_WRN, ("exec: load sections failed, file(%s).\n", path));
 		goto out;
