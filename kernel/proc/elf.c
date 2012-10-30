@@ -68,7 +68,7 @@ int elf_load_sections(struct arch_process *arch, elf_ehdr_t *ehdr)
 
 			/* Map memory space for this section, this is where codes stored */
 			for (virt = 0; virt < (shdr->sh_size + 0x2000); virt += PAGE_SIZE) {
-				page = mmu_get_page(_current_mmu_ctx, shdr->sh_addr + virt, TRUE, 0);
+				page = mmu_get_page(CURR_PROC->mmu_ctx, shdr->sh_addr + virt, TRUE, 0);
 				if (!page) {
 					DEBUG(DL_ERR, ("elf_load_section: mmu_get_page failed.\n"));
 					goto out;

@@ -98,6 +98,8 @@ extern void process_detach(struct thread *t);
 extern void process_switch(struct process *curr, struct process *prev);
 extern void process_exit(int status);
 extern int process_wait(struct process *p);
+extern int process_create(const char *name, struct process *parent, int priority,
+			  void *entry, struct process **proc);
 extern void init_process();
 
 #endif	/* __PROCESS_H__ */

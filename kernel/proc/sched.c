@@ -41,6 +41,13 @@ struct sched_cpu {
 };
 typedef struct sched_cpu sched_cpu_t;
 
+/* Idle process, this should be per CPU process */
+// FixMe: change this to per CPU process
+struct process *_idle_proc = NULL;
+
+/* Whether scheduler is ready */
+boolean_t _scheduler_ready = FALSE;
+
 /* Total number of running or ready threads across all CPUs */
 static int _nr_running_threads = 0;
 
@@ -236,8 +243,9 @@ void sched_reschedule(boolean_t state)
 	 * one.
 	 */
 	if (CURR_PROC != _prev_proc) {
-		DEBUG(DL_DBG, ("sched_reschedule: curr(%p), prev(%p).\n",
-			       CURR_PROC, _prev_proc));
+		DEBUG(DL_DBG, ("sched_reschedule: curr(%p:%s), prev(%p:%s).\n",
+			       CURR_PROC, CURR_PROC->name, _prev_proc,
+			       _prev_proc->name));
 		
 		/* Switch the address space. */
 		mmu_switch_ctx(CURR_PROC->mmu_ctx);
@@ -252,9 +260,36 @@ void sched_reschedule(boolean_t state)
 	}
 }
 
+static void sched_reaper_proc(void *ctx)
+{
+	/* If this is the first time reaper run, you should enable IRQ first */
+	while (TRUE) {
+		/* Reaper the dead threads */
+		if (!LIST_EMPTY(&_dead_processes)) {
+			;
+		}
+		
+		sched_reschedule(FALSE);
+	}
+}
+
+static void sched_idle_proc(void *ctx)
+{
+	/* We run the loop with interrupts disabled. The cpu_idle() function
+	 * is expected to re-enable interrupts as required.
+	 */
+	irq_disable();
+
+	while (TRUE) {
+		sched_reschedule(FALSE);
+		cpu_idle();
+	}
+}
+
 void init_sched_percpu()
 {
-	int i, j;
+	int i, j, rc = -1;
+	char name[P_NAME_LEN];
 
 	/* Initialize the scheduler for the current CPU */
 	CURR_CPU->sched = kmalloc(sizeof(struct sched_cpu), 0);
@@ -263,6 +298,17 @@ void init_sched_percpu()
 	CURR_CPU->sched->total = 0;
 	CURR_CPU->sched->active = &CURR_CPU->sched->queues[0];
 	CURR_CPU->sched->expired = &CURR_CPU->sched->queues[1];
+
+	/* Initialize the Per CPU priority queues for process */
+	for (i = 0; i < NR_PRIORITIES; i++) {
+		LIST_INIT(&_ready_queue[i]);
+	}
+
+	/* Create the per CPU idle process */
+	strcpy(name, "idle-");
+	rc = process_create(name, NULL, 14, sched_idle_proc, &_idle_proc);
+	ASSERT((rc == 0) && (_idle_proc != NULL));
+	DEBUG(DL_DBG, ("init_sched_percpu: p(%p).\n", _idle_proc));
 
 	/* Create the preemption timer */
 	init_timer(&CURR_CPU->sched->timer);
@@ -278,12 +324,17 @@ void init_sched_percpu()
 
 void init_sched()
 {
-	int i;
+	int rc = -1;
+	struct process *p = NULL;
 
-	/* Initialize the priority queues for process */
-	for (i = 0; i < NR_PRIORITIES; i++) {
-		LIST_INIT(&_ready_queue[i]);
-	}
+	/* Create kernel mode reaper process for the whole system */
+	rc = process_create("reaper", NULL, 15, sched_reaper_proc, &p);
+	ASSERT((rc == 0) && (p != NULL));
+
+	/* We don't need to disable IRQ here because before we enter scheduler
+	 * no process will be scheduled
+	 */
+	sched_insert_proc(p);
 
 	DEBUG(DL_DBG, ("init_sched: sched queues initialization done.\n"));
 }
@@ -295,11 +346,15 @@ void sched_enter()
 	/* Disable irq first as sched_insert_proc and process_switch requires */
 	state = irq_disable();
 
-	DEBUG(DL_DBG, ("sched_enter: kernel process(%p).\n", _kernel_proc));
+	CURR_PROC = _idle_proc;
+	ASSERT(CURR_PROC != NULL);
 
-	/* At this time we can schedule the process now */
-	CURR_PROC = _kernel_proc;
+	DEBUG(DL_DBG, ("sched_enter: idle process(%p), ctx(%p).\n",
+		       CURR_PROC, CURR_PROC->mmu_ctx));
 
+	/* Set scheduler to ready */
+	_scheduler_ready = TRUE;
+	
 	/* Switch to current process */
 	process_switch(CURR_PROC, NULL);
 }

@@ -32,7 +32,8 @@
 uint32_t _initial_esp;
 struct multiboot_info *_mbi;
 
-void init_syscalls();
+extern void init_syscalls();
+extern void sys_init_proc();
 
 static void dump_mbi(struct multiboot_info *mbi);
 
@@ -44,6 +45,7 @@ int kmain(u_long addr, uint32_t initial_stack)
 	int rc = 0;
 	uint32_t initrd_location;
 	uint32_t initrd_end;
+	struct process *p = NULL;
 
 	/* Make the debugger available as soon as possible */
 	kd_init();
@@ -126,6 +128,11 @@ int kmain(u_long addr, uint32_t initial_stack)
 	init_floppy();
 	kprintf("Floppy driver initialization done.\n");
 
+	/* Create the initialization process */
+	rc = process_create("init", NULL, 15, sys_init_proc, &_kernel_proc);
+	ASSERT((rc == 0) && (_kernel_proc != NULL));
+	sched_insert_proc(_kernel_proc);
+
 	/* Start our scheduler */
 	sched_enter();
 
@@ -166,3 +173,4 @@ void dump_mbi(struct multiboot_info *mbi)
 
 	kprintf("placement address: 0x%x\n", *((uint32_t *)(_mbi->mods_addr + 4)));
 }
+

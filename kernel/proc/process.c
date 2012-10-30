@@ -35,7 +35,7 @@ static pid_t _next_pid = 1;
 /* Tree of all processes */
 static struct avl_tree _proc_tree;
 
-/* Process containing all kernel-mode threads */
+/* kernel process */
 struct process *_kernel_proc = NULL;
 
 extern uint32_t _initial_esp;
@@ -115,16 +115,46 @@ static void move_stack(uint32_t new_stack, uint32_t size)
 	asm volatile("mov %0, %%ebp" :: "r"(new_ebp));
 }
 
+/* Relocate the stack, this must be done when you copy the stack to another place */
+static void relocate_stack(uint32_t new_stack, uint32_t old_stack, uint32_t size)
+{
+	uint32_t i, tmp, off;
+
+	if (new_stack > old_stack) {
+		off = new_stack - old_stack;
+	} else {
+		off = old_stack - new_stack;
+	}
+
+	for (i = new_stack; i > (new_stack - size); i -= 4) {
+		tmp = *((uint32_t *)i);
+		if ((tmp < old_stack) && (tmp > (old_stack - size))) {
+			uint32_t *tmp2;
+
+			if (new_stack > old_stack) {
+				tmp += off;
+			} else {
+				tmp -= off;
+			}
+			
+			tmp2 = (uint32_t *)i;
+			*tmp2 = tmp;
+		}
+	}
+}
+
 /**
  * Construct a process
  */
-static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
+static void process_ctor(void *obj, const char *name, struct process *parent,
+			 struct mmu_ctx *ctx, int priority)
 {
 	struct process *p;
 
 	p = (struct process *)obj;
 
-	p->type = PROC_MAGIC;		// Initialize the signature
+	/* Initialize the signature */
+	p->type = PROC_MAGIC;
 	p->size = sizeof(struct process);
 	
 	LIST_INIT(&p->link);
@@ -137,7 +167,8 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 	p->max_priority = 31;		// Max priority for the process
 	p->quantum = P_QUANTUM;
 	p->ticks_left = 0;		// Initial ticks is 0
-	p->name[0] = '\0';
+	
+	strncpy(p->name, name, P_NAME_LEN - 1);
 
 	/* Initialize the architecture specific fields */
 	p->arch.esp = 0;
@@ -176,6 +207,26 @@ static void process_ctor(void *obj, struct process *parent, struct mmu_ctx *ctx)
 }
 
 /**
+ * Destruct a process
+ */
+static void process_dtor(void *obj)
+{
+	struct process *p;
+
+	p = (struct process *)obj;
+
+	// TODO: Use a lock to protect this operation
+
+	/* Remove this process from the process tree */
+	avl_tree_remove_node(&_proc_tree, &p->tree_link);
+	
+	kfree((void *)p->arch.kstack - KSTACK_SIZE);
+
+	// FixMe: cleanup the page directory owned by this process
+	fd_table_destroy(p->fds);
+}
+
+/**
  * Lookup a process of the specified pid
  */
 struct process *process_lookup(pid_t pid)
@@ -206,47 +257,6 @@ void process_detach(struct thread *t)
 
 	p = t->owner;
 	t->owner = NULL;
-}
-
-/**
- * Destruct a process
- */
-static void process_dtor(void *obj)
-{
-	struct process *p;
-
-	p = (struct process *)obj;
-
-	// TODO: Use a lock to protect this operation
-
-	/* Remove this process from the process tree */
-	avl_tree_remove_node(&_proc_tree, &p->tree_link);
-	
-	kfree((void *)p->arch.kstack - KSTACK_SIZE);
-
-	// FixMe: cleanup the page directory owned by this process
-	fd_table_destroy(p->fds);
-}
-
-void process_kernel()
-{
-	char *init_argv[] = {
-		"/init",
-		NULL
-	};
-
-	/* Run init process from executable file init */
-	system(init_argv[0], 1, init_argv);
-
-	/* We run the loop with interrupts disabled. */
-	irq_disable();
-
-	/* Enter IDLE loop, cpu_idle() will enable and disable interrupts */
-	while (TRUE) {
-		sched_reschedule(FALSE);
-		
-		cpu_idle();
-	}
 }
 
 /**
@@ -324,6 +334,84 @@ static void process_wait_notifier(void *data)
 	sched_insert_proc(p);
 }
 
+void process_exit(int status)
+{
+	boolean_t state;
+
+	DEBUG(DL_DBG, ("process_exit: id(%d), status(%d).\n",
+		       CURR_PROC->id, status));
+
+	ASSERT((CURR_PROC->type == PROC_MAGIC) &&
+	       (CURR_PROC->size == sizeof(struct process)));
+
+	state = irq_disable();
+
+	/* Wake up the waiters on the notifier list */
+	notifier_run(&CURR_PROC->death_notifier);
+
+	/* Set the process to dead state */
+	CURR_PROC->state = PROCESS_DEAD;
+
+	sched_reschedule(state);
+}
+
+int process_create(const char *name, struct process *parent, int priority,
+		   void *entry, struct process **proc)
+{
+	int rc = -1;
+	struct process *p = NULL;
+	struct mmu_ctx *mmu = NULL;
+
+	if (!name || !entry || !proc || (priority >= 32)) {
+		DEBUG(DL_DBG, ("process_create: invalid parameter.\n"));
+		rc = -1;
+		goto out;
+	}
+
+	/* Create the address space for the process */
+	mmu = mmu_create_ctx();
+	if (!mmu) {
+		DEBUG(DL_INF, ("process_create: mmu_create_ctx failed.\n"));
+		rc = -1;
+		goto out;
+	}
+	mmu_copy_ctx(mmu, &_kernel_mmu_ctx);
+
+	/* Create the new process */
+	p = kmalloc(sizeof(struct process), 0);
+	if (!p) {
+		DEBUG(DL_DBG, ("process_create: kmalloc process failed.\n"));
+		rc = -1;
+		goto out;
+	}
+	memset(p, 0, sizeof(struct process));
+
+	/* Process constructor */
+	process_ctor(p, name, parent, mmu, priority);
+
+	/* Set the context of the process */
+	p->arch.eip = (uint32_t)entry;
+	p->arch.esp = p->arch.kstack;
+	p->arch.ebp = 0;
+
+	/* We'are OK */
+	*proc = p;
+	rc = 0;
+
+out:
+	if (rc != 0) {
+		if (p) {
+			process_dtor(p);
+			kfree(p);
+		}
+		if (mmu) {
+			mmu_destroy_ctx(mmu);
+		}
+	}
+
+	return rc;
+}
+
 int process_wait(struct process *p)
 {
 	int rc = -1;
@@ -352,55 +440,6 @@ int process_wait(struct process *p)
 	return rc;
 }
 
-void process_exit(int status)
-{
-	boolean_t state;
-
-	DEBUG(DL_DBG, ("process_exit: id(%d), status(%d).\n",
-		       CURR_PROC->id, status));
-
-	ASSERT((CURR_PROC->type == PROC_MAGIC) &&
-	       (CURR_PROC->size == sizeof(struct process)));
-
-	state = irq_disable();
-
-	/* Wake up the waiters on the notifier list */
-	notifier_run(&CURR_PROC->death_notifier);
-
-	/* Set the process to dead state */
-	CURR_PROC->state = PROCESS_DEAD;
-
-	sched_reschedule(state);
-}
-
-/* Relocate the stack, this must be done when you copy the stack to another place */
-static void relocate_stack(uint32_t new_stack, uint32_t old_stack, uint32_t size)
-{
-	uint32_t i, tmp, off;
-
-	if (new_stack > old_stack) {
-		off = new_stack - old_stack;
-	} else {
-		off = old_stack - new_stack;
-	}
-
-	for (i = new_stack; i > (new_stack - size); i -= 4) {
-		tmp = *((uint32_t *)i);
-		if ((tmp < old_stack) && (tmp > (old_stack - size))) {
-			uint32_t *tmp2;
-
-			if (new_stack > old_stack) {
-				tmp += off;
-			} else {
-				tmp -= off;
-			}
-			
-			tmp2 = (uint32_t *)i;
-			*tmp2 = tmp;
-		}
-	}
-}
-
 int fork()
 {
 	pid_t pid = 0;
@@ -415,6 +454,7 @@ int fork()
 
 	/* Take a pointer to this process' process struct for later reference */
 	parent = (struct process *)CURR_PROC;
+	ASSERT(parent != NULL);
 	
 	/* Clone the parent(current)'s page directory */
 	ctx = mmu_create_ctx();
@@ -422,7 +462,7 @@ int fork()
 
 	/* Create a new process */
 	new_proc = (struct process *)kmalloc(sizeof(struct process), 0);
-	process_ctor(new_proc, parent, ctx);
+	process_ctor(new_proc, parent->name, parent, ctx, parent->priority);
 	
 	eip = read_eip();
 
@@ -475,7 +515,7 @@ int fork()
 		/* This must be done after we have initialized all field of the new process */
 		sched_insert_proc(new_proc);
 		
-		irq_restore(TRUE);
+		irq_restore(state);
 	} else {
 		/* We are the child, at this point we can't access the data even on
 		 * the stack. We're just rescheduled.
@@ -502,6 +542,8 @@ int exec(char *path, int argc, char **argv)
 		DEBUG(DL_DBG, ("exec: file(%s) not found.\n", path));
 		return -1;
 	}
+
+	irq_disable();	// Schedule is forbidden at this time
 	
 	/* Temporarily use address of user stack to load the ELF file, It will be
 	 * unmapped after we loaded the code section in.
@@ -512,7 +554,7 @@ int exec(char *path, int argc, char **argv)
 	 * memory page is used for storing the ELF file content
 	 */
 	for (virt = temp; virt < (temp + n->length); virt += PAGE_SIZE) {
-		page = mmu_get_page(_current_mmu_ctx, virt, TRUE, 0);
+		page = mmu_get_page(CURR_PROC->mmu_ctx, virt, TRUE, 0);
 		if (!page) {
 			DEBUG(DL_ERR, ("exec: mmu_get_page failed, virt(0x%x).\n", virt));
 			rc = -1;
@@ -531,6 +573,7 @@ int exec(char *path, int argc, char **argv)
 		rc = -1;
 		goto out;
 	}
+	DEBUG(DL_DBG, ("exec: vfs_read success.\n"));
 
 	/* Check whether it is valid ELF */
 	is_elf = elf_ehdr_check(ehdr);
@@ -557,14 +600,14 @@ int exec(char *path, int argc, char **argv)
 
 	/* Free the memory we used for temporarily store the ELF files */
 	for (virt = temp; virt < (temp + n->length); virt += PAGE_SIZE) {
-		page = mmu_get_page(_current_mmu_ctx, virt, FALSE, 0);
+		page = mmu_get_page(CURR_PROC->mmu_ctx, virt, FALSE, 0);
 		ASSERT(page != NULL);
 		page_free(page);
 	}
 
 	/* Map some pages for the user mode stack from current process' mmu context */
 	for (virt = USTACK_BOTTOM; virt <= (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
-		page = mmu_get_page(_current_mmu_ctx, virt, TRUE, 0);
+		page = mmu_get_page(CURR_PROC->mmu_ctx, virt, TRUE, 0);
 		if (!page) {
 			DEBUG(DL_ERR, ("exec: mmu_get_page failed, virt(0x%x)\n", virt));
 			rc = -1;
@@ -581,24 +624,6 @@ int exec(char *path, int argc, char **argv)
 
 out:
 	return -1;
-}
-
-int system(char *path, int argc, char **argv)
-{
-	int c;
-	boolean_t state;
-
-	c = fork();
-	if (c == 0) {
-		DEBUG(DL_DBG, ("system: child, c(%d).\n", c));
-		exec(path, argc, argv);
-		return -1;
-	} else {
-		state = irq_disable();
-		DEBUG(DL_DBG, ("system: parent, c(%d).\n", c));
-		sched_reschedule(state);
-		return -1;
-	}
 }
 
 int getpid()
@@ -657,17 +682,6 @@ void init_process()
 	 */
 	move_stack(0xE0000000, KSTACK_SIZE);
 
-	/* Malloc the initial process and initialize it, the initial process will
-	 * use kernel mmu context as its mmu context.
-	 */
-	_kernel_proc = (struct process *)kmalloc(sizeof(struct process), 0);
-
-	ASSERT(_current_mmu_ctx != NULL);
-	process_ctor(_kernel_proc, NULL, _current_mmu_ctx);
-
-	/* Set the context of the process */
-	_kernel_proc->priority = 15;
-	_kernel_proc->arch.eip = process_kernel;
-	_kernel_proc->arch.esp = _kernel_proc->arch.kstack;
-	_kernel_proc->arch.ebp = 0;
+	/* Initialize the process avl tree */
+	avl_tree_init(&_proc_tree);
 }

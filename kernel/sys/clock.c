@@ -18,6 +18,7 @@
 #define DAYS(y)		(LEAPYEAR(y) ? 366 : 365)
 
 extern void tmrs_exptimers(struct list *head, clock_t now);
+extern boolean_t _scheduler_ready;
 
 int _current_frequency = 0;
 uint32_t _lost_ticks = 0;
@@ -115,7 +116,7 @@ static void clock_callback(struct registers *regs)
 	_real_time += ticks;
 
 	/* If multitask was not initialized, just return */
-	if (!CURR_PROC) {
+	if (!_scheduler_ready) {
 		return;
 	}
 
