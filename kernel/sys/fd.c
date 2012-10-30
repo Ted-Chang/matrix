@@ -103,12 +103,14 @@ void fd_table_destroy(fd_table_t *table)
 	DEBUG(DL_DBG, ("fd_table_destroy: table(%x)\n", table));
 	
 	for (i = 0; i < table->slots_count; i++) {
-		if (table->nodes[i])
+		if (table->nodes[i]) {
 			vfs_close(table->nodes[i]);
+		}
 	}
 	
-	if (table->nodes)
+	if (table->nodes) {
 		kfree(table->nodes);
+	}
 	
 	kfree(table);
 }

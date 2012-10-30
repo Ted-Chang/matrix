@@ -223,9 +223,14 @@ void sched_reschedule(boolean_t state)
 	/* Enqueue and dequeue the current process to update the process queue */
 	if (CURR_PROC->state == PROCESS_RUNNING) {
 		sched_enqueue(_ready_queue, CURR_PROC);
+	} else if (CURR_PROC->state == PROCESS_DEAD) {
+		DEBUG(DL_INF, ("sched_reschedule: p(%p), id(%d), name(%s) dead.\n",
+			       CURR_PROC, CURR_PROC->id, CURR_PROC->name));
+		list_add_tail(&CURR_PROC->link, &_dead_processes);
 	} else {
-		DEBUG(DL_DBG, ("sched_reschedule: p(%p), id(%d), state(%d).\n",
-			       CURR_PROC, CURR_PROC->id, CURR_PROC->state));
+		DEBUG(DL_DBG, ("sched_reschedule: p(%p), id(%d), name(%s), state(%d).\n",
+			       CURR_PROC, CURR_PROC->id, CURR_PROC->name, CURR_PROC->state));
+		ASSERT(CURR_PROC->state <= PROCESS_DEAD);
 	}
 	
 	/* Find a new process to run. A NULL return value means no processes are
@@ -243,9 +248,9 @@ void sched_reschedule(boolean_t state)
 	 * one.
 	 */
 	if (CURR_PROC != _prev_proc) {
-		DEBUG(DL_DBG, ("sched_reschedule: curr(%p:%s), prev(%p:%s).\n",
-			       CURR_PROC, CURR_PROC->name, _prev_proc,
-			       _prev_proc->name));
+		DEBUG(DL_DBG, ("sched_reschedule: curr(%s:%p) prev(%s:%p).\n",
+			       CURR_PROC->name, CURR_PROC->arch.kstack,
+			       _prev_proc->name, _prev_proc->arch.kstack));
 		
 		/* Switch the address space. */
 		mmu_switch_ctx(CURR_PROC->mmu_ctx);
@@ -266,7 +271,19 @@ static void sched_reaper_proc(void *ctx)
 	while (TRUE) {
 		/* Reaper the dead threads */
 		if (!LIST_EMPTY(&_dead_processes)) {
-			;
+			struct list *p, *l;
+			struct process *proc;
+			
+			LIST_FOR_EACH_SAFE(l, p, &_dead_processes) {
+				proc = LIST_ENTRY(l, struct process, link);
+				ASSERT((proc->type == PROC_MAGIC) &&
+				       (proc->size == sizeof(struct process)));
+
+				list_del(&proc->link);
+				DEBUG(DL_INF, ("sched_reaper_proc: destroy process(%d:%s).\n",
+					       proc->id, proc->name));
+				process_destroy(proc);
+			}
 		}
 		
 		sched_reschedule(FALSE);

@@ -100,6 +100,7 @@ extern void process_exit(int status);
 extern int process_wait(struct process *p);
 extern int process_create(const char *name, struct process *parent, int priority,
 			  void *entry, struct process **proc);
+extern int process_destroy(struct process *proc);
 extern void init_process();
 
 #endif	/* __PROCESS_H__ */

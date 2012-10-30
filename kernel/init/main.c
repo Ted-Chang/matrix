@@ -45,7 +45,6 @@ int kmain(u_long addr, uint32_t initial_stack)
 	int rc = 0;
 	uint32_t initrd_location;
 	uint32_t initrd_end;
-	struct process *p = NULL;
 
 	/* Make the debugger available as soon as possible */
 	kd_init();

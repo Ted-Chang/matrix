@@ -211,6 +211,7 @@ static void process_ctor(void *obj, const char *name, struct process *parent,
  */
 static void process_dtor(void *obj)
 {
+	void *kstack;
 	struct process *p;
 
 	p = (struct process *)obj;
@@ -219,8 +220,11 @@ static void process_dtor(void *obj)
 
 	/* Remove this process from the process tree */
 	avl_tree_remove_node(&_proc_tree, &p->tree_link);
-	
-	kfree((void *)p->arch.kstack - KSTACK_SIZE);
+
+	/* Free the kernel stack */
+	kstack = (uint32_t)p->arch.kstack - KSTACK_SIZE;
+	DEBUG(DL_DBG, ("process_dtor: kstack(%p).\n", kstack));
+	kfree(kstack);
 
 	// FixMe: cleanup the page directory owned by this process
 	fd_table_destroy(p->fds);
@@ -337,12 +341,21 @@ static void process_wait_notifier(void *data)
 void process_exit(int status)
 {
 	boolean_t state;
+	uint32_t virt;
+	struct page *page;
 
 	DEBUG(DL_DBG, ("process_exit: id(%d), status(%d).\n",
 		       CURR_PROC->id, status));
 
 	ASSERT((CURR_PROC->type == PROC_MAGIC) &&
 	       (CURR_PROC->size == sizeof(struct process)));
+
+	/* Unmap user mode code and stack */
+	for (virt = USTACK_BOTTOM; virt <= (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
+		page = mmu_get_page(CURR_PROC->mmu_ctx, virt, TRUE, 0);
+		ASSERT(page != NULL);
+		page_free(page);
+	}
 
 	state = irq_disable();
 
@@ -394,9 +407,8 @@ int process_create(const char *name, struct process *parent, int priority,
 	p->arch.esp = p->arch.kstack;
 	p->arch.ebp = 0;
 
-	/* We'are OK */
 	*proc = p;
-	rc = 0;
+	rc = 0;		// We'are OK
 
 out:
 	if (rc != 0) {
@@ -410,6 +422,18 @@ out:
 	}
 
 	return rc;
+}
+
+int process_destroy(struct process *proc)
+{
+	ASSERT((proc->type == PROC_MAGIC) &&
+	       (proc->size == sizeof(struct process)));
+
+	process_dtor(proc);
+	mmu_destroy_ctx(proc->mmu_ctx);
+	kfree(proc);
+
+	return 0;
 }
 
 int process_wait(struct process *p)
