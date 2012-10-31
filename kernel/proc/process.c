@@ -567,8 +567,6 @@ int exec(char *path, int argc, char **argv)
 		return -1;
 	}
 
-	irq_disable();	// Schedule is forbidden at this time
-	
 	/* Temporarily use address of user stack to load the ELF file, It will be
 	 * unmapped after we loaded the code section in.
 	 */

@@ -248,9 +248,9 @@ void sched_reschedule(boolean_t state)
 	 * one.
 	 */
 	if (CURR_PROC != _prev_proc) {
-		DEBUG(DL_DBG, ("sched_reschedule: curr(%s:%p) prev(%s:%p).\n",
-			       CURR_PROC->name, CURR_PROC->arch.kstack,
-			       _prev_proc->name, _prev_proc->arch.kstack));
+		DEBUG(DL_DBG, ("sched_reschedule: curr(%s:%d:%p) prev(%s:%d:%p).\n",
+			       CURR_PROC->name, CURR_PROC->id, CURR_PROC->arch.kstack,
+			       _prev_proc->name, CURR_CPU->id, _prev_proc->arch.kstack));
 		
 		/* Switch the address space. */
 		mmu_switch_ctx(CURR_PROC->mmu_ctx);
@@ -282,7 +282,7 @@ static void sched_reaper_proc(void *ctx)
 				list_del(&proc->link);
 				DEBUG(DL_INF, ("sched_reaper_proc: destroy process(%d:%s).\n",
 					       proc->id, proc->name));
-				process_destroy(proc);
+				//process_destroy(proc);
 			}
 		}
 		
