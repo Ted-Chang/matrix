@@ -357,7 +357,7 @@ void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 
 	/* Overwrite the original header ... */
 	block_hdr = (struct header *)orig_hole_pos;
-	block_hdr->magic == HEAP_MAGIC;
+	block_hdr->magic = HEAP_MAGIC;
 	block_hdr->is_hole = 0;
 	block_hdr->size = new_size;
 

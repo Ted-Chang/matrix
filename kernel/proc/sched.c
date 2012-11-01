@@ -282,7 +282,7 @@ static void sched_reaper_proc(void *ctx)
 				list_del(&proc->link);
 				DEBUG(DL_INF, ("sched_reaper_proc: destroy process(%d:%s).\n",
 					       proc->id, proc->name));
-				//process_destroy(proc);
+				process_destroy(proc);
 			}
 		}
 		
