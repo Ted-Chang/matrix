@@ -8,7 +8,6 @@ TARGETOBJ := \
 	$(OBJ)/process.o \
 	$(OBJ)/misc.o \
 	$(OBJ)/sched.o \
-	$(OBJ)/elf.o \
 	$(OBJ)/switch.o \
 	$(OBJ)/avltree.o \
 	$(OBJ)/thread.o \

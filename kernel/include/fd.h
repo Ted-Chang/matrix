@@ -15,7 +15,7 @@ typedef struct fd_table fd_table_t;
 extern struct vfs_node *fd_2_vfs_node(struct process *p, int fd);
 extern int fd_attach(struct process *p, struct vfs_node *n);
 extern int fd_detach(struct process *p, int fd);
-extern fd_table_t *fd_table_create(fd_table_t *parent);
+extern fd_table_t *fd_table_create();
 extern void fd_table_destroy(fd_table_t *table);
 extern fd_table_t *fd_table_clone(fd_table_t *src);
 extern struct process *pid_2_process(pid_t pid);

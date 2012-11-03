@@ -346,10 +346,8 @@ void init_sched()
 
 void sched_enter()
 {
-	boolean_t state;
-
 	/* Disable irq first as sched_insert_proc and process_switch requires */
-	state = irq_disable();
+	irq_disable();
 
 	/* Set scheduler to ready */
 	_scheduler_ready = TRUE;

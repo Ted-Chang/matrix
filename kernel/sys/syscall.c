@@ -467,8 +467,6 @@ void syscall_handler(struct registers *regs)
 	/* Update the syscall registers for this process */
 	CURR_THREAD->arch.syscall_regs = regs;
 
-	//DEBUG(DL_DBG, ("syscall_handler: syscall(%d - %p).\n", syscall_id, location));
-
 	/* We don't know how many parameters the function wants, so we just
 	 * push them all onto the stack in the correct order. The function
 	 * will use all the parameters it wants, and we can pop them all back

@@ -40,7 +40,6 @@ struct process *_kernel_proc = NULL;
 
 extern uint32_t _initial_esp;
 
-extern uint32_t read_eip();
 extern void sched_init();
 
 static pid_t id_alloc()
@@ -203,17 +202,23 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 
 	p->uid = 500;			// FixMe: set it to the currently logged user
 	p->gid = 500;			// FixMe: set it to the current user's group
-	p->mmu_ctx = mmu;
+	p->mmu_ctx = mmu;		// MMU context
 	p->priority = 16;		// Default priority
 	
 	/* Initialize the file descriptor table */
-	p->fds = fd_table_create(parent ? parent->fds : NULL);
+	if (!fds) {
+		p->fds = fd_table_create();
+	} else {
+		p->fds = fds;
+	}
 
 	/* Insert this process into process tree */
 	avl_tree_insert_node(&_proc_tree, &p->tree_link, p->id, p);
 
 	p->state = PROCESS_RUNNING;
 
+	DEBUG(DL_DBG, ("process_alloc: created process (%s:%d:%p).\n",
+		       p->name, p->id, p));
 out:
 	return rc;
 }
@@ -359,7 +364,7 @@ int process_destroy(struct process *proc)
 	/* Remove this process from the process tree */
 	avl_tree_remove_node(&_proc_tree, &proc->tree_link);
 
-	// FixMe: cleanup the page directory owned by this process
+	/* Destroy the file descriptors table */
 	fd_table_destroy(proc->fds);
 
 	mmu_destroy_ctx(proc->mmu_ctx);
@@ -401,9 +406,17 @@ int process_clone()
 	
 	/* Clone the parent(current)'s page directory */
 	mmu = mmu_create_ctx();
+	if (!mmu) {
+		DEBUG(DL_DBG, ("process_clone: mmu_create_ctx failed.\n"));
+		goto out;
+	}
 	mmu_copy_ctx(mmu, CURR_PROC->mmu_ctx);
 
 	fds = fd_table_clone(CURR_PROC->fds);
+	if (!fds) {
+		DEBUG(DL_DBG, ("process_clone: fd_table_clone failed.\n"));
+		goto out;
+	}
 
 	/* Create the new process and a handle */
 	rc = process_alloc(CURR_PROC->name, CURR_PROC, mmu, 0, 16, fds, &p);
@@ -494,7 +507,7 @@ int fork()
 	return 0;
 }
 
-int exec(char *path, int argc, char **argv)
+int exec(const char *path, int argc, char **argv)
 {
 	int rc = -1;
 	struct vfs_node *n;
@@ -538,7 +551,6 @@ int exec(char *path, int argc, char **argv)
 		rc = -1;
 		goto out;
 	}
-	DEBUG(DL_DBG, ("exec: vfs_read success.\n"));
 
 	/* Check whether it is valid ELF */
 	is_elf = elf_ehdr_check(ehdr);
@@ -552,7 +564,7 @@ int exec(char *path, int argc, char **argv)
 	 * specified in the ELF and for Matrix. default is 0x40000000 which was
 	 * specified in the link script.
 	 */
-	rc = elf_load_sections(NULL, ehdr);
+	rc = elf_load_sections(NULL/* TODO: FixMe */, ehdr);
 	if (rc != 0) {
 		DEBUG(DL_WRN, ("exec: load sections failed, file(%s).\n", path));
 		goto out;
@@ -560,7 +572,7 @@ int exec(char *path, int argc, char **argv)
 
 	/* Save the entry point to the code segment */
 	entry = ehdr->e_entry;
-	DEBUG(DL_DBG, ("exec: entry(0x%08x)\n", entry));
+	DEBUG(DL_DBG, ("exec: entry(%p)\n", entry));
 	ASSERT(entry != USTACK_BOTTOM);
 
 	/* Free the memory we used for temporarily store the ELF files */
@@ -582,7 +594,7 @@ int exec(char *path, int argc, char **argv)
 	}
 
 	/* Update the user stack */
-	//CURR_PROC->arch.ustack = (USTACK_BOTTOM + USTACK_SIZE);
+	CURR_THREAD->ustack = (void *)(USTACK_BOTTOM + USTACK_SIZE);
 
 	/* Jump to user mode */
 	switch_to_user_mode(entry, USTACK_BOTTOM + USTACK_SIZE);
@@ -608,7 +620,7 @@ void switch_to_user_mode(uint32_t location, uint32_t ustack)
 	/* Setup our kernel stack, note that the stack was grow from high address
 	 * to low address
 	 */
-	set_kernel_stack(0);
+	set_kernel_stack(CURR_THREAD->kstack);
 	
 	/* Setup a stack structure for switching to user mode.
 	 * The code firstly disables interrupts, as we're working on a critical
@@ -642,6 +654,8 @@ void switch_to_user_mode(uint32_t location, uint32_t ustack)
  */
 void init_process()
 {
+	int rc;
+	
 	/* Relocate the stack so we know where it is, the stack size is 8KB. Note
 	 * that this was done in the context of kernel mmu.
 	 */
@@ -649,4 +663,10 @@ void init_process()
 
 	/* Initialize the process avl tree */
 	avl_tree_init(&_proc_tree);
+
+	/* Create the kernel process */
+	rc = process_alloc("kernel", NULL, NULL, 0, 16, NULL, &_kernel_proc);
+	if (rc != 0) {
+		PANIC("Could not initialize kernel process");
+	}
 }

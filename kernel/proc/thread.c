@@ -16,6 +16,8 @@ static tid_t _next_tid = 1;
 /* Thread structure cache */
 static struct slab_cache *_thread_cache;
 
+extern uint32_t read_eip();
+
 static tid_t id_alloc()
 {
 	return _next_tid++;
@@ -30,7 +32,7 @@ void arch_thread_init(struct thread *t, void *kstack)
 
 void arch_thread_switch(struct thread *curr, struct thread *prev)
 {
-	uint32_t esp, ebp, eip;
+	void *esp, *ebp, *eip;
 
 	/* Get the stack pointer and base pointer first */
 	asm volatile("mov %%esp, %0" : "=r"(esp));
@@ -47,10 +49,10 @@ void arch_thread_switch(struct thread *curr, struct thread *prev)
 	 * returns value in EAX, it will look like the return value is this
 	 * magic number. (0x87654321).
 	 */
-	eip = read_eip();
+	eip = (void *)read_eip();
 	
 	/* If we have just switched processes, do nothing */
-	if (eip == 0x87654321) {
+	if (0x87654321 == (uint32_t)eip) {
 		return;
 	}
 
@@ -217,7 +219,7 @@ void init_thread()
 {
 	/* Create the thread slab cache */
 	_thread_cache = slab_cache_create("thread_cache", sizeof(struct thread), 0,
-					  thread_ctor, NULL, NULL, 0, 0);
+					  thread_ctor, thread_dtor, NULL, 0, 0);
 }
 
 
