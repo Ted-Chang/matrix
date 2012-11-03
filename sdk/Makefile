@@ -13,6 +13,7 @@ TARGETOBJ := \
 	$(OBJ)/stdio.o \
 	$(OBJ)/string.o \
 	$(OBJ)/vsprintf.o \
+	$(OBJ)/sprintf.o \
 	$(OBJ)/print.o \
 
 

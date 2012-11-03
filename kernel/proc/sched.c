@@ -322,7 +322,7 @@ void init_sched_percpu()
 	}
 
 	/* Create the per CPU idle process */
-	strcpy(name, "idle-");
+	snprintf(name, P_NAME_LEN, "idle-%d", CURR_CPU->id);
 	rc = process_create(name, NULL, 14, sched_idle_proc, &_idle_proc);
 	ASSERT((rc == 0) && (_idle_proc != NULL));
 	DEBUG(DL_DBG, ("init_sched_percpu: p(%p).\n", _idle_proc));

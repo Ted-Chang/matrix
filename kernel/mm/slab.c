@@ -2,11 +2,11 @@
 #include <stddef.h>
 #include <string.h>
 #include "matrix/matrix.h"
+#include "matrix/debug.h"
 #include "mm/mm.h"
 #include "mm/kmem.h"
 #include "mm/malloc.h"
 #include "mm/slab.h"
-#include "matrix/debug.h"
 
 struct slab;
 
@@ -34,6 +34,7 @@ struct slab {
 	
 	void *base;			// Base address of allocation
 	size_t ref_count;		// Reference count
+	slab_bufctl_t *free;		// List of free buffers
 	size_t color;			// Color of the slab
 	slab_cache_t *parent;		// Cache containing the slab
 };
@@ -66,14 +67,26 @@ static slab_t *slab_create(slab_cache_t *cache, int mmflag)
 {
 	slab_t *slab;
 	void *addr;
+	size_t i;
+	slab_bufctl_t *bufctl, *prev;
 
 	/* Allocate a new slab */
-	addr = kmem_alloc(cache->slab_size, 0);
+	addr = kmem_alloc(cache->slab_size, mmflag);
 	if (!addr) {
 		return NULL;
 	}
-	
-	slab = NULL;
+
+	/* Create the slab structure for the slab */
+	if (FLAG_ON(cache->flags, SLAB_CACHE_LARGE)) {
+		slab = slab_cache_alloc(&_slab_cache_cache, mmflag);
+		if (!slab) {
+			kmem_free(addr);
+			return NULL;
+		}
+	} else {
+		slab = (struct slab *)((uint32_t)addr + cache->slab_size) -
+			sizeof(struct slab);
+	}
 
 	cache->nr_slabs++;
 
@@ -81,6 +94,42 @@ static slab_t *slab_create(slab_cache_t *cache, int mmflag)
 	slab->ref_count = 0;
 	LIST_INIT(&slab->link);
 	slab->parent = cache;
+
+	/* Divide the buffer into unconstructed, free objects */
+	for (i = 0; i < cache->nr_objs; i++) {
+		if (FLAG_ON(cache->flags, SLAB_CACHE_LARGE)) {
+			bufctl = slab_cache_alloc(&_slab_bufctl_cache, mmflag);
+			if (!bufctl) {
+				slab_destroy(cache, slab);
+				return NULL;
+			}
+
+			bufctl->parent = slab;
+			bufctl->object = (void *)((uint32_t)addr + slab->color +
+						  (i * cache->obj_size));
+		} else {
+			bufctl = (slab_bufctl_t *)((uint32_t)addr + slab->color +
+						   (i * cache->obj_size));
+		}
+
+		/* Add to the free list */
+		bufctl->next = NULL;
+		if (!prev) {
+			slab->free = bufctl;
+		} else {
+			prev->next = bufctl;
+		}
+
+		prev = bufctl;
+	}
+
+	/* Success - update the cache color and return. Do not add to any
+	 * slab lists - the caller will do so.
+	 */
+	cache->color_next += cache->align;
+	if (cache->color_next > cache->color_max) {
+		cache->color_next = 0;
+	}
 	
 	return slab;
 }
@@ -89,6 +138,11 @@ void *slab_cache_alloc(slab_cache_t *cache, int mmflag)
 {
 	void *ret;
 
+	ASSERT(cache != NULL);
+	if (!FLAG_ON(cache->flags, SLAB_CACHE_NOMAG)) {
+		;
+	}
+	
 	ret = NULL;
 	
 	return ret;
@@ -96,7 +150,11 @@ void *slab_cache_alloc(slab_cache_t *cache, int mmflag)
 
 void slab_cache_free(slab_cache_t *cache, void *obj)
 {
-	;
+	ASSERT(cache != NULL);
+
+	if (!FLAG_ON(cache->flags, SLAB_CACHE_NOMAG)) {
+		;
+	}
 }
 
 static int slab_cache_init(slab_cache_t *cache, const char *name, size_t size,
