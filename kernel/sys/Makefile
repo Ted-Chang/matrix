@@ -14,6 +14,7 @@ TARGETOBJ := \
 	$(OBJ)/fd.o \
 	$(OBJ)/rtc.o \
 	$(OBJ)/notifier.o \
+	$(OBJ)/mutex.o \
 
 .PHONY: clean help
 
