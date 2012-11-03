@@ -33,7 +33,7 @@ boolean_t elf_ehdr_check(elf_ehdr_t *ehdr)
 	return TRUE;
 }
 
-int elf_load_sections(struct arch_process *arch, elf_ehdr_t *ehdr)
+int elf_load_sections(struct thread *t, elf_ehdr_t *ehdr)
 {
 	int rc = -1;
 	struct page *page;
@@ -55,16 +55,16 @@ int elf_load_sections(struct arch_process *arch, elf_ehdr_t *ehdr)
 		if (shdr->sh_addr) {
 			
 			/* If this is a loadable section, load it */
-			if (shdr->sh_addr < arch->entry) {
+			if (shdr->sh_addr < t->entry) {
 				/* If this is the lowest entry point, store it */
-				arch->entry = shdr->sh_addr;
+				t->entry = shdr->sh_addr;
 			}
 
 			/* Update the section size we may needed */
-			if ((shdr->sh_addr + shdr->sh_size - arch->entry) > arch->size) {
-				/* We also store the total size */
-				arch->size = shdr->sh_addr + shdr->sh_size - arch->entry;
-			}
+			/* if ((shdr->sh_addr + shdr->sh_size - arch->entry) > arch->size) { */
+			/* 	/\* We also store the total size *\/ */
+			/* 	arch->size = shdr->sh_addr + shdr->sh_size - arch->entry; */
+			/* } */
 
 			/* Map memory space for this section, this is where codes stored */
 			for (virt = 0; virt < (shdr->sh_size + 0x2000); virt += PAGE_SIZE) {

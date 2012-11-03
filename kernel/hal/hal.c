@@ -283,7 +283,7 @@ void init_tss(struct cpu *c)
 	tss_flush();
 }
 
-void set_kernel_stack(uint32_t stack)
+void set_kernel_stack(void *stack)
 {
 	CURR_CPU->arch.tss.esp0 = stack;
 }

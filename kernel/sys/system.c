@@ -8,7 +8,7 @@
 #include "mm/malloc.h"
 #include "system.h"
 
-void sys_init_proc()
+void sys_init_thread()
 {
 	char *init_argv[] = {
 		"/init",

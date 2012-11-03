@@ -13,10 +13,10 @@ struct slab_bufctl;
 #define SLAB_MAGAZINE_SIZE	16	// Initial magazine size (resizing currently not supported)
 
 /* Slab constructor callback function */
-typedef void (*slab_ctor_t)(void *obj, void *data);
+typedef void (*slab_ctor_t)(void *obj);
 
 /* Slab destructor callback function */
-typedef void (*slab_dtor_t)(void *obj, void *data);
+typedef void (*slab_dtor_t)(void *obj);
 
 /* Slab cache structure */
 struct slab_cache {
@@ -40,7 +40,6 @@ struct slab_cache {
 	/* Callback functions */
 	slab_ctor_t ctor;		// Object constructor function
 	slab_dtor_t dtor;		// Object destructor function
-	void *data;			// Data to pass to helper function
 	int priority;			// Reclaim priority
 
 	/* Debugging information */

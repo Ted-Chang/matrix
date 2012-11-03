@@ -205,7 +205,7 @@ static void *slab_obj_alloc(slab_cache_t *cache, int mmflag)
 
 	/* Construct the object and return it */
 	if (cache->ctor) {
-		cache->ctor(obj, cache->data);
+		cache->ctor(obj);
 	}
 
 	return obj;
@@ -230,7 +230,7 @@ static void slab_obj_free(slab_cache_t *cache, void *obj)
 
 	/* Call the object destructor */
 	if (cache->dtor) {
-		cache->dtor(obj, cache->data);
+		cache->dtor(obj);
 	}
 
 	ASSERT(slab->ref_count);
@@ -320,8 +320,8 @@ void slab_cache_free(slab_cache_t *cache, void *obj)
 }
 
 static int slab_cache_init(slab_cache_t *cache, const char *name, size_t size,
-			   slab_ctor_t ctor, slab_dtor_t dtor, void *data,
-			   int priority, int flags, int mmflag)
+			   slab_ctor_t ctor, slab_dtor_t dtor, int priority,
+			   int flags, int mmflag)
 {
 	slab_cache_t *exist;
 	struct list *l;
@@ -340,7 +340,6 @@ static int slab_cache_init(slab_cache_t *cache, const char *name, size_t size,
 	cache->flags = flags;
 	cache->ctor = ctor;
 	cache->dtor = dtor;
-	cache->data = data;
 	cache->priority = priority;
 	cache->color_next = 0;
 
@@ -374,7 +373,7 @@ slab_cache_t *slab_cache_create(const char *name, size_t size, size_t align,
 		return NULL;
 	}
 
-	rc = slab_cache_init(cache, name, size, ctor, dtor, data, SLAB_DEFAULT_PRIORITY, flags, mmflag);
+	rc = slab_cache_init(cache, name, size, ctor, dtor, SLAB_DEFAULT_PRIORITY, flags, mmflag);
 	if (rc != 0) {
 		slab_cache_free(&_slab_cache_cache, cache);
 		return NULL;
@@ -401,15 +400,15 @@ void init_slab()
 {
 	/* Initialize the cache for cache structures. */
 	slab_cache_init(&_slab_cache_cache, "slab_cache_cache", sizeof(slab_cache_t),
-			NULL, NULL, NULL, SLAB_METADATA_PRIORITY, 0, MM_BOOT);
+			NULL, NULL, SLAB_METADATA_PRIORITY, 0, MM_BOOT);
 
 	/* Initialize the magazine cache. */
 	slab_cache_init(&_slab_mag_cache, "slab_cache_cache", sizeof(slab_magazine_t),
-			NULL, NULL, NULL, SLAB_MAG_PRIORITY, SLAB_CACHE_NOMAG, MM_BOOT);
+			NULL, NULL, SLAB_MAG_PRIORITY, SLAB_CACHE_NOMAG, MM_BOOT);
 
 	/* Initialize other internal cache */
 	slab_cache_init(&_slab_bufctl_cache, "slab_bufctl_cache", sizeof(slab_bufctl_t),
-			NULL, NULL, NULL, SLAB_METADATA_PRIORITY, 0, MM_BOOT);
+			NULL, NULL, SLAB_METADATA_PRIORITY, 0, MM_BOOT);
 	slab_cache_init(&_slab_slab_cache, "slab_slab_cache", sizeof(slab_t),
-			NULL, NULL, NULL, SLAB_METADATA_PRIORITY, 0, MM_BOOT);
+			NULL, NULL, SLAB_METADATA_PRIORITY, 0, MM_BOOT);
 }

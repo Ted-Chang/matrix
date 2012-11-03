@@ -116,7 +116,7 @@ extern boolean_t irq_enable();
 extern boolean_t irq_disable();
 extern void irq_restore(boolean_t state);
 extern void irq_done(uint32_t int_no);
-extern void set_kernel_stack(uint32_t stack);
+extern void set_kernel_stack(void *stack);
 extern void register_irq_handler(uint8_t irq, struct irq_hook *hook, isr_t handler);
 extern void unregister_irq_handler(struct irq_hook *hook);
 

@@ -82,18 +82,8 @@ useconds_t sys_time()
 
 static void do_clocktick()
 {
-	/* We will not switch task if the task didn't use up a full quantum. */
-	if ((CURR_PROC->ticks_left <= 0)) {
-
-		/* This was called in the interrupt handler, so don't need to
-		 * disable interrupt.
-		 */
-		sched_reschedule(FALSE);
-	}
-
 	/* Check if a clock timer is expired and call its callback function */
 	if (_next_timeout <= _real_time) {
-
 		struct timer *at;
 		
 		tmrs_exptimers(&CURR_CPU->timers, _real_time);
@@ -120,16 +110,9 @@ static void clock_callback(struct registers *regs)
 		return;
 	}
 
-	/* Update user and system accounting times. Charge the current process for
-	 * user time. If the current process is not billable, that is, if a non-user
-	 * process is running, charge the billable process for system time as well.
-	 * Thus the unbillable process' user time is the billable user's system time.
-	 */
-	CURR_PROC->ticks_left -= ticks;		// Consume the quantum
-	
 	/* Check if do_clocktick() must be called. Done for alarms and scheduling.
 	 */
-	if ((_next_timeout <= _real_time) || (CURR_PROC->ticks_left <= 0)) {
+	if (_next_timeout <= _real_time) {
 		do_clocktick();
 	}
 }

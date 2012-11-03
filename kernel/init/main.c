@@ -23,6 +23,7 @@
 #include "initrd.h"
 #include "proc/process.h"
 #include "proc/sched.h"
+#include "proc/thread.h"
 #include "exceptn.h"
 #include "keyboard.h"
 #include "floppy.h"
@@ -33,7 +34,6 @@ uint32_t _initial_esp;
 struct multiboot_info *_mbi;
 
 extern void init_syscalls();
-extern void sys_init_proc();
 
 static void dump_mbi(struct multiboot_info *mbi);
 
@@ -128,9 +128,8 @@ int kmain(u_long addr, uint32_t initial_stack)
 	kprintf("Floppy driver initialization done.\n");
 
 	/* Create the initialization process */
-	rc = process_create("init", NULL, 15, sys_init_proc, &_kernel_proc);
-	ASSERT((rc == 0) && (_kernel_proc != NULL));
-	sched_insert_proc(_kernel_proc);
+	rc = thread_create(NULL, 0, sys_init_thread, NULL, NULL);
+	ASSERT(rc == 0);
 
 	/* Start our scheduler */
 	sched_enter();

@@ -8,6 +8,7 @@
 #include "hal/cpu.h"
 #include "hal/spinlock.h"
 #include "mm/malloc.h"
+#include "mm/mmu.h"
 #include "sys/time.h"
 #include "timer.h"
 #include "proc/process.h"
@@ -42,18 +43,11 @@ struct sched_cpu {
 };
 typedef struct sched_cpu sched_cpu_t;
 
-/* Idle process, this should be per CPU process */
-// FixMe: change this to per CPU process
-struct process *_idle_proc = NULL;
-
 /* Whether scheduler is ready */
 boolean_t _scheduler_ready = FALSE;
 
 /* Total number of running or ready threads across all CPUs */
 static int _nr_running_threads = 0;
-
-/* The schedule queue for our kernel */
-struct list _ready_queue[NR_PRIORITIES];
 
 /* Dead process queue */
 static struct list _dead_processes = {
@@ -61,8 +55,6 @@ static struct list _dead_processes = {
 	.next = &_dead_processes
 };
 
-/* Pointer to our various task */
-struct process *_prev_proc = NULL;
 struct process *_curr_proc = NULL;		// Current running process
 
 /* Allocate a CPU for a thread to run on */
@@ -100,23 +92,21 @@ static struct cpu *sched_alloc_cpu(struct thread *t)
  * for inserting a process into one of the scheduling queues. `p' must not in the
  * scheduling queues before enqueue.
  */
-static void sched_enqueue(struct list *queue, struct process *p)
+static void sched_enqueue(struct sched_queue *queue, struct thread *t)
 {
 	int q;
 #ifdef _DEBUG_SCHED
-	struct process *proc;
+	struct thread *thrd;
 	struct list *l;
 #endif	/* _DEBUG_SCHED */
 
-	ASSERT((p->type == PROC_MAGIC) && (p->size == sizeof(struct process)));
-	
 	/* Determine where to insert the process */
-	q = p->priority;
+	q = t->priority;
 
 #ifdef _DEBUG_SCHED
-	LIST_FOR_EACH(l, &queue[q]) {
-		proc = LIST_ENTRY(l, struct process, link);
-		if (proc == p) {
+	LIST_FOR_EACH(l, &queue->threads[q]) {
+		thrd = LIST_ENTRY(l, struct thread, runq_link);
+		if (thrd == t) {
 			ASSERT(FALSE);
 		}
 	}
@@ -124,39 +114,37 @@ static void sched_enqueue(struct list *queue, struct process *p)
 	
 	/* Now add the process to the tail of the queue. */
 	ASSERT((q < NR_PRIORITIES) && (q >= 0));
-	list_add_tail(&p->link, &queue[q]);
+	list_add_tail(&t->runq_link, &queue->threads[q]);
 }
 
 /**
  * A process must be removed from the scheduling queues, for example, because it has
  * been blocked.
  */
-static void sched_dequeue(struct list *queue, struct process *p)
+static void sched_dequeue(struct sched_queue *queue, struct thread *t)
 {
 	int q;
 #ifdef _DEBUG_SCHED
 	size_t found_times = 0;
-	struct process *proc;
+	struct thread *thrd;
 	struct list *l;
 #endif	/* _DEBUG_SCHED */
 
-	ASSERT((p->type == PROC_MAGIC) && (p->size = sizeof(struct process)));
-
-	q = p->priority;
+	q = t->priority;
 
 	/* Now make sure that the process is not in its ready queue. Remove the process
 	 * if it was found.
 	 */
 	ASSERT((q < NR_PRIORITIES) && (q >= 0));
-	list_del(&p->link);
+	list_del(&t->runq_link);
 	
 #ifdef _DEBUG_SCHED
 	/* You can also just remove the specified process, but I just make sure it is
 	 * really in our ready queue.
 	 */
-	LIST_FOR_EACH(l, &queue[q]) {
-		proc = LIST_ENTRY(l, struct process, link);
-		if (proc == p) {
+	LIST_FOR_EACH(l, &queue->threads[q]) {
+		thrd = LIST_ENTRY(l, struct thread, runq_link);
+		if (thrd == t) {
 			found_times++;
 		}
 	}
@@ -165,7 +153,7 @@ static void sched_dequeue(struct list *queue, struct process *p)
 #endif	/* _DEBUG_SCHED */
 }
 
-static void sched_adjust_priority(struct sched_cpu *c, struct process *p)
+static void sched_adjust_priority(struct sched_cpu *c, struct thread *t)
 {
 	;
 }
@@ -173,34 +161,39 @@ static void sched_adjust_priority(struct sched_cpu *c, struct process *p)
 /**
  * Pick a new process from the queue to run
  */
-static struct process *sched_pick_process(struct sched_cpu *c)
+static struct thread *sched_pick_thread(struct sched_cpu *c)
 {
-	struct process *p;
+	struct thread *t;
 	struct list *l;
 	int q;
 
-	p = NULL;
+	t = NULL;
 	/* Check each of the scheduling queues for ready processes. The number of
 	 * queues is defined in process.h. The lowest queue contains IDLE, which
 	 * is always ready.
 	 */
 	for (q = NR_PRIORITIES - 1; q >= 0; q--) {
-		if (!LIST_EMPTY(&_ready_queue[q])) {
-			l = _ready_queue[q].next;
-			p = LIST_ENTRY(l, struct process, link);
-			ASSERT((p->type == PROC_MAGIC) &&
-			       (p->size == sizeof(struct process)));
-			sched_dequeue(_ready_queue, p);
+		if (!LIST_EMPTY(&c->active->threads[q])) {
+			l = c->active->threads[q].next;
+			t = LIST_ENTRY(l, struct thread, runq_link);
+			sched_dequeue(c->active, t);
 			break;
 		}
 	}
 
-	return p;
+	return t;
 }
 
-void sched_insert_proc(struct process *proc)
+void sched_insert_thread(struct thread *t)
 {
-	sched_enqueue(_ready_queue, proc);
+	sched_cpu_t *sched;
+
+	t->cpu = sched_alloc_cpu(t);
+	
+	sched = t->cpu->sched;
+	
+	sched_enqueue(sched->active, t);
+	sched->total++;
 }
 
 /**
@@ -210,7 +203,7 @@ void sched_insert_proc(struct process *proc)
 void sched_reschedule(boolean_t state)
 {
 	struct sched_cpu *c;
-	struct process *next;
+	struct thread *next;
 
 	/* Check the interrupt state */
 	ASSERT(irq_disable() == FALSE);
@@ -219,45 +212,47 @@ void sched_reschedule(boolean_t state)
 	c = CURR_CPU->sched;
 
 	/* Adjust the priority of the thread based on whether it used up its quantum */
-	sched_adjust_priority(c, CURR_PROC);
+	if (CURR_THREAD != c->idle_thread) {
+		sched_adjust_priority(c, CURR_THREAD);
+	}
 
 	/* Enqueue and dequeue the current process to update the process queue */
-	if (CURR_PROC->state == PROCESS_RUNNING) {
-		sched_enqueue(_ready_queue, CURR_PROC);
-	} else if (CURR_PROC->state == PROCESS_DEAD) {
-		DEBUG(DL_INF, ("sched_reschedule: p(%p), id(%d), name(%s) dead.\n",
-			       CURR_PROC, CURR_PROC->id, CURR_PROC->name));
-		list_add_tail(&CURR_PROC->link, &_dead_processes);
+	if (CURR_THREAD->state == THREAD_RUNNING) {
+		sched_enqueue(c->active, CURR_THREAD);
 	} else {
-		DEBUG(DL_DBG, ("sched_reschedule: p(%p), id(%d), name(%s), state(%d).\n",
-			       CURR_PROC, CURR_PROC->id, CURR_PROC->name, CURR_PROC->state));
-		ASSERT(CURR_PROC->state <= PROCESS_DEAD);
+		DEBUG(DL_DBG, ("sched_reschedule: p(%p), id(%d), state(%d).\n",
+			       CURR_THREAD, CURR_THREAD->id, CURR_THREAD->state));
+		c->total--;
 	}
 	
 	/* Find a new process to run. A NULL return value means no processes are
 	 * ready, so we schedule the idle process in this case.
 	 */
-	next = sched_pick_process(c);
-	ASSERT(next != NULL);
-	next->quantum = P_QUANTUM;
+	next = sched_pick_thread(c);
+	if (next) {
+		next->quantum = P_QUANTUM;
+	} else {
+		next = c->idle_thread;
+		next->quantum = 0;
+	}
 
 	/* Move the next process to running state and set it as the current */
-	_prev_proc = CURR_PROC;
-	CURR_PROC = next;
+	c->prev_thread = CURR_THREAD;
+	next->state = THREAD_RUNNING;
+	CURR_THREAD = next;
 
-	/* Perform the process switch if current process is not the same as previous
+	/* Perform the thread switch if current thread is not the same as previous
 	 * one.
 	 */
-	if (CURR_PROC != _prev_proc) {
-		DEBUG(DL_DBG, ("sched_reschedule: curr(%s:%d:%p) prev(%s:%d:%p).\n",
-			       CURR_PROC->name, CURR_PROC->id, CURR_PROC->arch.kstack,
-			       _prev_proc->name, CURR_CPU->id, _prev_proc->arch.kstack));
+	if (CURR_THREAD != c->prev_thread) {
+		DEBUG(DL_DBG, ("sched_reschedule: switching to (%s:%d:%d:%d).\n",
+			       CURR_PROC->name, CURR_PROC->id, CURR_THREAD->id, CURR_CPU->id));
 		
 		/* Switch the address space. */
 		mmu_switch_ctx(CURR_PROC->mmu_ctx);
 
-		/* Perform the process switch */
-		process_switch(CURR_PROC, _prev_proc);
+		/* Perform the thread switch */
+		arch_thread_switch(CURR_THREAD, c->prev_thread);
 
 		/* Restore the IRQ */
 		irq_restore(state);
@@ -266,24 +261,21 @@ void sched_reschedule(boolean_t state)
 	}
 }
 
-static void sched_reaper_proc(void *ctx)
+static void sched_reaper_thread(void *ctx)
 {
 	/* If this is the first time reaper run, you should enable IRQ first */
 	while (TRUE) {
 		/* Reaper the dead threads */
 		if (!LIST_EMPTY(&_dead_processes)) {
 			struct list *p, *l;
-			struct process *proc;
+			struct thread *t;
 			
 			LIST_FOR_EACH_SAFE(l, p, &_dead_processes) {
-				proc = LIST_ENTRY(l, struct process, link);
-				ASSERT((proc->type == PROC_MAGIC) &&
-				       (proc->size == sizeof(struct process)));
-
-				list_del(&proc->link);
-				DEBUG(DL_INF, ("sched_reaper_proc: destroy process(%d:%s).\n",
-					       proc->id, proc->name));
-				process_destroy(proc);
+				t = LIST_ENTRY(l, struct thread, runq_link);
+				list_del(&t->runq_link);
+				DEBUG(DL_INF, ("sched_reaper_thread: release thread(%d).\n",
+					       t->id));
+				thread_release(t);
 			}
 		}
 		
@@ -291,7 +283,7 @@ static void sched_reaper_proc(void *ctx)
 	}
 }
 
-static void sched_idle_proc(void *ctx)
+static void sched_idle_thread(void *ctx)
 {
 	/* We run the loop with interrupts disabled. The cpu_idle() function
 	 * is expected to re-enable interrupts as required.
@@ -307,7 +299,6 @@ static void sched_idle_proc(void *ctx)
 void init_sched_percpu()
 {
 	int i, j, rc = -1;
-	char name[P_NAME_LEN];
 
 	/* Initialize the scheduler for the current CPU */
 	CURR_CPU->sched = kmalloc(sizeof(struct sched_cpu), 0);
@@ -317,17 +308,19 @@ void init_sched_percpu()
 	CURR_CPU->sched->active = &CURR_CPU->sched->queues[0];
 	CURR_CPU->sched->expired = &CURR_CPU->sched->queues[1];
 
-	/* Initialize the Per CPU priority queues for process */
-	for (i = 0; i < NR_PRIORITIES; i++) {
-		LIST_INIT(&_ready_queue[i]);
-	}
+	/* Create the per CPU idle thread */
+	rc = thread_create(NULL, 0, sched_idle_thread, NULL,
+			   &CURR_CPU->sched->idle_thread);
+	ASSERT((rc == 0) && (&CURR_CPU->sched->idle_thread != NULL));
+	DEBUG(DL_DBG, ("init_sched_percpu: idle thread(%p).\n",
+		       CURR_CPU->sched->idle_thread));
 
-	/* Create the per CPU idle process */
-	snprintf(name, P_NAME_LEN, "idle-%d", CURR_CPU->id);
-	rc = process_create(name, NULL, 14, sched_idle_proc, &_idle_proc);
-	ASSERT((rc == 0) && (_idle_proc != NULL));
-	DEBUG(DL_DBG, ("init_sched_percpu: p(%p).\n", _idle_proc));
-
+	/* Set the idle thread as the current thread */
+	CURR_CPU->sched->idle_thread->cpu = CURR_CPU;
+	CURR_CPU->sched->idle_thread->state = THREAD_RUNNING;
+	CURR_CPU->sched->prev_thread = NULL;
+	CURR_CPU->thread = CURR_CPU->sched->idle_thread;
+	
 	/* Create the preemption timer */
 	init_timer(&CURR_CPU->sched->timer);
 
@@ -343,16 +336,10 @@ void init_sched_percpu()
 void init_sched()
 {
 	int rc = -1;
-	struct process *p = NULL;
 
-	/* Create kernel mode reaper process for the whole system */
-	rc = process_create("reaper", NULL, 15, sched_reaper_proc, &p);
-	ASSERT((rc == 0) && (p != NULL));
-
-	/* We don't need to disable IRQ here because before we enter scheduler
-	 * no process will be scheduled
-	 */
-	sched_insert_proc(p);
+	/* Create kernel mode reaper thread for the whole system */
+	rc = thread_create(NULL, 0, sched_reaper_thread, NULL, NULL);
+	ASSERT(rc == 0);
 
 	DEBUG(DL_DBG, ("init_sched: sched queues initialization done.\n"));
 }
@@ -364,15 +351,10 @@ void sched_enter()
 	/* Disable irq first as sched_insert_proc and process_switch requires */
 	state = irq_disable();
 
-	CURR_PROC = _idle_proc;
-	ASSERT(CURR_PROC != NULL);
-
-	DEBUG(DL_DBG, ("sched_enter: idle process(%p), ctx(%p).\n",
-		       CURR_PROC, CURR_PROC->mmu_ctx));
-
 	/* Set scheduler to ready */
 	_scheduler_ready = TRUE;
 	
 	/* Switch to current process */
-	process_switch(CURR_PROC, NULL);
+	arch_thread_switch(CURR_THREAD, NULL);
+	PANIC("Should not get here");
 }

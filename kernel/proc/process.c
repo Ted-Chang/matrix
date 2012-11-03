@@ -48,6 +48,7 @@ static pid_t id_alloc()
 	return _next_pid++;
 }
 
+/* Move stack to a new position */
 static void move_stack(uint32_t new_stack, uint32_t size)
 {
 	uint32_t i, pd_addr;
@@ -146,64 +147,28 @@ static void relocate_stack(uint32_t new_stack, uint32_t old_stack, uint32_t size
 /**
  * Construct a process
  */
-static void process_ctor(void *obj, const char *name, struct process *parent,
-			 struct mmu_ctx *ctx, int priority)
+static void process_ctor(void *obj)
 {
 	struct process *p;
 
 	p = (struct process *)obj;
 
 	/* Initialize the signature */
-	p->type = PROC_MAGIC;
-	p->size = sizeof(struct process);
-	
-	LIST_INIT(&p->link);
-	p->ref_count = 1;
-	p->mmu_ctx = ctx;
-	p->id = id_alloc();		// Allocate an ID for the process
-	p->uid = 500;			// FixMe: set it to the currently logged user
-	p->gid = 500;			// FixMe: set it to the current user's group
-	p->priority = 16;		// Default priority
-	p->max_priority = 31;		// Max priority for the process
-	p->quantum = P_QUANTUM;
-	p->ticks_left = 0;		// Initial ticks is 0
-	
-	strncpy(p->name, name, P_NAME_LEN - 1);
+	p->ref_count = 0;
 
-	/* Initialize the architecture specific fields */
-	p->arch.esp = 0;
-	p->arch.ebp = 0;
-	p->arch.eip = 0;
-
-	/* Allocate kernel stack for the process */
-	p->arch.kstack = (uint32_t)kmalloc(KSTACK_SIZE, MM_ALIGN) + KSTACK_SIZE;
-	memset((void *)(p->arch.kstack - KSTACK_SIZE), 0, KSTACK_SIZE);
-
-	if (parent) {
-		/* User stack should be cloned before this, so we can use parent's
-		 * ustack directly
-		 */
-		p->arch.ustack = parent->arch.ustack;
-	} else {
-		p->arch.ustack = 0;
-	}
-	p->arch.entry = 0;
-	p->arch.size = 0;
-
-	/* Initialize the file descriptor table */
-	p->fds = fd_table_create(parent ? parent->fds : NULL);
+	/* if (parent) { */
+	/* 	/\* User stack should be cloned before this, so we can use parent's */
+	/* 	 * ustack directly */
+	/* 	 *\/ */
+	/* 	p->arch.ustack = parent->arch.ustack; */
+	/* } else { */
+	/* 	p->arch.ustack = 0; */
+	/* } */
 
 	/* Initialize the death notifier */
 	init_notifier(&p->death_notifier);
 
 	p->status = 0;
-
-	// TODO: Use a lock to protect this operation
-	
-	/* Insert this process into process tree */
-	avl_tree_insert_node(&_proc_tree, &p->tree_link, p->id, p);
-
-	p->state = PROCESS_RUNNING;
 }
 
 /**
@@ -211,23 +176,46 @@ static void process_ctor(void *obj, const char *name, struct process *parent,
  */
 static void process_dtor(void *obj)
 {
-	void *kstack;
+	DEBUG(DL_DBG, ("process_dtor: process (%p) destructed.\n", obj));
+}
+
+static int process_alloc(const char *name, struct process *parent, struct mmu_ctx *mmu,
+			 int flags, int priority, struct fd_table *fds,
+			 struct process **procp)
+{
+	int rc = -1;
 	struct process *p;
 
-	p = (struct process *)obj;
+	/* Create the new process */
+	p = kmalloc(sizeof(struct process), 0);
+	if (!p) {
+		DEBUG(DL_DBG, ("process_create: kmalloc process failed.\n"));
+		rc = -1;
+		goto out;
+	}
+	memset(p, 0, sizeof(struct process));
 
-	// TODO: Use a lock to protect this operation
+	/* Process constructor */
+	process_ctor(p);
 
-	/* Remove this process from the process tree */
-	avl_tree_remove_node(&_proc_tree, &p->tree_link);
+	p->id = id_alloc();		// Allocate an ID for the process
+	strncpy(p->name, name, P_NAME_LEN - 1);
 
-	/* Free the kernel stack */
-	kstack = (uint32_t)p->arch.kstack - KSTACK_SIZE;
-	DEBUG(DL_DBG, ("process_dtor: kstack(%p).\n", kstack));
-	kfree(kstack);
+	p->uid = 500;			// FixMe: set it to the currently logged user
+	p->gid = 500;			// FixMe: set it to the current user's group
+	p->mmu_ctx = mmu;
+	p->priority = 16;		// Default priority
+	
+	/* Initialize the file descriptor table */
+	p->fds = fd_table_create(parent ? parent->fds : NULL);
 
-	// FixMe: cleanup the page directory owned by this process
-	fd_table_destroy(p->fds);
+	/* Insert this process into process tree */
+	avl_tree_insert_node(&_proc_tree, &p->tree_link, p->id, p);
+
+	p->state = PROCESS_RUNNING;
+
+out:
+	return rc;
 }
 
 /**
@@ -250,6 +238,7 @@ void process_attach(struct process *p, struct thread *t)
 {
 	t->owner = p;
 	ASSERT(p->state != PROCESS_DEAD);
+	list_add_tail(&t->owner_link, &p->threads);
 }
 
 /**
@@ -260,70 +249,15 @@ void process_detach(struct thread *t)
 	struct process *p;
 
 	p = t->owner;
-	t->owner = NULL;
-}
+	list_del(&t->owner_link);
 
-/**
- * Switch to next process' context
- */
-void process_switch(struct process *curr, struct process *prev)
-{
-	uint32_t esp, ebp, eip;
-
-	/* Get the stack pointer and base pointer first */
-	asm volatile("mov %%esp, %0" : "=r"(esp));
-	asm volatile("mov %%ebp, %0" : "=r"(ebp));
-
-	/* Read the instruction pointer. We do some cunning logic here:
-	 * One of the two things could have happened when this function exits
-	 *   (a) We called the function and it returned the EIP as requested.
-	 *   (b) We have just switched processes, and because the saved EIP is
-	 *       essentially the instruction after read_eip(), it will seem as
-	 *       if read_eip has just returned.
-	 * In the second case we need to return immediately. To detect it we put
-	 * a magic number in EAX further down at the end of this function. As C
-	 * returns value in EAX, it will look like the return value is this
-	 * magic number. (0x87654321).
-	 */
-	eip = read_eip();
+	/* Move the process to the dead state if no threads is alive */
+	if (LIST_EMPTY(&p->threads)) {
+		ASSERT(p->state != PROCESS_DEAD);
+		p->state = PROCESS_DEAD;
+	}
 	
-	/* If we have just switched processes, do nothing */
-	if (eip == 0x87654321) {
-		return;
-	}
-
-	/* Save the process context for previous process */
-	if (prev) {
-		prev->arch.eip = eip;
-		prev->arch.esp = esp;
-		prev->arch.ebp = ebp;
-	}
-
-	/* Switch to current process context */
-	eip = curr->arch.eip;
-	esp = curr->arch.esp;
-	ebp = curr->arch.ebp;
-
-	/* Switch the kernel stack in TSS to the process's kernel stack */
-	set_kernel_stack(curr->arch.kstack);
-
-	/* Here we:
-	 * [1] Disable interrupts so we don't get bothered.
-	 * [2] Temporarily puts the new EIP location in EBX.
-	 * [3] Loads the stack and base pointers from the new process struct.
-	 * [4] Puts a magic number (0x87654321) in EAX so that above we can recognize
-	 *     that we've just switched process.
-	 * [5] Jumps to the location in EBX (remember we put the new EIP in there)
-	 * Note that you can't change the sequence we set each register here. You
-	 * can check the actual asm code generated by your compiler for the reason.
-	 */
-	asm volatile ("mov %0, %%ebx\n"
-		      "mov %1, %%esp\n"
-		      "mov %2, %%ebp\n"
-		      "mov $0x87654321, %%eax\n"	/* read_eip() will return 0x87654321 */
-		      "jmp *%%ebx\n"
-		      :: "r"(eip), "r"(esp), "r"(ebp)
-		      : "%ebx", "%esp", "%eax");
+	t->owner = NULL;
 }
 
 static void process_wait_notifier(void *data)
@@ -335,47 +269,40 @@ static void process_wait_notifier(void *data)
 	p = (struct process *)data;
 	p->state = PROCESS_RUNNING;
 	
-	sched_insert_proc(p);
+	//sched_insert_thread(p);
 }
 
 void process_exit(int status)
 {
-	boolean_t state;
-	uint32_t virt;
-	struct page *page;
-
-	DEBUG(DL_DBG, ("process_exit: id(%d), status(%d).\n",
-		       CURR_PROC->id, status));
-
-	ASSERT((CURR_PROC->type == PROC_MAGIC) &&
-	       (CURR_PROC->size == sizeof(struct process)));
-
-	/* Unmap user mode code and stack */
-	for (virt = USTACK_BOTTOM; virt <= (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
-		page = mmu_get_page(CURR_PROC->mmu_ctx, virt, TRUE, 0);
-		ASSERT(page != NULL);
-		page_free(page);
+	struct thread *t;
+	struct list *l, *p;
+	
+	LIST_FOR_EACH_SAFE(l, p, &CURR_PROC->threads) {
+		t = LIST_ENTRY(l, struct thread, owner_link);
+		if (t != CURR_THREAD) {
+			thread_kill(t);
+		}
 	}
 
-	state = irq_disable();
+	CURR_PROC->status = status;
 
-	/* Wake up the waiters on the notifier list */
-	notifier_run(&CURR_PROC->death_notifier);
-
-	/* Set the process to dead state */
-	CURR_PROC->state = PROCESS_DEAD;
-
-	sched_reschedule(state);
+	thread_exit();
 }
 
-int process_create(const char *name, struct process *parent, int priority,
-		   void *entry, struct process **proc)
+static void process_entry_thread(void *ctx)
+{
+	;
+}
+
+int process_create(const char *args[], struct process *parent, int flags,
+		   int priority, struct process **procp)
 {
 	int rc = -1;
 	struct process *p = NULL;
 	struct mmu_ctx *mmu = NULL;
+	struct thread *t = NULL;
 
-	if (!name || !entry || !proc || (priority >= 32)) {
+	if (priority >= 32) {
 		DEBUG(DL_DBG, ("process_create: invalid parameter.\n"));
 		rc = -1;
 		goto out;
@@ -391,23 +318,26 @@ int process_create(const char *name, struct process *parent, int priority,
 	mmu_copy_ctx(mmu, &_kernel_mmu_ctx);
 
 	/* Create the new process */
-	p = kmalloc(sizeof(struct process), 0);
-	if (!p) {
-		DEBUG(DL_DBG, ("process_create: kmalloc process failed.\n"));
-		rc = -1;
+	rc = process_alloc(args[0], parent, mmu, flags, priority, NULL, &p);
+	if (rc != 0) {
+		DEBUG(DL_INF, ("process_create: process_alloc failed, err(%d).\n", rc));
 		goto out;
 	}
-	memset(p, 0, sizeof(struct process));
 
-	/* Process constructor */
-	process_ctor(p, name, parent, mmu, priority);
+	/* Create the main thread and run it */
+	rc = thread_create(p, 0, process_entry_thread, NULL, &t);
+	if (rc != 0) {
+		DEBUG(DL_INF, ("process_create: thread_create failed, err(%d).\n", rc));
+		goto out;
+	}
 
-	/* Set the context of the process */
-	p->arch.eip = (uint32_t)entry;
-	p->arch.esp = p->arch.kstack;
-	p->arch.ebp = 0;
+	thread_run(t);
+	thread_release(t);
 
-	*proc = p;
+	if (procp) {
+		*procp = p;
+	}
+	
 	rc = 0;		// We'are OK
 
 out:
@@ -426,10 +356,12 @@ out:
 
 int process_destroy(struct process *proc)
 {
-	ASSERT((proc->type == PROC_MAGIC) &&
-	       (proc->size == sizeof(struct process)));
+	/* Remove this process from the process tree */
+	avl_tree_remove_node(&_proc_tree, &proc->tree_link);
 
-	process_dtor(proc);
+	// FixMe: cleanup the page directory owned by this process
+	fd_table_destroy(proc->fds);
+
 	mmu_destroy_ctx(proc->mmu_ctx);
 	kfree(proc);
 
@@ -441,17 +373,12 @@ int process_wait(struct process *p)
 	int rc = -1;
 	boolean_t state;
 
-	ASSERT((p->type == PROC_MAGIC) && (p->size == sizeof(struct process)));
-	
 	if (p->state != PROCESS_DEAD) {
 		/* Register us to the death notifier of the specified process */
-		notifier_register(&p->death_notifier, process_wait_notifier, CURR_PROC);
+		notifier_register(&p->death_notifier, process_wait_notifier, NULL);
 
 		/* Reschedule to next process */
 		state = irq_disable();
-
-		/* Set the process to wait state */
-		CURR_PROC->state = PROCESS_WAIT;
 
 		/* Reschedule current process */
 		sched_reschedule(state);
@@ -464,91 +391,107 @@ int process_wait(struct process *p)
 	return rc;
 }
 
-int fork()
+int process_clone()
 {
-	pid_t pid = 0;
-	uint32_t magic = 'corP';
-	struct process *parent;
-	struct process *new_proc;
-	struct mmu_ctx *ctx;
-	uint32_t eip, esp, ebp;
-	boolean_t state;
-	
-	state = irq_disable();
-
-	/* Take a pointer to this process' process struct for later reference */
-	parent = (struct process *)CURR_PROC;
-	ASSERT(parent != NULL);
+	int rc = -1;
+	struct process *p = NULL;
+	struct thread *t = NULL;
+	struct mmu_ctx *mmu;
+	struct fd_table *fds = NULL;
 	
 	/* Clone the parent(current)'s page directory */
-	ctx = mmu_create_ctx();
-	mmu_copy_ctx(ctx, _current_mmu_ctx);
+	mmu = mmu_create_ctx();
+	mmu_copy_ctx(mmu, CURR_PROC->mmu_ctx);
 
-	/* Create a new process */
-	new_proc = (struct process *)kmalloc(sizeof(struct process), 0);
-	process_ctor(new_proc, parent->name, parent, ctx, parent->priority);
-	
-	eip = read_eip();
+	fds = fd_table_clone(CURR_PROC->fds);
 
-	/* We could be the parent or the child here */
-	if (CURR_PROC == parent) {
-		uint32_t offset;
-
-		/* We are the parent, so setup the esp/ebp/eip for our child */
-		asm volatile("mov %%esp, %0" : "=r"(esp));
-		asm volatile("mov %%ebp, %0" : "=r"(ebp));
-
-		/* Update the per process system call registers to the new process' one */
-		if (parent->arch.kstack > new_proc->arch.kstack) {
-			offset = parent->arch.kstack - new_proc->arch.kstack;
-			new_proc->arch.esp = esp - offset;
-			new_proc->arch.ebp = ebp - offset;
-		} else {
-			/* Can parent and child use the same stack? */
-			ASSERT(parent->arch.kstack != new_proc->arch.kstack);
-			offset = new_proc->arch.kstack - parent->arch.kstack;
-			new_proc->arch.esp = esp + offset;
-			new_proc->arch.ebp = ebp + offset;
-		}
-		
-		new_proc->arch.eip = eip;
-
-		/* Copy the kernel stack from parent process to the new process */
-		memcpy((void *)new_proc->arch.kstack - KSTACK_SIZE,
-		       (void *)parent->arch.kstack - KSTACK_SIZE,
-		       KSTACK_SIZE);
-
-		/* Relocate the kernel stack */
-		relocate_stack(new_proc->arch.kstack, parent->arch.kstack, KSTACK_SIZE);
-
-		DEBUG(DL_DBG, ("fork: p(%p:%p) kstk(%p:%p) mmu(%p:%p)\n",
-			       parent, new_proc, parent->arch.kstack, new_proc->arch.kstack,
-			       parent->mmu_ctx, new_proc->mmu_ctx));
-
-		offset = parent->arch.kstack - (uint32_t)parent->arch.syscall_regs;
-		new_proc->arch.syscall_regs =
-			(struct registers *)(new_proc->arch.kstack - offset);
-
-		pid = new_proc->id;
-
-		DEBUG(DL_DBG, ("fork: new process, pid(%d)\n"
-			       "- esp(0x%x) ebp(0x%x) eip(0x%x) ustk(0x%x)\n",
-			       new_proc->id, new_proc->arch.esp, new_proc->arch.ebp,
-			       new_proc->arch.eip, new_proc->arch.ustack));
-
-		/* This must be done after we have initialized all field of the new process */
-		sched_insert_proc(new_proc);
-		
-		irq_restore(state);
-	} else {
-		/* We are the child, at this point we can't access the data even on
-		 * the stack. We're just rescheduled.
-		 */
-		ASSERT(magic == 'corP');	// Make sure we have a correct stack
-		DEBUG(DL_DBG, ("fork: child process.\n"));
+	/* Create the new process and a handle */
+	rc = process_alloc(CURR_PROC->name, CURR_PROC, mmu, 0, 16, fds, &p);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("process_clone: process_alloc failed, err(%d).\n", rc));
+		goto out;
 	}
+
+	/* Create the main thread and run it */
+	rc = thread_create(p, 0, process_entry_thread, NULL, &t);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("process_clone: thread_create failed, err(%d).\n", rc));
+		goto out;
+	}
+
+	thread_run(t);
+	thread_release(t);
+
+out:
+	return rc;
+}
+
+int fork()
+{
+	/* Take a pointer to this process' process struct for later reference */
+	/* parent = (struct process *)CURR_PROC; */
+	/* ASSERT(parent != NULL); */
 	
-	return pid;
+	/* eip = read_eip(); */
+
+	/* /\* We could be the parent or the child here *\/ */
+	/* if (CURR_PROC == parent) { */
+	/* 	uint32_t offset; */
+
+	/* 	/\* We are the parent, so setup the esp/ebp/eip for our child *\/ */
+	/* 	asm volatile("mov %%esp, %0" : "=r"(esp)); */
+	/* 	asm volatile("mov %%ebp, %0" : "=r"(ebp)); */
+
+	/* 	/\* Update the per process system call registers to the new process' one *\/ */
+	/* 	if (parent->arch.kstack > new_proc->arch.kstack) { */
+	/* 		offset = parent->arch.kstack - new_proc->arch.kstack; */
+	/* 		new_proc->arch.esp = esp - offset; */
+	/* 		new_proc->arch.ebp = ebp - offset; */
+	/* 	} else { */
+	/* 		/\* Can parent and child use the same stack? *\/ */
+	/* 		ASSERT(parent->arch.kstack != new_proc->arch.kstack); */
+	/* 		offset = new_proc->arch.kstack - parent->arch.kstack; */
+	/* 		new_proc->arch.esp = esp + offset; */
+	/* 		new_proc->arch.ebp = ebp + offset; */
+	/* 	} */
+		
+	/* 	new_proc->arch.eip = eip; */
+
+	/* 	/\* Copy the kernel stack from parent process to the new process *\/ */
+	/* 	memcpy((void *)new_proc->arch.kstack - KSTACK_SIZE, */
+	/* 	       (void *)parent->arch.kstack - KSTACK_SIZE, */
+	/* 	       KSTACK_SIZE); */
+
+	/* 	/\* Relocate the kernel stack *\/ */
+	/* 	relocate_stack(new_proc->arch.kstack, parent->arch.kstack, KSTACK_SIZE); */
+
+	/* 	DEBUG(DL_DBG, ("fork: p(%p:%p) kstk(%p:%p) mmu(%p:%p)\n", */
+	/* 		       parent, new_proc, parent->arch.kstack, new_proc->arch.kstack, */
+	/* 		       parent->mmu_ctx, new_proc->mmu_ctx)); */
+
+	/* 	offset = parent->arch.kstack - (uint32_t)parent->arch.syscall_regs; */
+	/* 	new_proc->arch.syscall_regs = */
+	/* 		(struct registers *)(new_proc->arch.kstack - offset); */
+
+	/* 	pid = new_proc->id; */
+
+	/* 	DEBUG(DL_DBG, ("fork: new process, pid(%d)\n" */
+	/* 		       "- esp(0x%x) ebp(0x%x) eip(0x%x) ustk(0x%x)\n", */
+	/* 		       new_proc->id, new_proc->arch.esp, new_proc->arch.ebp, */
+	/* 		       new_proc->arch.eip, new_proc->arch.ustack)); */
+
+	/* 	/\* This must be done after we have initialized all field of the new process *\/ */
+	/* 	//sched_insert_proc(new_proc); */
+		
+	/* 	irq_restore(state); */
+	/* } else { */
+	/* 	/\* We are the child, at this point we can't access the data even on */
+	/* 	 * the stack. We're just rescheduled. */
+	/* 	 *\/ */
+	/* 	DEBUG(DL_DBG, ("fork: child process.\n")); */
+	/* } */
+	
+	return 0;
 }
 
 int exec(char *path, int argc, char **argv)
@@ -609,7 +552,7 @@ int exec(char *path, int argc, char **argv)
 	 * specified in the ELF and for Matrix. default is 0x40000000 which was
 	 * specified in the link script.
 	 */
-	rc = elf_load_sections(&(CURR_PROC->arch), ehdr);
+	rc = elf_load_sections(NULL, ehdr);
 	if (rc != 0) {
 		DEBUG(DL_WRN, ("exec: load sections failed, file(%s).\n", path));
 		goto out;
@@ -639,7 +582,7 @@ int exec(char *path, int argc, char **argv)
 	}
 
 	/* Update the user stack */
-	CURR_PROC->arch.ustack = (USTACK_BOTTOM + USTACK_SIZE);
+	//CURR_PROC->arch.ustack = (USTACK_BOTTOM + USTACK_SIZE);
 
 	/* Jump to user mode */
 	switch_to_user_mode(entry, USTACK_BOTTOM + USTACK_SIZE);
@@ -665,7 +608,7 @@ void switch_to_user_mode(uint32_t location, uint32_t ustack)
 	/* Setup our kernel stack, note that the stack was grow from high address
 	 * to low address
 	 */
-	set_kernel_stack(CURR_PROC->arch.kstack);
+	set_kernel_stack(0);
 	
 	/* Setup a stack structure for switching to user mode.
 	 * The code firstly disables interrupts, as we're working on a critical

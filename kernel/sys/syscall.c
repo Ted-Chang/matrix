@@ -465,7 +465,7 @@ void syscall_handler(struct registers *regs)
 	location = _syscalls[syscall_id];
 
 	/* Update the syscall registers for this process */
-	CURR_PROC->arch.syscall_regs = regs;
+	CURR_THREAD->arch.syscall_regs = regs;
 
 	//DEBUG(DL_DBG, ("syscall_handler: syscall(%d - %p).\n", syscall_id, location));
 
@@ -494,6 +494,6 @@ void syscall_handler(struct registers *regs)
 	 * it will copy the parent's stack as its own stack. You should use the pointer
 	 * of yourself.
 	 */
-	regs = CURR_PROC->arch.syscall_regs;
+	regs = CURR_THREAD->arch.syscall_regs;
 	regs->eax = rc;
 }
