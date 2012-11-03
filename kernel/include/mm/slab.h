@@ -5,6 +5,9 @@
 #include "mm/page.h"
 #include "mm/mm.h"
 
+struct slab_percpu;
+struct slab_bufctl;
+
 /* Allocator limitation/settings */
 #define SLAB_NAME_MAX		24	// Maximum slab cache name length
 #define SLAB_MAGAZINE_SIZE	16	// Initial magazine size (resizing currently not supported)
@@ -17,7 +20,13 @@ typedef void (*slab_dtor_t)(void *obj, void *data);
 
 /* Slab cache structure */
 struct slab_cache {
-	size_t nr_slabs;
+	struct slab_percpu *cpu_caches;	// Per-CPU caches
+
+	size_t nr_slabs;		// Number of allocated slabs
+
+	/* Slab lists/cache coloring settings */
+	struct list slab_partial;	// List of partially allocated slabs
+	struct list slab_full;		// List of fully allocated slabs
 	size_t color_next;		// Next cache color
 	size_t color_max;		// Maximum cache color
 
