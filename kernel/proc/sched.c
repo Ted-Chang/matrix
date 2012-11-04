@@ -158,8 +158,8 @@ static void sched_timer_func(struct timer *t)
 	CURR_THREAD->quantum = 0;
 
 	DEBUG(DL_DBG, ("sched_timer_func: CURR_THREAD(%p).\n", CURR_THREAD));
-	
-	sched_reschedule(TRUE);
+
+	sched_reschedule(FALSE);
 }
 
 /**
@@ -223,9 +223,9 @@ void sched_reschedule(boolean_t state)
 	/* Enqueue and dequeue the current process to update the process queue */
 	if (CURR_THREAD->state == THREAD_RUNNING) {
 		/* The thread hasn't gone to sleep, re-queue it */
-		CURR_THREAD->state = THREAD_READY;
+		//CURR_THREAD->state = THREAD_READY;
 		if (CURR_THREAD != c->idle_thread) {
-			sched_enqueue(c->expired, CURR_THREAD);
+			sched_enqueue(c->active/*c->expired*/, CURR_THREAD);
 		}
 	} else {
 		DEBUG(DL_DBG, ("sched_reschedule: p(%p), id(%d), state(%d).\n",
@@ -257,16 +257,16 @@ void sched_reschedule(boolean_t state)
 
 	/* Set off the timer if necessary */
 	if (CURR_THREAD->quantum > 0) {
-		set_timer(&c->timer, CURR_THREAD->quantum, sched_timer_func);
+		set_timer(&c->timer, P_QUANTUM, sched_timer_func);
 	}
 
 	/* Perform the thread switch if current thread is not the same as previous
 	 * one.
 	 */
 	if (CURR_THREAD != c->prev_thread) {
-		DEBUG(DL_DBG, ("sched_reschedule: switching to (%s:%d:%d:%d).\n",
-			       CURR_PROC->name, CURR_PROC->id, CURR_THREAD->id,
-			       CURR_CPU->id));
+		DEBUG(DL_DBG, ("sched_reschedule: switching to (%s:%d:%s:%d:%d).\n",
+			       CURR_PROC->name, CURR_PROC->id, CURR_THREAD->name,
+			       CURR_THREAD->id, CURR_CPU->id));
 		
 		/* Switch the address space. The NULL case will be handled by the
 		 * context switch function.
@@ -307,7 +307,6 @@ static void sched_reaper_thread(void *ctx)
 {
 	/* If this is the first time reaper run, you should enable IRQ first */
 	while (TRUE) {
-		kprintf("sched_reaper_thread: reaper.\n");
 		/* Reaper the dead threads */
 		if (!LIST_EMPTY(&_dead_threads)) {
 			struct list *p, *l;
@@ -321,8 +320,6 @@ static void sched_reaper_thread(void *ctx)
 				thread_release(t);
 			}
 		}
-		
-		sched_reschedule(FALSE);
 	}
 }
 
@@ -335,6 +332,7 @@ static void sched_idle_thread(void *ctx)
 
 	while (TRUE) {
 		kprintf("sched_idle_thread: idle.\n");
+		
 		sched_reschedule(FALSE);
 		cpu_idle();
 	}
@@ -343,6 +341,7 @@ static void sched_idle_thread(void *ctx)
 void init_sched_percpu()
 {
 	int i, j, rc = -1;
+	char name[T_NAME_LEN];
 
 	/* Initialize the scheduler for the current CPU */
 	CURR_CPU->sched = kmalloc(sizeof(struct sched_cpu), 0);
@@ -353,7 +352,8 @@ void init_sched_percpu()
 	CURR_CPU->sched->expired = &CURR_CPU->sched->queues[1];
 
 	/* Create the per CPU idle thread */
-	rc = thread_create(NULL, 0, sched_idle_thread, NULL,
+	snprintf(name, T_NAME_LEN - 1, "idle-%d", CURR_CPU->id);
+	rc = thread_create(name, NULL, 0, sched_idle_thread, NULL,
 			   &CURR_CPU->sched->idle_thread);
 	ASSERT((rc == 0) && (CURR_CPU->sched->idle_thread != NULL));
 	DEBUG(DL_DBG, ("init_sched_percpu: idle thread(%p).\n",
@@ -382,7 +382,7 @@ void init_sched()
 	int rc = -1;
 
 	/* Create kernel mode reaper thread for the whole system */
-	rc = thread_create(NULL, 0, sched_reaper_thread, NULL, NULL);
+	rc = thread_create("reaper", NULL, 0, sched_reaper_thread, NULL, NULL);
 	ASSERT(rc == 0);
 
 	DEBUG(DL_DBG, ("init_sched: sched queues initialization done.\n"));

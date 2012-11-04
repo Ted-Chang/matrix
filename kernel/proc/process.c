@@ -330,7 +330,7 @@ int process_create(const char *args[], struct process *parent, int flags,
 	}
 
 	/* Create the main thread and run it */
-	rc = thread_create(p, 0, process_entry_thread, NULL, &t);
+	rc = thread_create("main", p, 0, process_entry_thread, NULL, &t);
 	if (rc != 0) {
 		DEBUG(DL_INF, ("process_create: thread_create failed, err(%d).\n", rc));
 		goto out;
@@ -419,7 +419,7 @@ int process_clone()
 	}
 
 	/* Create the main thread and run it */
-	rc = thread_create(p, 0, process_entry_thread, NULL, &t);
+	rc = thread_create("main", p, 0, process_entry_thread, NULL, &t);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("process_clone: thread_create failed, err(%d).\n", rc));
 		goto out;

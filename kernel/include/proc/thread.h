@@ -3,6 +3,7 @@
 
 #include <types.h>
 #include "list.h"
+#include "matrix/const.h"
 #include "hal/cpu.h"
 #include "hal/spinlock.h"
 #include "avltree.h"
@@ -52,8 +53,6 @@ struct thread {
 
 	/* Scheduling information */
 	struct list runq_link;		// Link to run queues
-	int max_priority;		// Maximum scheduling priority
-	int curr_priority;		// Current scheduling priority
 	struct cpu *cpu;		// CPU that the thread runs on
 	useconds_t quantum;		// Current quantum
 
@@ -66,12 +65,15 @@ struct thread {
 
 	/* Other thread information */
 	tid_t id;			// ID of the thread
+	char name[T_NAME_LEN];		// Name of the thread
+	
 	struct avl_tree_node tree_link;	// Link to thread tree
-	int status;			// Exit status of the thread
 	struct process *owner;		// Pointer to parent process
 	struct list owner_link;		// Link to the owner process
 
 	struct notifier death_notifier;	// Notifier list of this thread
+
+	int status;			// Exit status of the thread
 };
 typedef struct thread thread_t;
 
@@ -84,8 +86,8 @@ typedef struct thread thread_t;
 #define CURR_THREAD	(CURR_CPU->thread)
 
 extern void arch_thread_switch(struct thread *curr, struct thread *prev);
-extern int thread_create(struct process *owner, int flags, thread_func_t func,
-			 void *args, struct thread **tp);
+extern int thread_create(const char *name, struct process *owner, int flags,
+			 thread_func_t func, void *args, struct thread **tp);
 extern void thread_run(struct thread *t);
 extern void thread_kill(struct thread *t);
 extern void thread_release(struct thread *t);

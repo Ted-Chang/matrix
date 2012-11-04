@@ -132,7 +132,7 @@ int kmain(u_long addr, uint32_t initial_stack)
 	kprintf("Floppy driver initialization done.\n");
 
 	/* Create the initialization process */
-	rc = thread_create(NULL, 0, sys_init_thread, NULL, NULL);
+	rc = thread_create("init", NULL, 0, sys_init_thread, NULL, NULL);
 	ASSERT(rc == 0);
 
 	/* Start our scheduler */

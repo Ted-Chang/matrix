@@ -61,7 +61,7 @@ clock_t tmrs_settimer(struct list *head, struct timer *t, clock_t exp_time,
 
 	/* Set the timer's variables */
 	tmrs_clrtimer(head, t);
-	t->exp_time = exp_time + _real_time;
+	t->exp_time = exp_time;
 	t->timer_func = callback;
 
 	/* Add the timer to the active timer list, the next timer due is in front */
@@ -91,10 +91,6 @@ void tmrs_exptimers(struct list *head, clock_t now)
 	 */
 	LIST_FOR_EACH_SAFE(l, p, head) {
 		t = LIST_ENTRY(l, struct timer, link);
-
-		DEBUG(DL_DBG, ("tmrs_exptimers: exp_time(%d), now(%d).\n",
-			       t->exp_time, now));
-
 		if (t->exp_time <= now) {
 			list_del(l);
 			t->exp_time = TIMER_NEVER;
@@ -116,19 +112,20 @@ void init_timer(struct timer *t)
 void set_timer(struct timer *t, clock_t exp_time, timer_func_t callback)
 {
 	struct timer *at;
+	struct list *l;
 	
 	ASSERT(t != NULL);
 
 	t->cpu = CURR_CPU;
-	
-	tmrs_settimer(&CURR_CPU->timers, t, exp_time, callback);
+	tmrs_settimer(&CURR_CPU->timers, t, exp_time + _real_time, callback);
 	ASSERT(!LIST_EMPTY(&CURR_CPU->timers));
 
-	at = LIST_ENTRY(&CURR_CPU->timers.next, struct timer, link);
+	l = CURR_CPU->timers.next;
+	at = LIST_ENTRY(l, struct timer, link);
 	_next_timeout = at->exp_time;
 
-	DEBUG(DL_DBG, ("set_timer: _next_timeout(%d), exp_time(%d).\n",
-		       _next_timeout, exp_time));
+	DEBUG(DL_DBG, ("set_timer: _next_timeout(%d), _real_time(%d).\n",
+		       _next_timeout, _real_time));
 }
 
 void cancel_timer(struct timer *t)

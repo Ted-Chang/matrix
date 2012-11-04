@@ -138,8 +138,8 @@ static boolean_t thread_interrupt_internal(struct thread *t, int flags)
 	return ret;
 }
 
-int thread_create(struct process *owner, int flags, thread_func_t func,
-		  void *args, struct thread **tp)
+int thread_create(const char *name, struct process *owner, int flags,
+		  thread_func_t func, void *args, struct thread **tp)
 {
 	int rc = -1;
 	struct thread *t;
@@ -158,6 +158,9 @@ int thread_create(struct process *owner, int flags, thread_func_t func,
 
 	/* Allocate an ID for the thread */
 	t->id = id_alloc();
+
+	strncpy(t->name, name, T_NAME_LEN - 1);
+	t->name[T_NAME_LEN - 1] = 0;
 	
 	/* Allocate kernel stack for the process */
 	t->kstack = kmalloc(KSTACK_SIZE, MM_ALIGN_F) + KSTACK_SIZE;
