@@ -17,7 +17,7 @@ void *kmalloc(size_t size, int mmflag)
 		return NULL;
 	}
 	
-	if (mmflag & MM_ZERO) {
+	if (mmflag & MM_ZERO_F) {
 		memset(addr, 0, size);
 	}
 
@@ -26,7 +26,7 @@ void *kmalloc(size_t size, int mmflag)
 
 void *kcalloc(size_t nmemb, size_t size, int mmflag)
 {
-	return kmalloc(nmemb * size, mmflag | MM_ZERO);
+	return kmalloc(nmemb * size, mmflag | MM_ZERO_F);
 }
 
 void *krealloc(void *addr, size_t size, int mmflag)
@@ -38,7 +38,7 @@ void *krealloc(void *addr, size_t size, int mmflag)
 	}
 
 	/* Make a new allocation */
-	mem = kmalloc(size, mmflag & ~MM_ZERO);
+	mem = kmalloc(size, mmflag & ~MM_ZERO_F);
 	if (!mem) {
 		return mem;
 	}

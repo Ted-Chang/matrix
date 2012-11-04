@@ -362,6 +362,11 @@ int setgid(gid_t gid)
 	return rc;
 }
 
+int getpid()
+{
+	return process_getpid();
+}
+
 int sleep(uint32_t ms)
 {
 	timer_delay(ms);
@@ -388,7 +393,7 @@ int waitpid(int pid)
 	}
 
 	/* Put the current process into the wait queue of proc */
-	rc = process_wait(proc);
+	rc = process_wait(proc, NULL);
 	if (rc != 0) {
 		DEBUG(DL_INF, ("waitpid: process_wait failed, proc(%p).\n", proc));
 		goto out;

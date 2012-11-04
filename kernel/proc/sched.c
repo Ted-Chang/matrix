@@ -55,8 +55,6 @@ static struct list _dead_processes = {
 	.next = &_dead_processes
 };
 
-struct process *_curr_proc = NULL;		// Current running process
-
 /* Allocate a CPU for a thread to run on */
 static struct cpu *sched_alloc_cpu(struct thread *t)
 {

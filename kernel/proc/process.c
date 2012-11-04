@@ -17,6 +17,7 @@
 #include "proc/sched.h"
 #include "proc/thread.h"
 #include "elf.h"
+#include "object.h"
 
 struct process_create {
 	/* Arguments provided by the caller */
@@ -39,8 +40,6 @@ static struct avl_tree _proc_tree;
 struct process *_kernel_proc = NULL;
 
 extern uint32_t _initial_esp;
-
-extern void sched_init();
 
 static pid_t id_alloc()
 {
@@ -197,17 +196,31 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 	/* Process constructor */
 	process_ctor(p);
 
-	p->id = id_alloc();		// Allocate an ID for the process
+	/* Allocate a process ID. If creating the kernel process, always give
+	 * it an ID of 0.
+	 */
+	if (_kernel_proc) {
+		p->id = id_alloc();		// Allocate an ID for the process
+	} else {
+		p->id = 0;
+	}
+	
 	strncpy(p->name, name, P_NAME_LEN - 1);
 
 	p->uid = 500;			// FixMe: set it to the currently logged user
 	p->gid = 500;			// FixMe: set it to the current user's group
 	p->mmu_ctx = mmu;		// MMU context
-	p->priority = 16;		// Default priority
+	p->priority = priority;
+	p->flags = flags;
+	p->status = 0;
 	
 	/* Initialize the file descriptor table */
 	if (!fds) {
 		p->fds = fd_table_create();
+		if (!p->fds) {
+			rc = -1;
+			goto out;
+		}
 	} else {
 		p->fds = fds;
 	}
@@ -216,10 +229,18 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 	avl_tree_insert_node(&_proc_tree, &p->tree_link, p->id, p);
 
 	p->state = PROCESS_RUNNING;
+	*procp = p;
+	rc = 0;
 
 	DEBUG(DL_DBG, ("process_alloc: created process (%s:%d:%p).\n",
 		       p->name, p->id, p));
 out:
+	if (rc != 0) {
+		if (p) {
+			kfree(p);
+		}
+	}
+	
 	return rc;
 }
 
@@ -263,18 +284,6 @@ void process_detach(struct thread *t)
 	}
 	
 	t->owner = NULL;
-}
-
-static void process_wait_notifier(void *data)
-{
-	struct process *p;
-
-	DEBUG(DL_DBG, ("process_wait_notifier: data(%p).\n", data));
-	
-	p = (struct process *)data;
-	p->state = PROCESS_RUNNING;
-	
-	//sched_insert_thread(p);
 }
 
 void process_exit(int status)
@@ -342,14 +351,12 @@ int process_create(const char *args[], struct process *parent, int flags,
 	if (procp) {
 		*procp = p;
 	}
-	
 	rc = 0;		// We'are OK
 
 out:
 	if (rc != 0) {
 		if (p) {
-			process_dtor(p);
-			kfree(p);
+			process_destroy(p);
 		}
 		if (mmu) {
 			mmu_destroy_ctx(mmu);
@@ -361,36 +368,30 @@ out:
 
 int process_destroy(struct process *proc)
 {
+	ASSERT(LIST_EMPTY(&proc->threads));
+	
 	/* Remove this process from the process tree */
 	avl_tree_remove_node(&_proc_tree, &proc->tree_link);
 
-	/* Destroy the file descriptors table */
-	fd_table_destroy(proc->fds);
-
-	mmu_destroy_ctx(proc->mmu_ctx);
+	notifier_clear(&proc->death_notifier);
+	
 	kfree(proc);
 
 	return 0;
 }
 
-int process_wait(struct process *p)
+int process_wait(struct process *p, void *sync)
 {
 	int rc = -1;
 	boolean_t state;
 
 	if (p->state != PROCESS_DEAD) {
 		/* Register us to the death notifier of the specified process */
-		notifier_register(&p->death_notifier, process_wait_notifier, NULL);
-
-		/* Reschedule to next process */
-		state = irq_disable();
-
-		/* Reschedule current process */
-		sched_reschedule(state);
+		notifier_register(&p->death_notifier, object_wait_notifier, sync);
 		rc = 0;
 	} else {
 		DEBUG(DL_INF, ("process_wait: process(%d) dead.", p->id));
-		rc = 0;
+		rc = -1;
 	}
 
 	return rc;
@@ -412,6 +413,7 @@ int process_clone()
 	}
 	mmu_copy_ctx(mmu, CURR_PROC->mmu_ctx);
 
+	/* Clone the parent(current)'s file descriptor table */
 	fds = fd_table_clone(CURR_PROC->fds);
 	if (!fds) {
 		DEBUG(DL_DBG, ("process_clone: fd_table_clone failed.\n"));
@@ -436,7 +438,25 @@ int process_clone()
 	thread_release(t);
 
 out:
+	if (rc != 0) {
+		if (p) {
+			process_destroy(p);
+		}
+		if (fds) {
+			fd_table_destroy(fds);
+		}
+		if (mmu) {
+			/* TODO: Should unmap mmu context */
+			mmu_destroy_ctx(mmu);
+		}
+	}
+	
 	return rc;
+}
+
+int process_replace(const char *path, const char *args[])
+{
+	return -1;
 }
 
 int fork()
@@ -603,7 +623,7 @@ out:
 	return -1;
 }
 
-int getpid()
+int process_getpid()
 {
 	return CURR_PROC->id;
 }

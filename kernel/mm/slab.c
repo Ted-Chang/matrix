@@ -400,15 +400,15 @@ void init_slab()
 {
 	/* Initialize the cache for cache structures. */
 	slab_cache_init(&_slab_cache_cache, "slab_cache_cache", sizeof(slab_cache_t),
-			NULL, NULL, SLAB_METADATA_PRIORITY, 0, MM_BOOT);
+			NULL, NULL, SLAB_METADATA_PRIORITY, 0, MM_BOOT_F);
 
 	/* Initialize the magazine cache. */
 	slab_cache_init(&_slab_mag_cache, "slab_cache_cache", sizeof(slab_magazine_t),
-			NULL, NULL, SLAB_MAG_PRIORITY, SLAB_CACHE_NOMAG, MM_BOOT);
+			NULL, NULL, SLAB_MAG_PRIORITY, SLAB_CACHE_NOMAG, MM_BOOT_F);
 
 	/* Initialize other internal cache */
 	slab_cache_init(&_slab_bufctl_cache, "slab_bufctl_cache", sizeof(slab_bufctl_t),
-			NULL, NULL, SLAB_METADATA_PRIORITY, 0, MM_BOOT);
+			NULL, NULL, SLAB_METADATA_PRIORITY, 0, MM_BOOT_F);
 	slab_cache_init(&_slab_slab_cache, "slab_slab_cache", sizeof(slab_t),
-			NULL, NULL, SLAB_METADATA_PRIORITY, 0, MM_BOOT);
+			NULL, NULL, SLAB_METADATA_PRIORITY, 0, MM_BOOT_F);
 }

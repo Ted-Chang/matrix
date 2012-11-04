@@ -29,8 +29,7 @@ struct process {
 	uid_t uid;			// User ID
 	gid_t gid;			// Group ID
 	
-	struct fd_table *fds;		// File descriptor table
-
+	int flags;			// Behaviour flags for the process
 	int8_t priority;		// Current scheduling priority
 	char name[P_NAME_LEN];		// Name of the process, include `\0'
 
@@ -42,6 +41,8 @@ struct process {
 		PROCESS_DEAD,
 	} state;
 
+	struct fd_table *fds;		// File descriptor table
+
 	/* Other process information */
 	struct avl_tree_node tree_link;	// Link to the process tree
 
@@ -52,27 +53,26 @@ struct process {
 };
 typedef struct process process_t;
 
-/* Pointer to the current process in the system */
-extern struct process *_curr_proc;
-
 /* Macro that retrieve the pointer of the current process */
-#define CURR_PROC	(_curr_proc)
+#define CURR_PROC	(CURR_THREAD->owner)
 
 /* Pointer to the kernel process */
 extern struct process *_kernel_proc;
 
 extern int fork();
-extern int getpid();
 extern void switch_to_user_mode(uint32_t location, uint32_t ustack);
 extern int exec(const char *path, int argc, char **argv);
 extern struct process *process_lookup(pid_t pid);
+
 extern void process_attach(struct process *p, struct thread *t);
 extern void process_detach(struct thread *t);
+
 extern void process_exit(int status);
-extern int process_wait(struct process *p);
+extern int process_wait(struct process *p, void *sync);
 extern int process_create(const char *args[], struct process *parent, int flags,
 			  int priority, struct process **procp);
 extern int process_destroy(struct process *proc);
+extern int process_getpid();
 extern void init_process();
 
 #endif	/* __PROCESS_H__ */

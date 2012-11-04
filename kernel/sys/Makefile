@@ -16,6 +16,7 @@ TARGETOBJ := \
 	$(OBJ)/notifier.o \
 	$(OBJ)/mutex.o \
 	$(OBJ)/elf.o \
+	$(OBJ)/object.o \
 
 .PHONY: clean help
 

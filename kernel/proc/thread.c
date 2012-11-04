@@ -23,11 +23,11 @@ static tid_t id_alloc()
 	return _next_tid++;
 }
 
-void arch_thread_init(struct thread *t, void *kstack)
+void arch_thread_init(struct thread *t, void *kstack, void (*entry)())
 {
 	t->arch.esp = kstack;
 	t->arch.ebp = 0;
-	t->arch.eip = t->entry;
+	t->arch.eip = entry;
 }
 
 void arch_thread_switch(struct thread *curr, struct thread *prev)
@@ -108,6 +108,34 @@ static void thread_dtor(void *obj)
 	;
 }
 
+/* Thread entry function wrapper */
+static void thread_trampoline()
+{
+	/* Upon switching to a newly-created thread's context, execution will
+	 * jump to this function, rather than going back to the scheduler.
+	 */
+	DEBUG(DL_DBG, ("thread_trampoline: entered thread %p on CPU %d.\n",
+		       CURR_THREAD, CURR_CPU->id));
+
+	/* Run the thread's main function and exit when it returns */
+	CURR_THREAD->entry(CURR_THREAD->args);
+	
+	thread_exit();
+}
+
+static boolean_t thread_interrupt_internal(struct thread *t, int flags)
+{
+	boolean_t ret = FALSE;
+	
+	if ((t->state == THREAD_SLEEPING) && (t->flags & THREAD_INTERRUPTIBLE_F)) {
+		ret = TRUE;
+	} else {
+		t->flags |= THREAD_INTERRUPTIBLE_F;
+	}
+
+	return ret;
+}
+
 int thread_create(struct process *owner, int flags, thread_func_t func,
 		  void *args, struct thread **tp)
 {
@@ -123,17 +151,17 @@ int thread_create(struct process *owner, int flags, thread_func_t func,
 		goto out;
 	}
 
+	thread_ctor(t);
+
 	/* Allocate an ID for the thread */
 	t->id = id_alloc();
 	
 	/* Allocate kernel stack for the process */
-	t->kstack = kmalloc(KSTACK_SIZE, MM_ALIGN) + KSTACK_SIZE;
+	t->kstack = kmalloc(KSTACK_SIZE, MM_ALIGN_F) + KSTACK_SIZE;
 	memset((void *)((uint32_t)t->kstack - KSTACK_SIZE), 0, KSTACK_SIZE);
 
-	thread_ctor(t);
-
 	/* Initialize the architecture-specific data */
-	arch_thread_init(t, t->kstack);
+	arch_thread_init(t, t->kstack, thread_trampoline);
 
 	/* Initially set the CPU to NULL - the thread will be assigned to a
 	 * CPU when thread_run() is called on it.
@@ -173,7 +201,7 @@ void thread_run(struct thread *t)
 void thread_kill(struct thread *t)
 {
 	if (t->owner != _kernel_proc) {
-		;
+		thread_interrupt_internal(t, THREAD_KILLED_F);
 	}
 }
 
@@ -190,6 +218,7 @@ void thread_release(struct thread *t)
 	/* Cleanup the thread */
 	kstack = (void *)((uint32_t)t->kstack - KSTACK_SIZE);
 	DEBUG(DL_DBG, ("thread_release: kstack(%p).\n", kstack));
+
 	kfree(kstack);
 
 	notifier_clear(&t->death_notifier);

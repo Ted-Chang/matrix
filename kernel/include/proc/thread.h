@@ -75,6 +75,11 @@ struct thread {
 };
 typedef struct thread thread_t;
 
+/* Internal flags for a thread */
+#define THREAD_INTERRUPTIBLE_F	(1<<0)	// Thread is in an interruptible sleep
+#define THREAD_INTERRUPTED_F	(1<<1)	// Thread has been interrupted
+#define THREAD_KILLED_F		(1<<2)	// Thread has been killed
+
 /* Macro that expands to a pointer to the current thread */
 #define CURR_THREAD	(CURR_CPU->thread)
 
