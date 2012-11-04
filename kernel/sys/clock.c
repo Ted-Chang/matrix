@@ -86,15 +86,7 @@ static void do_clocktick()
 {
 	/* Check if a clock timer is expired and call its callback function */
 	if (_next_timeout <= _real_time) {
-		struct timer *at;
-
-		tmrs_exptimers(&CURR_CPU->timers, _real_time);
-		if (!LIST_EMPTY(&CURR_CPU->timers)) {
-			_next_timeout = TIMER_NEVER;
-		} else {
-			at = LIST_ENTRY(&CURR_CPU->timers.next, struct timer, link);
-			_next_timeout = at->exp_time;
-		}
+		sched_reschedule(TRUE);
 	}
 }
 

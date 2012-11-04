@@ -116,16 +116,7 @@ void set_timer(struct timer *t, clock_t exp_time, timer_func_t callback)
 	
 	ASSERT(t != NULL);
 
-	t->cpu = CURR_CPU;
-	tmrs_settimer(&CURR_CPU->timers, t, exp_time + _real_time, callback);
-	ASSERT(!LIST_EMPTY(&CURR_CPU->timers));
-
-	l = CURR_CPU->timers.next;
-	at = LIST_ENTRY(l, struct timer, link);
-	_next_timeout = at->exp_time;
-
-	DEBUG(DL_DBG, ("set_timer: _next_timeout(%d), _real_time(%d).\n",
-		       _next_timeout, _real_time));
+	_next_timeout = _real_time + exp_time * 5;
 }
 
 void cancel_timer(struct timer *t)

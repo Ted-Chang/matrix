@@ -196,9 +196,6 @@ void mmu_switch_ctx(struct mmu_ctx *ctx)
 	uint32_t cr0;
 	boolean_t state;
 
-	DEBUG(DL_DBG, ("mmu_switch_ctx: switch ctx to %p, pdbr(%p)\n",
-		       ctx, ctx->pdbr));
-
 	/* The kernel process does not have an address space. When switching
 	 * to one of its threads, it is not necessary to switch to the kernel
 	 * MMU context, as all mappings in the kernel context are visible in
@@ -206,6 +203,7 @@ void mmu_switch_ctx(struct mmu_ctx *ctx)
 	 * portion of the address space.
 	 */
 	if (ctx && (ctx != CURR_ASPACE)) {
+		
 		ASSERT((ctx->pdbr % PAGE_SIZE) == 0);
 
 		state = irq_disable();

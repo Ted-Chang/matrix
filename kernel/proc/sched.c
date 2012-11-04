@@ -223,9 +223,9 @@ void sched_reschedule(boolean_t state)
 	/* Enqueue and dequeue the current process to update the process queue */
 	if (CURR_THREAD->state == THREAD_RUNNING) {
 		/* The thread hasn't gone to sleep, re-queue it */
-		//CURR_THREAD->state = THREAD_READY;
+		CURR_THREAD->state = THREAD_READY;
 		if (CURR_THREAD != c->idle_thread) {
-			sched_enqueue(c->active/*c->expired*/, CURR_THREAD);
+			sched_enqueue(c->active, CURR_THREAD);
 		}
 	} else {
 		DEBUG(DL_DBG, ("sched_reschedule: p(%p), id(%d), state(%d).\n",
@@ -257,7 +257,7 @@ void sched_reschedule(boolean_t state)
 
 	/* Set off the timer if necessary */
 	if (CURR_THREAD->quantum > 0) {
-		set_timer(&c->timer, P_QUANTUM, sched_timer_func);
+		set_timer(&c->timer, CURR_THREAD->quantum, NULL);
 	}
 
 	/* Perform the thread switch if current thread is not the same as previous
@@ -308,17 +308,15 @@ static void sched_reaper_thread(void *ctx)
 	/* If this is the first time reaper run, you should enable IRQ first */
 	while (TRUE) {
 		/* Reaper the dead threads */
-		if (!LIST_EMPTY(&_dead_threads)) {
-			struct list *p, *l;
-			struct thread *t;
+		struct list *p, *l;
+		struct thread *t;
 			
-			LIST_FOR_EACH_SAFE(l, p, &_dead_threads) {
-				t = LIST_ENTRY(l, struct thread, runq_link);
-				list_del(&t->runq_link);
-				DEBUG(DL_INF, ("sched_reaper_thread: release thread(%d).\n",
-					       t->id));
-				thread_release(t);
-			}
+		LIST_FOR_EACH_SAFE(l, p, &_dead_threads) {
+			t = LIST_ENTRY(l, struct thread, runq_link);
+			list_del(&t->runq_link);
+			DEBUG(DL_INF, ("sched_reaper_thread: release thread(%d).\n",
+				       t->id));
+			thread_release(t);
 		}
 	}
 }
