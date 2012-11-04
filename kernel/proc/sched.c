@@ -309,7 +309,7 @@ void init_sched_percpu()
 	/* Create the per CPU idle thread */
 	rc = thread_create(NULL, 0, sched_idle_thread, NULL,
 			   &CURR_CPU->sched->idle_thread);
-	ASSERT((rc == 0) && (&CURR_CPU->sched->idle_thread != NULL));
+	ASSERT((rc == 0) && (CURR_CPU->sched->idle_thread != NULL));
 	DEBUG(DL_DBG, ("init_sched_percpu: idle thread(%p).\n",
 		       CURR_CPU->sched->idle_thread));
 

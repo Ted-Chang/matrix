@@ -105,6 +105,10 @@ int kmain(u_long addr, uint32_t initial_stack)
 	init_process();
 	kprintf("Process initialization done.\n");
 
+	/* Start thread sub system now */
+	init_thread();
+	kprintf("Thread initialization done.\n");
+
 	/* Initialize the scheduler */
 	init_sched_percpu();
 	DEBUG(DL_DBG, ("Per-CPU scheduler initialization done.\n"));

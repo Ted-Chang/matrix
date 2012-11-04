@@ -148,6 +148,7 @@ int thread_create(struct process *owner, int flags, thread_func_t func,
 	
 	t = kmalloc(sizeof(struct thread), 0);
 	if (!t) {
+		DEBUG(DL_INF, ("thread_create: kmalloc thread failed.\n"));
 		goto out;
 	}
 
@@ -158,6 +159,10 @@ int thread_create(struct process *owner, int flags, thread_func_t func,
 	
 	/* Allocate kernel stack for the process */
 	t->kstack = kmalloc(KSTACK_SIZE, MM_ALIGN_F) + KSTACK_SIZE;
+	if (!t->kstack) {
+		DEBUG(DL_INF, ("thread_create: kmalloc kstack failed.\n"));
+		goto out;
+	}
 	memset((void *)((uint32_t)t->kstack - KSTACK_SIZE), 0, KSTACK_SIZE);
 
 	/* Initialize the architecture-specific data */
@@ -178,6 +183,7 @@ int thread_create(struct process *owner, int flags, thread_func_t func,
 
 	/* Add the thread to the owner */
 	process_attach(owner, t);
+	rc = 0;
 
 	if (tp) {
 		*tp = t;
@@ -187,6 +193,12 @@ int thread_create(struct process *owner, int flags, thread_func_t func,
 	}
 
 out:
+	if (rc != 0) {
+		if (t) {
+			kfree(t);
+		}
+	}
+	
 	return rc;
 }
 

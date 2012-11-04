@@ -194,21 +194,34 @@ int mmu_unmap_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t shared,
 void mmu_switch_ctx(struct mmu_ctx *ctx)
 {
 	uint32_t cr0;
+	boolean_t state;
 
 	DEBUG(DL_DBG, ("mmu_switch_ctx: switch ctx to %p, pdbr(%p)\n",
 		       ctx, ctx->pdbr));
 
-	ASSERT((ctx->pdbr % PAGE_SIZE) == 0);
+	/* The kernel process does not have an address space. When switching
+	 * to one of its threads, it is not necessary to switch to the kernel
+	 * MMU context, as all mappings in the kernel context are visible in
+	 * all address spaces. Kernel threads should never touch the userspace
+	 * portion of the address space.
+	 */
+	if (ctx && (ctx != _current_mmu_ctx)) {
+		ASSERT((ctx->pdbr % PAGE_SIZE) == 0);
 
-	/* Update the current mmu context */
-	_current_mmu_ctx = ctx;
+		state = irq_disable();
+
+		/* Update the current mmu context */
+		_current_mmu_ctx = ctx;
 	
-	/* Set CR3 register */
-	asm volatile("mov %0, %%cr3":: "r"(ctx->pdbr));
+		/* Set CR3 register */
+		asm volatile("mov %0, %%cr3":: "r"(ctx->pdbr));
 	
-	asm volatile("mov %%cr0, %0": "=r"(cr0));
-	cr0 |= 0x80000000;	// Enable paging
-	asm volatile("mov %0, %%cr0":: "r"(cr0));
+		asm volatile("mov %%cr0, %0": "=r"(cr0));
+		cr0 |= 0x80000000;	// Enable paging
+		asm volatile("mov %0, %%cr0":: "r"(cr0));
+
+		irq_restore(state);
+	}
 }
 
 /*

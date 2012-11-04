@@ -332,6 +332,7 @@ static int slab_cache_init(slab_cache_t *cache, const char *name, size_t size,
 	LIST_INIT(&cache->slab_full);
 	LIST_INIT(&cache->link);
 
+	cache->obj_size = size;
 	cache->nr_slabs = 0;
 	
 	strncpy(cache->name, name, SLAB_NAME_MAX);
@@ -366,18 +367,18 @@ slab_cache_t *slab_cache_create(const char *name, size_t size, size_t align,
 				int flags, int mmflag)
 {
 	int rc;
-	slab_cache_t *cache;
+	slab_cache_t *cache = NULL;
 
-	cache = slab_cache_alloc(&_slab_cache_cache, mmflag);
-	if (!cache) {
-		return NULL;
-	}
+	/* cache = slab_cache_alloc(&_slab_cache_cache, mmflag); */
+	/* if (!cache) { */
+	/* 	return NULL; */
+	/* } */
 
-	rc = slab_cache_init(cache, name, size, ctor, dtor, SLAB_DEFAULT_PRIORITY, flags, mmflag);
-	if (rc != 0) {
-		slab_cache_free(&_slab_cache_cache, cache);
-		return NULL;
-	}
+	/* rc = slab_cache_init(cache, name, size, ctor, dtor, SLAB_DEFAULT_PRIORITY, flags, mmflag); */
+	/* if (rc != 0) { */
+	/* 	slab_cache_free(&_slab_cache_cache, cache); */
+	/* 	return NULL; */
+	/* } */
 	
 	return cache;
 }

@@ -689,4 +689,6 @@ void init_process()
 	if (rc != 0) {
 		PANIC("Could not initialize kernel process");
 	}
+
+	DEBUG(DL_DBG, ("init_process: allocated kernel process(%p).\n", _kernel_proc));
 }
