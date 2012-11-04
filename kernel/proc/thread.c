@@ -114,6 +114,8 @@ static void thread_trampoline()
 	/* Upon switching to a newly-created thread's context, execution will
 	 * jump to this function, rather than going back to the scheduler.
 	 */
+	sched_post_switch(TRUE);
+	
 	DEBUG(DL_DBG, ("thread_trampoline: entered thread %p on CPU %d.\n",
 		       CURR_THREAD, CURR_CPU->id));
 

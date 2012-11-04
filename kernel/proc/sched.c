@@ -43,16 +43,13 @@ struct sched_cpu {
 };
 typedef struct sched_cpu sched_cpu_t;
 
-/* Whether scheduler is ready */
-boolean_t _scheduler_ready = FALSE;
-
 /* Total number of running or ready threads across all CPUs */
 static int _nr_running_threads = 0;
 
 /* Dead process queue */
-static struct list _dead_processes = {
-	.prev = &_dead_processes,
-	.next = &_dead_processes
+static struct list _dead_threads = {
+	.prev = &_dead_threads,
+	.next = &_dead_threads
 };
 
 /* Allocate a CPU for a thread to run on */
@@ -156,6 +153,12 @@ static void sched_adjust_priority(struct sched_cpu *c, struct thread *t)
 	;
 }
 
+static void sched_timer_func(struct timer *t)
+{
+	CURR_THREAD->quantum = 0;
+	DEBUG(DL_DBG, ("sched_timer_func: CURR_THREAD(%p).\n", CURR_THREAD));
+}
+
 /**
  * Pick a new process from the queue to run
  */
@@ -166,6 +169,7 @@ static struct thread *sched_pick_thread(struct sched_cpu *c)
 	int q;
 
 	t = NULL;
+	
 	/* Check each of the scheduling queues for ready processes. The number of
 	 * queues is defined in process.h. The lowest queue contains IDLE, which
 	 * is always ready.
@@ -203,9 +207,6 @@ void sched_reschedule(boolean_t state)
 	struct sched_cpu *c;
 	struct thread *next;
 
-	/* Check the interrupt state */
-	ASSERT(irq_disable() == FALSE);
-
 	/* Get current schedule CPU */
 	c = CURR_CPU->sched;
 
@@ -216,11 +217,15 @@ void sched_reschedule(boolean_t state)
 
 	/* Enqueue and dequeue the current process to update the process queue */
 	if (CURR_THREAD->state == THREAD_RUNNING) {
-		sched_enqueue(c->active, CURR_THREAD);
+		/* The thread hasn't gone to sleep, re-queue it */
+		if (CURR_THREAD != c->idle_thread) {
+			sched_enqueue(c->active, CURR_THREAD);
+		}
 	} else {
 		DEBUG(DL_DBG, ("sched_reschedule: p(%p), id(%d), state(%d).\n",
 			       CURR_THREAD, CURR_THREAD->id, CURR_THREAD->state));
 		c->total--;
+		atomic_dec(&_nr_running_threads);
 	}
 	
 	/* Find a new process to run. A NULL return value means no processes are
@@ -239,24 +244,53 @@ void sched_reschedule(boolean_t state)
 	next->state = THREAD_RUNNING;
 	CURR_THREAD = next;
 
+	/* Set off the timer if necessary */
+	if (CURR_THREAD->quantum > 0) {
+		DEBUG(DL_DBG, ("sched_reschedule: timer set.\n"));
+		set_timer(&c->timer, CURR_THREAD->quantum, sched_timer_func);
+	}
+
 	/* Perform the thread switch if current thread is not the same as previous
 	 * one.
 	 */
 	if (CURR_THREAD != c->prev_thread) {
 		DEBUG(DL_DBG, ("sched_reschedule: switching to (%s:%d:%d:%d).\n",
-			       CURR_PROC->name, CURR_PROC->id, CURR_THREAD->id, CURR_CPU->id));
+			       CURR_PROC->name, CURR_PROC->id, CURR_THREAD->id,
+			       CURR_CPU->id));
 		
-		/* Switch the address space. */
+		/* Switch the address space. The NULL case will be handled by the
+		 * context switch function.
+		 */
 		mmu_switch_ctx(CURR_PROC->mmu_ctx);
 
 		/* Perform the thread switch */
 		arch_thread_switch(CURR_THREAD, c->prev_thread);
 
-		/* Restore the IRQ */
-		irq_restore(state);
+		/* Do all things need to do after swith */
+		sched_post_switch(state);
 	} else {
 		irq_restore(state);
 	}
+}
+
+void sched_post_switch(boolean_t state)
+{
+	/* The prev_thread pointer is set to NULL during sched_init(). It will
+	 * only be NULL once.
+	 */
+	if (CURR_CPU->sched->prev_thread) {
+
+		/* Deal with thread terminations. We cannot delete the thread
+		 * directly as all alloctor functions are unsafe to call here.
+		 * Instead we queue the thread to the reaper's queue.
+		 */
+		if (CURR_CPU->sched->prev_thread->state == THREAD_DEAD) {
+			list_add_tail(&_dead_threads,
+				      &CURR_CPU->sched->prev_thread->runq_link);
+		}
+	}
+
+	irq_restore(state);
 }
 
 static void sched_reaper_thread(void *ctx)
@@ -264,11 +298,11 @@ static void sched_reaper_thread(void *ctx)
 	/* If this is the first time reaper run, you should enable IRQ first */
 	while (TRUE) {
 		/* Reaper the dead threads */
-		if (!LIST_EMPTY(&_dead_processes)) {
+		if (!LIST_EMPTY(&_dead_threads)) {
 			struct list *p, *l;
 			struct thread *t;
 			
-			LIST_FOR_EACH_SAFE(l, p, &_dead_processes) {
+			LIST_FOR_EACH_SAFE(l, p, &_dead_threads) {
 				t = LIST_ENTRY(l, struct thread, runq_link);
 				list_del(&t->runq_link);
 				DEBUG(DL_INF, ("sched_reaper_thread: release thread(%d).\n",
@@ -347,9 +381,6 @@ void sched_enter()
 	/* Disable irq first as sched_insert_proc and process_switch requires */
 	irq_disable();
 
-	/* Set scheduler to ready */
-	_scheduler_ready = TRUE;
-	
 	/* Switch to current process */
 	arch_thread_switch(CURR_THREAD, NULL);
 	PANIC("Should not get here");

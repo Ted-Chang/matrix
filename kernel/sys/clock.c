@@ -105,11 +105,6 @@ static void clock_callback(struct registers *regs)
 	_lost_ticks = 0;
 	_real_time += ticks;
 
-	/* If multitask was not initialized, just return */
-	if (!_scheduler_ready) {
-		return;
-	}
-
 	/* Check if do_clocktick() must be called. Done for alarms and scheduling.
 	 */
 	if (_next_timeout <= _real_time) {

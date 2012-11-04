@@ -154,15 +154,6 @@ static void process_ctor(void *obj)
 	/* Initialize the signature */
 	p->ref_count = 0;
 
-	/* if (parent) { */
-	/* 	/\* User stack should be cloned before this, so we can use parent's */
-	/* 	 * ustack directly */
-	/* 	 *\/ */
-	/* 	p->arch.ustack = parent->arch.ustack; */
-	/* } else { */
-	/* 	p->arch.ustack = 0; */
-	/* } */
-
 	/* Initialize the death notifier */
 	init_notifier(&p->death_notifier);
 
@@ -200,7 +191,7 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 	 * it an ID of 0.
 	 */
 	if (_kernel_proc) {
-		p->id = id_alloc();		// Allocate an ID for the process
+		p->id = id_alloc();	// Allocate an ID for the process
 	} else {
 		p->id = 0;
 	}
