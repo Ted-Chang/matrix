@@ -6,6 +6,7 @@
 #include <string.h>	// memset
 #include "hal/hal.h"
 #include "hal/isr.h"	// register interrupt handler
+#include "hal/cpu.h"
 #include "mm/mm.h"
 #include "mm/mlayout.h"
 #include "mm/mmu.h"
@@ -16,7 +17,7 @@
 #define IS_KERNEL_CTX(ctx)	(ctx == &_kernel_mmu_ctx)
 
 /* Determine if an MMU context is the current context */
-#define IS_CURRENT_CTX(ctx)	(ctx == _current_mmu_ctx)
+#define IS_CURRENT_CTX(ctx)	(ctx == CURR_ASPACE)
 
 /*
  * Page Table
@@ -43,7 +44,6 @@ struct pdir {
 };
 
 struct mmu_ctx _kernel_mmu_ctx;
-struct mmu_ctx *_current_mmu_ctx = NULL;
 static struct irq_hook _pf_hook;
 
 extern uint32_t _placement_addr;
@@ -205,13 +205,13 @@ void mmu_switch_ctx(struct mmu_ctx *ctx)
 	 * all address spaces. Kernel threads should never touch the userspace
 	 * portion of the address space.
 	 */
-	if (ctx && (ctx != _current_mmu_ctx)) {
+	if (ctx && (ctx != CURR_ASPACE)) {
 		ASSERT((ctx->pdbr % PAGE_SIZE) == 0);
 
 		state = irq_disable();
 
 		/* Update the current mmu context */
-		_current_mmu_ctx = ctx;
+		CURR_ASPACE = ctx;
 	
 		/* Set CR3 register */
 		asm volatile("mov %0, %%cr3":: "r"(ctx->pdbr));

@@ -156,7 +156,10 @@ static void sched_adjust_priority(struct sched_cpu *c, struct thread *t)
 static void sched_timer_func(struct timer *t)
 {
 	CURR_THREAD->quantum = 0;
+
 	DEBUG(DL_DBG, ("sched_timer_func: CURR_THREAD(%p).\n", CURR_THREAD));
+	
+	sched_reschedule(TRUE);
 }
 
 /**
@@ -190,6 +193,8 @@ void sched_insert_thread(struct thread *t)
 {
 	sched_cpu_t *sched;
 
+	ASSERT(t->state == THREAD_READY);
+	
 	t->cpu = sched_alloc_cpu(t);
 	
 	sched = t->cpu->sched;
@@ -218,12 +223,14 @@ void sched_reschedule(boolean_t state)
 	/* Enqueue and dequeue the current process to update the process queue */
 	if (CURR_THREAD->state == THREAD_RUNNING) {
 		/* The thread hasn't gone to sleep, re-queue it */
+		CURR_THREAD->state = THREAD_READY;
 		if (CURR_THREAD != c->idle_thread) {
-			sched_enqueue(c->active, CURR_THREAD);
+			sched_enqueue(c->expired, CURR_THREAD);
 		}
 	} else {
 		DEBUG(DL_DBG, ("sched_reschedule: p(%p), id(%d), state(%d).\n",
 			       CURR_THREAD, CURR_THREAD->id, CURR_THREAD->state));
+		ASSERT(CURR_THREAD != c->idle_thread);
 		c->total--;
 		atomic_dec(&_nr_running_threads);
 	}
@@ -236,6 +243,10 @@ void sched_reschedule(boolean_t state)
 		next->quantum = P_QUANTUM;
 	} else {
 		next = c->idle_thread;
+		if (next != CURR_THREAD) {
+			DEBUG(DL_DBG, ("sched_reschedule: cpu(%d) has no runnable threads.\n",
+				       CURR_CPU->id));
+		}
 		next->quantum = 0;
 	}
 
@@ -246,7 +257,6 @@ void sched_reschedule(boolean_t state)
 
 	/* Set off the timer if necessary */
 	if (CURR_THREAD->quantum > 0) {
-		DEBUG(DL_DBG, ("sched_reschedule: timer set.\n"));
 		set_timer(&c->timer, CURR_THREAD->quantum, sched_timer_func);
 	}
 
@@ -297,6 +307,7 @@ static void sched_reaper_thread(void *ctx)
 {
 	/* If this is the first time reaper run, you should enable IRQ first */
 	while (TRUE) {
+		kprintf("sched_reaper_thread: reaper.\n");
 		/* Reaper the dead threads */
 		if (!LIST_EMPTY(&_dead_threads)) {
 			struct list *p, *l;
@@ -323,6 +334,7 @@ static void sched_idle_thread(void *ctx)
 	irq_disable();
 
 	while (TRUE) {
+		kprintf("sched_idle_thread: idle.\n");
 		sched_reschedule(FALSE);
 		cpu_idle();
 	}

@@ -19,7 +19,10 @@ void sys_init_thread()
 	DEBUG(DL_DBG, ("sys_init_proc: CURR_PROC(%p).\n", CURR_PROC));
 
 	while (TRUE) {
+		int count = 0;
 		kprintf("sys_init_thread: message.\n");
+		while (count++ < 200000);
+		count = 0;
 	}
 	
 	/* Run init process from executable file init */

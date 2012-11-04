@@ -20,11 +20,13 @@
 extern void tmrs_exptimers(struct list *head, clock_t now);
 extern boolean_t _scheduler_ready;
 
-int _current_frequency = 0;
+static int _current_frequency = 0;
+
 uint32_t _lost_ticks = 0;
 clock_t _real_time = 0;
 clock_t _next_timeout = TIMER_NEVER;
 useconds_t _boot_time;
+
 static struct irq_hook _clock_hook;
 
 /* Table containing number of days before a month */
@@ -85,7 +87,7 @@ static void do_clocktick()
 	/* Check if a clock timer is expired and call its callback function */
 	if (_next_timeout <= _real_time) {
 		struct timer *at;
-		
+
 		tmrs_exptimers(&CURR_CPU->timers, _real_time);
 		if (!LIST_EMPTY(&CURR_CPU->timers)) {
 			_next_timeout = TIMER_NEVER;
@@ -105,11 +107,7 @@ static void clock_callback(struct registers *regs)
 	_lost_ticks = 0;
 	_real_time += ticks;
 
-	/* Check if do_clocktick() must be called. Done for alarms and scheduling.
-	 */
-	if (_next_timeout <= _real_time) {
-		do_clocktick();
-	}
+	do_clocktick();
 }
 
 void init_clock()

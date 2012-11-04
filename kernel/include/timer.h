@@ -14,12 +14,11 @@ struct timer {
 	struct list link;		// Link to timers list
 	
 	struct cpu *cpu;		// CPU that the timer was started on
-
 	clock_t exp_time;		// Time at which the timer will fire
-
 	timer_func_t timer_func;	// Function to call when the timer expires
-	void *timer_ctx;		// Argument to pass to timer handler
+	void *args;			// Argument to pass to timer handler
 };
+typedef struct timer timer_t;
 
 extern void init_clock();
 extern void stop_clock();

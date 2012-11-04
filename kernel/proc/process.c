@@ -59,7 +59,7 @@ static void move_stack(uint32_t new_stack, uint32_t size)
 		/* General purpose stack is in user-mode */
 		struct page *page;
 		
-		page = mmu_get_page(_current_mmu_ctx, i, TRUE, 0);
+		page = mmu_get_page(CURR_ASPACE, i, TRUE, 0);
 		/* Associate the pte with a physical page */
 		page_alloc(page, FALSE, TRUE);
 	}

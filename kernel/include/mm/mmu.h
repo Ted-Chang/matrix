@@ -22,7 +22,9 @@ struct mmu_ctx {
 };
 
 extern struct mmu_ctx _kernel_mmu_ctx;
-extern struct mmu_ctx *_current_mmu_ctx;
+
+/* Macro that expands to a pointer to the current address space */
+#define CURR_ASPACE	(CURR_CPU->aspace)
 
 extern void page_fault(struct registers *regs);
 extern struct mmu_ctx *mmu_create_ctx();
