@@ -157,8 +157,11 @@ static void sched_timer_func(struct timer *t)
 {
 	CURR_THREAD->quantum = 0;
 
-	DEBUG(DL_DBG, ("sched_timer_func: CURR_THREAD(%p).\n", CURR_THREAD));
+	//DEBUG(DL_DBG, ("sched_timer_func: CURR_THREAD(%p).\n", CURR_THREAD));
 
+	/* Timer function was called at the interrupt context, we will improve
+	 * this later
+	 */
 	sched_reschedule(FALSE);
 }
 
@@ -257,7 +260,7 @@ void sched_reschedule(boolean_t state)
 
 	/* Set off the timer if necessary */
 	if (CURR_THREAD->quantum > 0) {
-		set_timer(&c->timer, CURR_THREAD->quantum, NULL);
+		set_timer(&c->timer, CURR_THREAD->quantum, sched_timer_func);
 	}
 
 	/* Perform the thread switch if current thread is not the same as previous
@@ -390,6 +393,8 @@ void sched_enter()
 {
 	/* Disable irq first as sched_insert_proc and process_switch requires */
 	irq_disable();
+
+	CURR_CPU->timer_enabled = TRUE;	// TODO: Find a better place to do this
 
 	/* Switch to current process */
 	arch_thread_switch(CURR_THREAD, NULL);

@@ -6,6 +6,7 @@
 #include "matrix/debug.h"
 #include "mm/mlayout.h"
 #include "mm/page.h"
+#include "div64.h"
 
 extern struct idt_ptr _idt_ptr;
 extern struct irq_hook *_irq_handlers[];
@@ -59,15 +60,22 @@ static void cpu_ctor(struct cpu *c, cpu_id_t id, int state)
 
 	/* Initialize timer information */
 	LIST_INIT(&c->timers);
+	c->timer_enabled = FALSE;
 }
 
 void dump_cpu(struct cpu *c)
 {
+	uint32_t count = 0;
+	
 	DEBUG(DL_DBG, ("CPU(%d) detail information:\n", c->id));
 	DEBUG(DL_DBG, ("vendor: %s\n", c->arch.vendor_str));
 	DEBUG(DL_DBG, ("cpu step(%d), phys_bits(%d), virt_bits(%d)\n",
 		       c->arch.cpu_step, c->arch.max_phys_bits, c->arch.max_virt_bits));
-	DEBUG(DL_DBG, ("cpu frequency(%16d)\n", c->arch.cpu_freq));
+	DEBUG(DL_DBG, ("cpu frequency(%Ld), cycles per microseconds(%Ld)\n",
+		       c->arch.cpu_freq, c->arch.cycles_per_us));
+	DEBUG(DL_DBG, ("sys_time_offset(%Ld)\n\n", c->arch.sys_time_offset));
+
+	while(count++ < 3000000);
 }
 
 static void detect_cpu_features(struct cpu *c, struct cpu_features *f)
@@ -223,7 +231,11 @@ static void arch_preinit_cpu_percpu(struct cpu *c)
 		c->arch.cpu_freq = _boot_cpu.arch.cpu_freq;
 	}
 
-	/* Initialize the TSC target */
+	/* Work out the cycles per us */
+	c->arch.cycles_per_us = do_div(c->arch.cpu_freq, 1000000);
+
+	/* Configure the TSC offset for sys_time() */
+	tsc_init_target();
 }
 
 static void arch_init_cpu_percpu()

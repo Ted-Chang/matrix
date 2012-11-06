@@ -8,25 +8,22 @@
 
 extern void pit_delay(uint32_t usec);
 
-extern clock_t _real_time;
-extern clock_t _next_timeout;
-
-clock_t tmrs_clrtimer(struct list *head, struct timer *t)
+useconds_t tmrs_clrtimer(struct list *head, struct timer *t)
 {
-	clock_t prev_time;
+	useconds_t prev_time;
 	struct timer *at;
 	struct list *l;
 
-	ASSERT(head != NULL);
+	ASSERT((head != NULL) && (t != NULL));
 	
 	if (LIST_EMPTY(head)) {
 		prev_time = 0;
 	} else {
 		at = LIST_ENTRY(&head->next, struct timer, link);
-		prev_time = at->exp_time;
+		prev_time = at->expire_time;
 	}
 
-	t->exp_time = TIMER_NEVER;
+	t->expire_time = TIMER_NEVER;
 
 	/* Remove the timer from the active timer list */
 	LIST_FOR_EACH(l, head) {
@@ -45,40 +42,39 @@ clock_t tmrs_clrtimer(struct list *head, struct timer *t)
  * put in the list of active timers with the first to expire in front. The
  * caller is responsible for scheduling a new alarm for the timer if needed.
  */
-clock_t tmrs_settimer(struct list *head, struct timer *t, clock_t exp_time,
-		      timer_func_t callback)
+useconds_t tmrs_settimer(struct list *head, struct timer *t, useconds_t expire_time,
+			 timer_func_t callback)
 {
 	struct timer *at;
-	clock_t old_head = 0;
+	useconds_t old_head = 0;
 	struct list *l;
 
-	ASSERT(head != NULL);
+	ASSERT((head != NULL) && (t != NULL) && (LIST_EMPTY(&t->link)));
 	
 	if (!LIST_EMPTY(head)) {
 		at = LIST_ENTRY(&head->next, struct timer, link);
-		old_head = at->exp_time;
+		old_head = at->expire_time;
 	}
 
 	/* Set the timer's variables */
-	tmrs_clrtimer(head, t);
-	t->exp_time = exp_time;
-	t->timer_func = callback;
+	t->expire_time = expire_time + sys_time();
+	t->func = callback;
 
 	/* Add the timer to the active timer list, the next timer due is in front */
 	LIST_FOR_EACH(l, head) {
 		at = LIST_ENTRY(l, struct timer, link);
-		if (exp_time < at->exp_time) {
+		if (expire_time < at->expire_time) {
 			break;
 		}
 	}
 
-	/* Insert timer into the head of the timer list */
-	list_add(&t->link, head);
+	/* Keep the list ordered by due time */
+	list_add(&t->link, l->prev);
 
 	return old_head;
 }
 
-void tmrs_exptimers(struct list *head, clock_t now)
+void tmrs_exptimers(struct list *head, useconds_t now)
 {
 	struct timer *t;
 	struct list *l, *p;
@@ -91,10 +87,15 @@ void tmrs_exptimers(struct list *head, clock_t now)
 	 */
 	LIST_FOR_EACH_SAFE(l, p, head) {
 		t = LIST_ENTRY(l, struct timer, link);
-		if (t->exp_time <= now) {
+		if (t->expire_time <= now) {
 			list_del(l);
-			t->exp_time = TIMER_NEVER;
-			t->timer_func(t);
+			t->expire_time = TIMER_NEVER;
+			t->func(t);
+		} else {
+			/* As our timer list is ordered, so just break if we have
+			 * no timer expired
+			 */
+			break;
 		}
 	}
 }
@@ -103,20 +104,19 @@ void init_timer(struct timer *t)
 {
 	ASSERT(t != NULL);
 	
-	t->exp_time = TIMER_NEVER;
-	t->timer_func = NULL;
+	t->expire_time = TIMER_NEVER;
+	t->func = NULL;
 	t->args = NULL;
 	LIST_INIT(&t->link);
 }
 
-void set_timer(struct timer *t, clock_t exp_time, timer_func_t callback)
+void set_timer(struct timer *t, useconds_t expire_time, timer_func_t callback)
 {
-	struct timer *at;
-	struct list *l;
-	
 	ASSERT(t != NULL);
 
-	_next_timeout = _real_time + exp_time * 5;
+	t->cpu = CURR_CPU;
+	
+	tmrs_settimer(&CURR_CPU->timers, t, expire_time, callback);
 }
 
 void cancel_timer(struct timer *t)
@@ -128,14 +128,6 @@ void cancel_timer(struct timer *t)
 	 * of the active timer list.
 	 */
 	tmrs_clrtimer(&CURR_CPU->timers, t);
-	if (LIST_EMPTY(&CURR_CPU->timers)) {
-		_next_timeout = TIMER_NEVER;
-	} else {
-		struct timer *at;
-
-		at = LIST_ENTRY(&CURR_CPU->timers.next, struct timer, link);
-		_next_timeout = at->exp_time;
-	}
 }
 
 void timer_delay(uint32_t usec)

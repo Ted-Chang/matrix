@@ -26,6 +26,10 @@ extern uint32_t __div64_32(uint64_t *dividend, uint32_t divisor);
 	__rem;					  \
 })
 
+#else
+
+#error "BITS_PER_LONG not defined"
+
 #endif	/* BITS_PER_LONG */
 
 #endif	/* __DIV64_H__ */

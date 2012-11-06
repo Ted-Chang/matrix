@@ -173,6 +173,6 @@ void dump_mbi(struct multiboot_info *mbi)
 			mmap->addr, mmap->len, mmap->type);
 	}
 
-	kprintf("placement address: 0x%x\n", *((uint32_t *)(_mbi->mods_addr + 4)));
+	kprintf("placement address: 0x%x\n\n", *((uint32_t *)(_mbi->mods_addr + 4)));
 }
 

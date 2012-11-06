@@ -161,6 +161,10 @@ struct arch_cpu {
 	struct tss tss;			// Task State Segment
 	void *double_fault_stack;	// Pointer to the stack for double faults
 
+	/* Time conversion factors */
+	uint64_t cycles_per_us;		// CPU cycles per us
+	int64_t sys_time_offset;	// Value to subtract from TSC value for sys_time()
+	
 	/* CPU information */
 	uint64_t cpu_freq;		// CPU frequency in Hz
 	char vendor_str[64];		// Vendor string
@@ -189,6 +193,7 @@ struct cpu {
 	struct thread *thread;		// Currently executing thread
 	struct mmu_ctx *aspace;		// Address space currently in use
 	struct list timers;		// List of active timers
+	boolean_t timer_enabled;	// Whether timer is enabled on this CPU
 };
 typedef struct cpu cpu_t;
 

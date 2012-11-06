@@ -260,6 +260,11 @@ out:
 	return rc;
 }
 
+int fork()
+{
+	return 0;
+}
+
 int execve(const char *filename, const char *argv[], const char *envp[])
 {
 	int rc = -1, i, j;

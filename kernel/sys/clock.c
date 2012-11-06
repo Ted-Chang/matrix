@@ -17,14 +17,12 @@
 #define LEAPYEAR(y)	(((y) % 4) == 0 && (((y) % 100) != 0 || ((y) % 400) == 0))
 #define DAYS(y)		(LEAPYEAR(y) ? 366 : 365)
 
-extern void tmrs_exptimers(struct list *head, clock_t now);
-extern boolean_t _scheduler_ready;
+extern void tmrs_exptimers(struct list *head, useconds_t now);
 
 static int _current_frequency = 0;
 
 uint32_t _lost_ticks = 0;
 clock_t _real_time = 0;
-clock_t _next_timeout = TIMER_NEVER;
 useconds_t _boot_time;
 
 static struct irq_hook _clock_hook;
@@ -77,17 +75,26 @@ useconds_t time_to_unix(uint32_t year, uint32_t mon, uint32_t day,
 
 useconds_t sys_time()
 {
-	useconds_t value = 0;
+	useconds_t value;
+
+	value = (x86_rdtsc() - CURR_CPU->arch.sys_time_offset);
 	
-	return value;
+	return do_div(value, CURR_CPU->arch.cycles_per_us);
 }
 
 static void do_clocktick()
 {
-	/* Check if a clock timer is expired and call its callback function */
-	if (_next_timeout <= _real_time) {
-		sched_reschedule(TRUE);
+	useconds_t now;
+	struct list *l, *p;
+	struct timer *t;
+
+	if (!CURR_CPU->timer_enabled) {
+		return;
 	}
+
+	now = sys_time();
+	
+	tmrs_exptimers(&CURR_CPU->timers, now);
 }
 
 static void clock_callback(struct registers *regs)
@@ -100,6 +107,18 @@ static void clock_callback(struct registers *regs)
 	_real_time += ticks;
 
 	do_clocktick();
+}
+
+void tsc_init_target()
+{
+	/* Calculate the offset to subtract from the TSC when calculating the
+	 * system time. For the boot CPU, this is the current value of the TSC.
+	 */
+	if (CURR_CPU == &_boot_cpu) {
+		CURR_CPU->arch.sys_time_offset = x86_rdtsc();
+	} else {
+		ASSERT(FALSE);
+	}
 }
 
 void init_clock()
