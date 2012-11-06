@@ -64,7 +64,7 @@ static int skip_atoi(const char **s)
 
 static char *put_dec_trunc(char *buf, unsigned q)
 {
-	unsigned d3, d2, d1, d0;
+	unsigned char d3, d2, d1, d0;
 	d1 = (q>>4) & 0xF;
 	d2 = (q>>8) & 0xF;
 	d3 = (q>>12);
@@ -101,7 +101,7 @@ static char *put_dec_trunc(char *buf, unsigned q)
 
 static char *put_dec_full(char *buf, unsigned q)
 {
-	unsigned d3, d2, d1, d0;
+	unsigned char d3, d2, d1, d0;
 	d1 = (q>>4) & 0xF;
 	d2 = (q>>8) & 0xF;
 	d3 = (q>>12);
@@ -395,11 +395,13 @@ qualifier:
 	if (*fmt == 'h' || tolower(*fmt) == 'l' ||
 	    tolower(*fmt) == 'z' || *fmt == 't') {
 		spec->qualifier = *fmt++;
-		if (!(spec->qualifier == *fmt)) {
+		if (spec->qualifier == *fmt) {
 			if (spec->qualifier == 'l') {
 				spec->qualifier = 'L';
+				++fmt;
 			} else if (spec->qualifier == 'h') {
 				spec->qualifier = 'H';
+				++fmt;
 			}
 		}
 	}
@@ -437,6 +439,7 @@ qualifier:
 	case 'd':
 	case 'i':
 		spec->flags |= SIGN;
+		/* Fall through */
 	case 'u':
 		break;
 	default:

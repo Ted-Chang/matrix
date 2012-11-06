@@ -71,9 +71,9 @@ void dump_cpu(struct cpu *c)
 	DEBUG(DL_DBG, ("vendor: %s\n", c->arch.vendor_str));
 	DEBUG(DL_DBG, ("cpu step(%d), phys_bits(%d), virt_bits(%d)\n",
 		       c->arch.cpu_step, c->arch.max_phys_bits, c->arch.max_virt_bits));
-	DEBUG(DL_DBG, ("cpu frequency(%Ld), cycles per microseconds(%Ld)\n",
+	DEBUG(DL_DBG, ("cpu frequency(%lld), cycles per microseconds(%lld)\n",
 		       c->arch.cpu_freq, c->arch.cycles_per_us));
-	DEBUG(DL_DBG, ("sys_time_offset(%Ld)\n\n", c->arch.sys_time_offset));
+	DEBUG(DL_DBG, ("sys_time_offset(%lld)\n\n", c->arch.sys_time_offset));
 
 	while(count++ < 3000000);
 }
