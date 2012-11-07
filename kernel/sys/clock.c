@@ -79,14 +79,14 @@ useconds_t sys_time()
 
 	value = (x86_rdtsc() - CURR_CPU->arch.sys_time_offset);
 	
-	return do_div(value, CURR_CPU->arch.cycles_per_us);
+	do_div(value, CURR_CPU->arch.cycles_per_us);
+
+	return value;
 }
 
 static void do_clocktick()
 {
 	useconds_t now;
-	struct list *l, *p;
-	struct timer *t;
 
 	if (!CURR_CPU->timer_enabled) {
 		return;

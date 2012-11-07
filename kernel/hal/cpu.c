@@ -74,8 +74,6 @@ void dump_cpu(struct cpu *c)
 	DEBUG(DL_DBG, ("cpu frequency(%lld), cycles per microseconds(%lld)\n",
 		       c->arch.cpu_freq, c->arch.cycles_per_us));
 	DEBUG(DL_DBG, ("sys_time_offset(%lld)\n\n", c->arch.sys_time_offset));
-
-	while(count++ < 3000000);
 }
 
 static void detect_cpu_features(struct cpu *c, struct cpu_features *f)
@@ -114,14 +112,16 @@ static void detect_cpu_features(struct cpu *c, struct cpu_features *f)
 	}
 
 	/* Specify default vendor name if it was not found */
-	if (!c->arch.vendor_str[0])
+	if (!c->arch.vendor_str[0]) {
 		strcpy(c->arch.vendor_str, "Unknown vendor");
+	}
 
-	if (!c->arch.max_phys_bits)
+	if (!c->arch.max_phys_bits) {
 		c->arch.max_phys_bits = 32;
-	if (!c->arch.max_virt_bits)
+	}
+	if (!c->arch.max_virt_bits) {
 		c->arch.max_virt_bits = 48;
-
+	}
 }
 
 static uint64_t calculate_cpu_freq()
@@ -232,7 +232,8 @@ static void arch_preinit_cpu_percpu(struct cpu *c)
 	}
 
 	/* Work out the cycles per us */
-	c->arch.cycles_per_us = do_div(c->arch.cpu_freq, 1000000);
+	c->arch.cycles_per_us = c->arch.cpu_freq;
+	do_div(c->arch.cycles_per_us, 1000000);
 
 	/* Configure the TSC offset for sys_time() */
 	tsc_init_target();

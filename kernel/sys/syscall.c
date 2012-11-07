@@ -118,7 +118,8 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 
 	usecs = time_to_unix(t.tm_year, t.tm_mon, t.tm_mday,
 			     t.tm_hour, t.tm_min, t.tm_sec);
-	tv->tv_sec = do_div(usecs, 1000000);
+	do_div(usecs, 1000000);
+	tv->tv_sec = usecs;
 	tv->tv_usec = 0;
 	
 	return 0;
