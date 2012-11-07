@@ -295,7 +295,7 @@ int execve(const char *filename, const char *argv[], const char *envp[])
 		strcpy(args[j], argv[j]);
 	}
 
-	rc = exec(filename, i, args);
+	//rc = exec(filename, i, args);
 	
 out:
 	/* Free the arguments */

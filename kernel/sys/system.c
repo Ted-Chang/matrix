@@ -11,7 +11,7 @@
 void sys_init_thread()
 {
 	int rc = -1;
-	char *init_argv[] = {
+	const char *init_argv[] = {
 		"/init",
 		NULL
 	};

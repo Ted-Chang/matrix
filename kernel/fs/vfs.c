@@ -221,7 +221,7 @@ out:
 	return n;
 }
 
-int vfs_create(char *path, int type, struct vfs_node **node)
+int vfs_create(const char *path, int type, struct vfs_node **node)
 {
 	return -1;
 }

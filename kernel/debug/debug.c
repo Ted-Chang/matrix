@@ -4,7 +4,7 @@
 #include "matrix/debug.h"
 #include "proc/process.h"
 
-uint32_t _debug_level = DL_INF;
+uint32_t _debug_level = DL_DBG;
 
 void panic(const char *message, const char *file, uint32_t line)
 {

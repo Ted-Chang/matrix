@@ -46,6 +46,6 @@ extern struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index);
 extern struct vfs_node *vfs_finddir(struct vfs_node *node, char *name);
 extern struct vfs_node *vfs_clone(struct vfs_node *src);
 extern struct vfs_node *vfs_lookup(const char *path, int flags);
-extern int vfs_create(char *path, int type, struct vfs_node **node);
+extern int vfs_create(const char *path, int type, struct vfs_node **node);
 
 #endif	/* __FS_H__ */

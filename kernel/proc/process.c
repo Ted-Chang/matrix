@@ -19,7 +19,7 @@
 #include "elf.h"
 #include "object.h"
 
-struct process_create {
+struct proc_create {
 	/* Arguments provided by the caller */
 	const char **argv;	// Arguments array
 	const char **env;	// Environment array
@@ -296,7 +296,10 @@ void process_exit(int status)
 
 static void process_entry_thread(void *ctx)
 {
+	/* Load the ELF file into this process */
 	;
+
+	/* Switch to user space */
 }
 
 int process_create(const char *args[], struct process *parent, int flags,
@@ -450,146 +453,9 @@ int process_replace(const char *path, const char *args[])
 	return -1;
 }
 
-int exec(const char *path, int argc, char **argv)
-{
-	int rc = -1;
-	struct vfs_node *n;
-	elf_ehdr_t *ehdr;
-	uint32_t virt, entry, temp;
-	struct page *page;
-	boolean_t is_elf;
-
-	/* Lookup the file from the file system */
-	n = vfs_lookup(path, VFS_FILE);
-	if (!n) {
-		DEBUG(DL_DBG, ("exec: file(%s) not found.\n", path));
-		return -1;
-	}
-
-	/* Temporarily use address of user stack to load the ELF file, It will be
-	 * unmapped after we loaded the code section in.
-	 */
-	temp = USTACK_BOTTOM;
-	
-	/* Map some pages to the address from mmu context of this process, the mapped
-	 * memory page is used for storing the ELF file content
-	 */
-	for (virt = temp; virt < (temp + n->length); virt += PAGE_SIZE) {
-		page = mmu_get_page(CURR_PROC->mmu_ctx, virt, TRUE, 0);
-		if (!page) {
-			DEBUG(DL_ERR, ("exec: mmu_get_page failed, virt(0x%x).\n", virt));
-			rc = -1;
-			goto out;
-		}
-		
-		page_alloc(page, FALSE, TRUE);
-	}
-
-	ehdr = (elf_ehdr_t *)temp;
-
-	/* Read in the executive content */
-	rc = vfs_read(n, 0, n->length, (uint8_t *)ehdr);
-	if (rc == -1 || rc < sizeof(elf_ehdr_t)) {
-		DEBUG(DL_INF, ("exec: read file(%s) failed.\n", path));
-		rc = -1;
-		goto out;
-	}
-
-	/* Check whether it is valid ELF */
-	is_elf = elf_ehdr_check(ehdr);
-	if (!is_elf) {
-		DEBUG(DL_INF, ("exec: invalid ELF, file(%s).\n", path));
-		rc = -1;
-		goto out;
-	}
-
-	/* Load the loadable segments from the executive to the address which was
-	 * specified in the ELF and for Matrix. default is 0x40000000 which was
-	 * specified in the link script.
-	 */
-	rc = elf_load_sections(NULL/* TODO: FixMe */, ehdr);
-	if (rc != 0) {
-		DEBUG(DL_WRN, ("exec: load sections failed, file(%s).\n", path));
-		goto out;
-	}
-
-	/* Save the entry point to the code segment */
-	entry = ehdr->e_entry;
-	DEBUG(DL_DBG, ("exec: entry(%p)\n", entry));
-	ASSERT(entry != USTACK_BOTTOM);
-
-	/* Free the memory we used for temporarily store the ELF files */
-	for (virt = temp; virt < (temp + n->length); virt += PAGE_SIZE) {
-		page = mmu_get_page(CURR_PROC->mmu_ctx, virt, FALSE, 0);
-		ASSERT(page != NULL);
-		page_free(page);
-	}
-
-	/* Map some pages for the user mode stack from current process' mmu context */
-	for (virt = USTACK_BOTTOM; virt <= (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
-		page = mmu_get_page(CURR_PROC->mmu_ctx, virt, TRUE, 0);
-		if (!page) {
-			DEBUG(DL_ERR, ("exec: mmu_get_page failed, virt(0x%x)\n", virt));
-			rc = -1;
-			goto out;
-		}
-		page_alloc(page, FALSE, TRUE);
-	}
-
-	/* Update the user stack */
-	CURR_THREAD->ustack = (void *)(USTACK_BOTTOM + USTACK_SIZE);
-
-	/* Jump to user mode */
-	switch_to_user_mode(entry, USTACK_BOTTOM + USTACK_SIZE);
-
-out:
-	return -1;
-}
-
 int process_getpid()
 {
 	return CURR_PROC->id;
-}
-
-/**
- * Switch to the user mode
- * @param location	- User address to jump to
- * @param ustack	- User stack
- */
-void switch_to_user_mode(uint32_t location, uint32_t ustack)
-{
-	ASSERT(CURR_CPU == &_boot_cpu);
-	
-	/* Setup our kernel stack, note that the stack was grow from high address
-	 * to low address
-	 */
-	set_kernel_stack(CURR_THREAD->kstack);
-	
-	/* Setup a stack structure for switching to user mode.
-	 * The code firstly disables interrupts, as we're working on a critical
-	 * section of code. It then sets the ds, es, fs and gs segment selectors
-	 * to our user mode data selector - 0x23. Note that sti will not work when
-	 * we enter user mode as it is a privileged instruction, we will set the
-	 * interrupt flag to enable interrupt.
-	 */
-	asm volatile("cli\n"
-		     "mov %1, %%esp\n"
-		     "mov $0x23, %%ax\n"	/* Segment selector */
-		     "mov %%ax, %%ds\n"
-		     "mov %%ax, %%es\n"
-		     "mov %%ax, %%fs\n"
-		     "mov %%ax, %%gs\n"
-		     "mov %%esp, %%eax\n"	/* Move stack to EAX */
-		     "pushl $0x23\n"		/* Segment selector again */
-		     "pushl %%eax\n"
-		     "pushf\n"			/* Push flags */
-		     "pop %%eax\n"		/* Enable the interrupt flag */
-		     "orl $0x200, %%eax\n"
-		     "push %%eax\n"
-		     "pushl $0x1B\n"
-		     "pushl %0\n"		/* Push the entry point */
-		     "iret\n"
-		     :: "m"(location), "r"(ustack) : "%ax", "%esp", "%eax");
 }
 
 /**

@@ -90,6 +90,45 @@ void arch_thread_switch(struct thread *curr, struct thread *prev)
 		      : "%ebx", "%esp", "%eax");
 }
 
+/**
+ * Switch to the user mode
+ * @param location	- User address to jump to
+ * @param ustack	- User stack
+ */
+void arch_thread_enter_userspace(uint32_t location, uint32_t ustack)
+{
+	/* Setup our kernel stack, note that the stack was grow from high address
+	 * to low address
+	 */
+	set_kernel_stack(CURR_THREAD->kstack);
+	
+	/* Setup a stack structure for switching to user mode.
+	 * The code firstly disables interrupts, as we're working on a critical
+	 * section of code. It then sets the ds, es, fs and gs segment selectors
+	 * to our user mode data selector - 0x23. Note that sti will not work when
+	 * we enter user mode as it is a privileged instruction, we will set the
+	 * interrupt flag to enable interrupt.
+	 */
+	asm volatile("cli\n"
+		     "mov %1, %%esp\n"
+		     "mov $0x23, %%ax\n"	/* Segment selector */
+		     "mov %%ax, %%ds\n"
+		     "mov %%ax, %%es\n"
+		     "mov %%ax, %%fs\n"
+		     "mov %%ax, %%gs\n"
+		     "mov %%esp, %%eax\n"	/* Move stack to EAX */
+		     "pushl $0x23\n"		/* Segment selector again */
+		     "pushl %%eax\n"
+		     "pushf\n"			/* Push flags */
+		     "pop %%eax\n"		/* Enable the interrupt flag */
+		     "orl $0x200, %%eax\n"
+		     "push %%eax\n"
+		     "pushl $0x1B\n"
+		     "pushl %0\n"		/* Push the entry point */
+		     "iret\n"
+		     :: "m"(location), "r"(ustack) : "%ax", "%esp", "%eax");
+}
+
 static void thread_ctor(void *obj)
 {
 	struct thread *t = (struct thread *)obj;

@@ -17,7 +17,7 @@
 #define USTACK_BOTTOM	0x30000000
 
 /* Forward declaration, used to pass arguments */
-struct process_create;
+struct proc_create;
 
 /* Definition of the process structure */
 struct process {
@@ -49,7 +49,7 @@ struct process {
 	struct notifier death_notifier;	// Notifier list of this process
 	int status;			// Exit status
 	
-	struct process_create *create;	// Internal creation info structure
+	struct proc_create *create;	// Internal creation info structure
 };
 typedef struct process process_t;
 

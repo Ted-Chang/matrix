@@ -4,6 +4,7 @@
 #include "matrix/debug.h"
 #include "hal/cpu.h"
 #include "pit.h"
+#include "clock.h"
 #include "timer.h"
 
 extern void pit_delay(uint32_t usec);
