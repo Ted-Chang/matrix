@@ -234,6 +234,7 @@ static void arch_preinit_cpu_percpu(struct cpu *c)
 	/* Work out the cycles per us */
 	c->arch.cycles_per_us = c->arch.cpu_freq;
 	do_div(c->arch.cycles_per_us, 1000000);
+	ASSERT(c->arch.cycles_per_us != 0);
 
 	/* Configure the TSC offset for sys_time() */
 	tsc_init_target();

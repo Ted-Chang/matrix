@@ -193,7 +193,7 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 	if (_kernel_proc) {
 		p->id = id_alloc();	// Allocate an ID for the process
 	} else {
-		p->id = 0;
+		p->id = 0;		// The first process must be kernel process
 	}
 	
 	strncpy(p->name, name, P_NAME_LEN - 1);

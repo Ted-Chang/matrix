@@ -17,6 +17,7 @@ TARGETOBJ := \
 	$(OBJ)/mutex.o \
 	$(OBJ)/elf.o \
 	$(OBJ)/object.o \
+	$(OBJ)/avltree.o \
 
 .PHONY: clean help
 

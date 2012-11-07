@@ -31,3 +31,13 @@ void sys_init_thread()
 		PANIC("sys_init_proc: could not start init process.\n");
 	}
 }
+
+void sys_test_thread()
+{
+	while (TRUE) {
+		int count = 0;
+		kprintf("sys_test_thread: message.\n");
+		while (count++ < 200000);
+		count = 0;
+	}
+}
