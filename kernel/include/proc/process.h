@@ -59,9 +59,6 @@ typedef struct process process_t;
 /* Pointer to the kernel process */
 extern struct process *_kernel_proc;
 
-extern int fork();
-extern void switch_to_user_mode(uint32_t location, uint32_t ustack);
-extern int exec(const char *path, int argc, char **argv);
 extern struct process *process_lookup(pid_t pid);
 
 extern void process_attach(struct process *p, struct thread *t);

@@ -95,7 +95,7 @@ void arch_thread_switch(struct thread *curr, struct thread *prev)
  * @param location	- User address to jump to
  * @param ustack	- User stack
  */
-void arch_thread_enter_userspace(uint32_t location, uint32_t ustack)
+void arch_thread_enter_userspace(void *location, void *ustack)
 {
 	/* Setup our kernel stack, note that the stack was grow from high address
 	 * to low address

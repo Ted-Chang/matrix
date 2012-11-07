@@ -142,7 +142,6 @@ typedef struct {
 typedef Elf32_Ehdr elf_ehdr_t;
 typedef Elf32_Shdr elf_shdr_t;
 
-extern boolean_t elf_ehdr_check(elf_ehdr_t *ehdr);
-extern int elf_load_sections(struct thread *t, elf_ehdr_t *ehdr);
+extern int elf_load_binary(const char *path, struct mmu_ctx *mmu, void **entry);
 
 #endif	/* __ELF_H__ */

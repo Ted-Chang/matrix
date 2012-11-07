@@ -8,7 +8,7 @@
 #include "mm/malloc.h"
 #include "system.h"
 
-void sys_init_thread()
+void sys_init_thread(void *ctx)
 {
 	int rc = -1;
 	const char *init_argv[] = {
@@ -29,15 +29,5 @@ void sys_init_thread()
 	rc = process_create(init_argv, _kernel_proc, 0, 16, NULL);
 	if (rc != 0) {
 		PANIC("sys_init_proc: could not start init process.\n");
-	}
-}
-
-void sys_test_thread()
-{
-	while (TRUE) {
-		int count = 0;
-		kprintf("sys_test_thread: message.\n");
-		while (count++ < 200000);
-		count = 0;
 	}
 }

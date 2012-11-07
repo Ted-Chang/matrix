@@ -34,17 +34,19 @@ boolean_t elf_ehdr_check(elf_ehdr_t *ehdr)
 	return TRUE;
 }
 
-int elf_load_sections(struct thread *t, elf_ehdr_t *ehdr)
+int elf_load_sections(struct mmu_ctx *mmu, elf_ehdr_t *ehdr)
 {
 	int rc = -1;
 	struct page *page;
-	uint32_t virt;
+	uint32_t virt, size, i = 0, entry;
 	elf_shdr_t *shdr;
-	uint32_t i = 0;
 
 	DEBUG(DL_DBG, ("elf_load_sections: e_shnum(%d), e_shentsize(%d), e_shoff(%d)\n",
 		       ehdr->e_shnum, ehdr->e_shentsize, ehdr->e_shoff));
 
+	entry = ehdr->e_entry;
+	size = 0;
+	
 	/* Load all the loadable sections */
 	for (virt = 0; virt < (ehdr->e_shentsize * ehdr->e_shnum); virt += ehdr->e_shentsize, i++) {
 
@@ -56,20 +58,20 @@ int elf_load_sections(struct thread *t, elf_ehdr_t *ehdr)
 		if (shdr->sh_addr) {
 			
 			/* If this is a loadable section, load it */
-			if (shdr->sh_addr < t->entry) {
+			if (shdr->sh_addr < entry) {
 				/* If this is the lowest entry point, store it */
-				t->entry = shdr->sh_addr;
+				entry = shdr->sh_addr;
 			}
 
 			/* Update the section size we may needed */
-			/* if ((shdr->sh_addr + shdr->sh_size - arch->entry) > arch->size) { */
-			/* 	/\* We also store the total size *\/ */
-			/* 	arch->size = shdr->sh_addr + shdr->sh_size - arch->entry; */
-			/* } */
+			if ((shdr->sh_addr + shdr->sh_size - entry) > size) {
+				/* We also store the total size */
+				size = shdr->sh_addr + shdr->sh_size - entry;
+			}
 
 			/* Map memory space for this section, this is where codes stored */
 			for (virt = 0; virt < (shdr->sh_size + 0x2000); virt += PAGE_SIZE) {
-				page = mmu_get_page(CURR_PROC->mmu_ctx, shdr->sh_addr + virt, TRUE, 0);
+				page = mmu_get_page(mmu, shdr->sh_addr + virt, TRUE, 0);
 				if (!page) {
 					DEBUG(DL_ERR, ("elf_load_section: mmu_get_page failed.\n"));
 					goto out;
@@ -102,12 +104,12 @@ out:
 	return rc;
 }
 
-int elf_load_binary(const char *path)
+int elf_load_binary(const char *path, struct mmu_ctx *mmu, void **entry)
 {
 	int rc = -1;
 	struct vfs_node *n;
 	elf_ehdr_t *ehdr;
-	uint32_t virt, entry, temp;
+	uint32_t virt, temp;
 	struct page *page;
 	boolean_t is_elf;
 
@@ -159,27 +161,26 @@ int elf_load_binary(const char *path)
 	 * specified in the ELF and for Matrix. default is 0x40000000 which was
 	 * specified in the link script.
 	 */
-	rc = elf_load_sections(NULL/* TODO: FixMe */, ehdr);
+	rc = elf_load_sections(mmu, ehdr);
 	if (rc != 0) {
 		DEBUG(DL_WRN, ("exec: load sections failed, file(%s).\n", path));
 		goto out;
 	}
 
 	/* Save the entry point to the code segment */
-	entry = ehdr->e_entry;
-	DEBUG(DL_DBG, ("exec: entry(%p)\n", entry));
-	ASSERT(entry != USTACK_BOTTOM);
+	*entry = (void *)ehdr->e_entry;
+	DEBUG(DL_DBG, ("exec: entry(%p)\n", *entry));
 
 	/* Free the memory we used for temporarily store the ELF files */
 	for (virt = temp; virt < (temp + n->length); virt += PAGE_SIZE) {
-		page = mmu_get_page(CURR_PROC->mmu_ctx, virt, FALSE, 0);
+		page = mmu_get_page(mmu, virt, FALSE, 0);
 		ASSERT(page != NULL);
 		page_free(page);
 	}
 
 	/* Map some pages for the user mode stack from current process' mmu context */
 	for (virt = USTACK_BOTTOM; virt <= (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
-		page = mmu_get_page(CURR_PROC->mmu_ctx, virt, TRUE, 0);
+		page = mmu_get_page(mmu, virt, TRUE, 0);
 		if (!page) {
 			DEBUG(DL_ERR, ("exec: mmu_get_page failed, virt(0x%x)\n", virt));
 			rc = -1;
@@ -187,12 +188,6 @@ int elf_load_binary(const char *path)
 		}
 		page_alloc(page, FALSE, TRUE);
 	}
-
-	/* Update the user stack */
-	CURR_THREAD->ustack = (void *)(USTACK_BOTTOM + USTACK_SIZE);
-
-	/* Jump to user mode */
-	arch_thread_enter_userspace(entry, USTACK_BOTTOM + USTACK_SIZE);
 
 out:
 	return -1;

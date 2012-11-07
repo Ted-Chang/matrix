@@ -25,6 +25,7 @@ struct proc_create {
 	const char **env;	// Environment array
 
 	/* Information used internally by the loader */
+	struct mmu_ctx *mmu;	// Address space for the process
 	int argc;		// Argument count
 
 	/* Information to return to the caller */
@@ -296,10 +297,24 @@ void process_exit(int status)
 
 static void process_entry_thread(void *ctx)
 {
-	/* Load the ELF file into this process */
-	;
+	int rc = -1;
+	void *entry = NULL;
+	struct proc_create *argsp;
 
+	argsp = (struct proc_create *)ctx;
+	
+	/* Load the ELF file into this process */
+	rc = elf_load_binary(argsp->argv[0], argsp->mmu, &entry);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("process_entry_thread: elf_load_binary failed, err(%d).\n",
+			       rc));
+		return;
+	}
+
+	CURR_THREAD->ustack = (void *)(USTACK_BOTTOM + USTACK_SIZE);
+	
 	/* Switch to user space */
+	arch_thread_enter_userspace(entry, (void *)(USTACK_BOTTOM + USTACK_SIZE));
 }
 
 int process_create(const char *args[], struct process *parent, int flags,
