@@ -157,10 +157,8 @@ static void sched_timer_func(struct timer *t)
 {
 	CURR_THREAD->quantum = 0;
 
-	//DEBUG(DL_DBG, ("sched_timer_func: CURR_THREAD(%p).\n", CURR_THREAD));
-
-	/* Timer function was called at the interrupt context, we will improve
-	 * this later
+	/* Timer function was called in the context of interrupt. This is not
+	 * good for performance. Fix this in future code.
 	 */
 	sched_reschedule(FALSE);
 }
@@ -231,8 +229,8 @@ void sched_reschedule(boolean_t state)
 			sched_enqueue(c->active, CURR_THREAD);
 		}
 	} else {
-		DEBUG(DL_DBG, ("sched_reschedule: p(%p), id(%d), state(%d).\n",
-			       CURR_THREAD, CURR_THREAD->id, CURR_THREAD->state));
+		DEBUG(DL_DBG, ("sched_reschedule: t(%s:%d), state(%d).\n",
+			       CURR_THREAD->name, CURR_THREAD->id, CURR_THREAD->state));
 		ASSERT(CURR_THREAD != c->idle_thread);
 		c->total--;
 		atomic_dec(&_nr_running_threads);
@@ -267,9 +265,9 @@ void sched_reschedule(boolean_t state)
 	 * one.
 	 */
 	if (CURR_THREAD != c->prev_thread) {
-		DEBUG(DL_DBG, ("sched_reschedule: switching to (%s:%d:%s:%d:%d).\n",
-			       CURR_PROC->name, CURR_PROC->id, CURR_THREAD->name,
-			       CURR_THREAD->id, CURR_CPU->id));
+		//DEBUG(DL_DBG, ("sched_reschedule: switching to (%s:%d:%s:%d:%d).\n",
+		//	       CURR_PROC->name, CURR_PROC->id, CURR_THREAD->name,
+		//	       CURR_THREAD->id, CURR_CPU->id));
 		
 		/* Switch the address space. The NULL case will be handled by the
 		 * context switch function.
@@ -332,7 +330,7 @@ static void sched_idle_thread(void *ctx)
 	irq_disable();
 
 	while (TRUE) {
-		kprintf("sched_idle_thread: idle.\n");
+		//kprintf("sched_idle_thread: idle.\n");
 		
 		sched_reschedule(FALSE);
 		cpu_idle();
@@ -367,7 +365,7 @@ void init_sched_percpu()
 	CURR_CPU->thread = CURR_CPU->sched->idle_thread;
 	
 	/* Create the preemption timer */
-	init_timer(&CURR_CPU->sched->timer);
+	init_timer(&CURR_CPU->sched->timer, "sched-timer");
 
 	/* Initialize queues */
 	for (i = 0; i < 2; i++) {

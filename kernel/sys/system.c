@@ -18,16 +18,11 @@ void sys_init_thread(void *ctx)
 
 	DEBUG(DL_DBG, ("sys_init_proc: CURR_PROC(%p).\n", CURR_PROC));
 
-	while (TRUE) {
-		int count = 0;
-		kprintf("sys_init_thread: message.\n");
-		while (count++ < 200000);
-		count = 0;
-	}
-	
 	/* Run init process from executable file init */
 	rc = process_create(init_argv, _kernel_proc, 0, 16, NULL);
 	if (rc != 0) {
 		PANIC("sys_init_proc: could not start init process.\n");
 	}
+
+	while (TRUE);
 }

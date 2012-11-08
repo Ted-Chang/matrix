@@ -230,6 +230,8 @@ int thread_create(const char *name, struct process *owner, int flags,
 	rc = 0;
 
 	if (tp) {
+		/* Add a reference if the caller wants a pointer to the thread */
+		atomic_inc(&t->ref_count);
 		*tp = t;
 	} else {
 		/* Caller doesn't want a pointer, just start running it */
@@ -265,6 +267,13 @@ void thread_release(struct thread *t)
 {
 	void *kstack;
 
+	if (atomic_dec(&t->ref_count) > 0) {
+		return;
+	}
+
+	/* If the thread is running it will have a reference on it. Should not
+	 * be in the running state for this reason
+	 */
 	ASSERT((t->state == THREAD_CREATED) || (t->state == THREAD_DEAD));
 	ASSERT(LIST_EMPTY(&t->runq_link));
 

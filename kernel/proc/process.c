@@ -176,6 +176,8 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 	int rc = -1;
 	struct process *p;
 
+	ASSERT((name != NULL) && (procp != NULL));
+
 	/* Create the new process */
 	p = kmalloc(sizeof(struct process), 0);
 	if (!p) {
@@ -198,6 +200,7 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 	}
 	
 	strncpy(p->name, name, P_NAME_LEN - 1);
+	p->name[P_NAME_LEN - 1] = 0;
 
 	p->uid = 500;			// FixMe: set it to the currently logged user
 	p->gid = 500;			// FixMe: set it to the current user's group
@@ -224,8 +227,8 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 	*procp = p;
 	rc = 0;
 
-	DEBUG(DL_DBG, ("process_alloc: created process (%s:%d:%p).\n",
-		       p->name, p->id, p));
+	DEBUG(DL_DBG, ("process_alloc: created process (%s:%d:%p:%p).\n",
+		       p->name, p->id, p, p->mmu_ctx));
 out:
 	if (rc != 0) {
 		if (p) {
@@ -302,6 +305,10 @@ static void process_entry_thread(void *ctx)
 	struct proc_create *argsp;
 
 	argsp = (struct proc_create *)ctx;
+
+	DEBUG(DL_DBG, ("process_entry_thread: CURR(%p), args(%p).\n",
+		       CURR_ASPACE, argsp->mmu));
+	ASSERT(CURR_ASPACE == argsp->mmu);
 	
 	/* Load the ELF file into this process */
 	rc = elf_load_binary(argsp->argv[0], argsp->mmu, &entry);
@@ -311,10 +318,41 @@ static void process_entry_thread(void *ctx)
 		return;
 	}
 
+	/* We use a fixed user stack address for now */
 	CURR_THREAD->ustack = (void *)(USTACK_BOTTOM + USTACK_SIZE);
 	
 	/* Switch to user space */
 	arch_thread_enter_userspace(entry, (void *)(USTACK_BOTTOM + USTACK_SIZE));
+}
+
+static struct proc_create *proc_create_alloc(const char *args[])
+{
+	int i = 0;
+	struct proc_create *ret;
+
+	ret = kmalloc(sizeof(struct proc_create), 0);
+	if (!ret) {
+		goto out;
+	}
+	memset(ret, 0, sizeof(struct proc_create));
+
+	while (args[i]) {
+		i++;
+	}
+	
+	ret->argc = i;
+	
+	ret->argv = kmalloc(i * sizeof(char *), 0);
+	ASSERT(ret->argv != NULL);
+
+	for (i = 0; i < ret->argc; i++) {
+		ret->argv[i] = kmalloc(strlen(args[i]) + 1, 0);
+		ASSERT(ret->argv[i] != NULL);
+		strcpy(ret->argv[i], args[i]);
+	}
+
+out:
+	return ret;
 }
 
 int process_create(const char *args[], struct process *parent, int flags,
@@ -324,13 +362,16 @@ int process_create(const char *args[], struct process *parent, int flags,
 	struct process *p = NULL;
 	struct mmu_ctx *mmu = NULL;
 	struct thread *t = NULL;
+	struct proc_create *info;
 
-	if (priority >= 32) {
+	if (!args || !args[0] || priority >= 32) {
 		DEBUG(DL_DBG, ("process_create: invalid parameter.\n"));
 		rc = -1;
 		goto out;
 	}
 
+	memset(&info, 0, sizeof(struct proc_create));
+	
 	/* Create the address space for the process */
 	mmu = mmu_create_ctx();
 	if (!mmu) {
@@ -340,6 +381,9 @@ int process_create(const char *args[], struct process *parent, int flags,
 	}
 	mmu_copy_ctx(mmu, &_kernel_mmu_ctx);
 
+	info = proc_create_alloc(args);
+	info->mmu = mmu;
+
 	/* Create the new process */
 	rc = process_alloc(args[0], parent, mmu, flags, priority, NULL, &p);
 	if (rc != 0) {
@@ -348,12 +392,13 @@ int process_create(const char *args[], struct process *parent, int flags,
 	}
 
 	/* Create the main thread and run it */
-	rc = thread_create("main", p, 0, process_entry_thread, NULL, &t);
+	rc = thread_create("main", p, 0, process_entry_thread, info, &t);
 	if (rc != 0) {
 		DEBUG(DL_INF, ("process_create: thread_create failed, err(%d).\n", rc));
 		goto out;
 	}
 
+	p->create = info;
 	thread_run(t);
 	thread_release(t);
 

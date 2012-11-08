@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 	announce();
 
 	/* Start the cron daemon */
-	start_crond();
+	//start_crond();
 	
 	while (TRUE) {
 		printf("init: sleeping...\n");

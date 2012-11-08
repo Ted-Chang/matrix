@@ -11,15 +11,13 @@ extern void pit_delay(uint32_t usec);
 
 useconds_t tmrs_clrtimer(struct list *head, struct timer *t)
 {
-	useconds_t prev_time;
+	useconds_t prev_time = 0;
 	struct timer *at;
 	struct list *l;
 
 	ASSERT((head != NULL) && (t != NULL));
 	
-	if (LIST_EMPTY(head)) {
-		prev_time = 0;
-	} else {
+	if (!LIST_EMPTY(head)) {
 		at = LIST_ENTRY(&head->next, struct timer, link);
 		prev_time = at->expire_time;
 	}
@@ -50,7 +48,10 @@ useconds_t tmrs_settimer(struct list *head, struct timer *t, useconds_t expire_t
 	useconds_t old_head = 0;
 	struct list *l;
 
-	ASSERT((head != NULL) && (t != NULL) && (LIST_EMPTY(&t->link)));
+	ASSERT((head != NULL) && (t != NULL));
+
+	/* Clear the timer if it was already in the timer queue */
+	tmrs_clrtimer(head, t);
 	
 	if (!LIST_EMPTY(head)) {
 		at = LIST_ENTRY(&head->next, struct timer, link);
@@ -89,7 +90,7 @@ void tmrs_exptimers(struct list *head, useconds_t now)
 	LIST_FOR_EACH_SAFE(l, p, head) {
 		t = LIST_ENTRY(l, struct timer, link);
 		if (t->expire_time <= now) {
-			list_del(l);
+			list_del(&t->link);
 			t->expire_time = TIMER_NEVER;
 			t->func(t);
 		} else {
@@ -101,14 +102,16 @@ void tmrs_exptimers(struct list *head, useconds_t now)
 	}
 }
 
-void init_timer(struct timer *t)
+void init_timer(struct timer *t, const char *name)
 {
 	ASSERT(t != NULL);
 	
+	LIST_INIT(&t->link);
 	t->expire_time = TIMER_NEVER;
 	t->func = NULL;
 	t->args = NULL;
-	LIST_INIT(&t->link);
+	strncpy(t->name, name, 15);
+	t->name[15] = 0;
 }
 
 void set_timer(struct timer *t, useconds_t expire_time, timer_func_t callback)
