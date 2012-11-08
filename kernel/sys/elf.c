@@ -189,6 +189,8 @@ int elf_load_binary(const char *path, struct mmu_ctx *mmu, void **entry)
 		page_alloc(page, FALSE, TRUE);
 	}
 
+	rc = 0;
+
 out:
-	return -1;
+	return rc;
 }

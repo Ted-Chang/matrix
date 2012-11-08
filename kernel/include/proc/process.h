@@ -17,23 +17,23 @@
 #define USTACK_BOTTOM	0x30000000
 
 /* Forward declaration, used to pass arguments */
-struct proc_create;
+struct process_creation;
 
 /* Definition of the process structure */
 struct process {
-	int ref_count;			// Number of handles/threads in the process
+	int ref_count;				// Number of handles/threads in the process
 
-	struct mmu_ctx *mmu_ctx;	// MMU context
+	struct mmu_ctx *mmu_ctx;		// MMU context
 
-	pid_t id;			// Process ID
-	uid_t uid;			// User ID
-	gid_t gid;			// Group ID
+	pid_t id;				// Process ID
+	uid_t uid;				// User ID
+	gid_t gid;				// Group ID
 	
-	int flags;			// Behaviour flags for the process
-	int8_t priority;		// Current scheduling priority
-	char name[P_NAME_LEN];		// Name of the process, include `\0'
+	int flags;				// Behaviour flags for the process
+	int8_t priority;			// Current scheduling priority
+	char name[P_NAME_LEN];			// Name of the process, include `\0'
 
-	struct list threads;		// List of threads
+	struct list threads;			// List of threads
 
 	/* State of the process */
 	enum {
@@ -41,15 +41,16 @@ struct process {
 		PROCESS_DEAD,
 	} state;
 
-	struct fd_table *fds;		// File descriptor table
+	struct fd_table *fds;			// File descriptor table
 
 	/* Other process information */
-	struct avl_tree_node tree_link;	// Link to the process tree
+	struct avl_tree_node tree_link;		// Link to the process tree
 
-	struct notifier death_notifier;	// Notifier list of this process
-	int status;			// Exit status
+	struct notifier death_notifier;		// Notifier list of this process
+
+	int status;				// Exit status
 	
-	struct proc_create *create;	// Internal creation info structure
+	struct process_creation *creation;	// Internal creation info structure
 };
 typedef struct process process_t;
 

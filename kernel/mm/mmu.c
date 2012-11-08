@@ -208,7 +208,7 @@ void mmu_switch_ctx(struct mmu_ctx *ctx)
 
 		state = irq_disable();
 
-		DEBUG(DL_DBG, ("mmu_switch_ctx: addr spc switched(%p->%p).\n",
+		DEBUG(DL_DBG, ("mmu_switch_ctx: mmu(%p->%p).\n",
 			       CURR_ASPACE, ctx));
 	
 		/* Update the current mmu context */
