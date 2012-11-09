@@ -13,6 +13,7 @@ void sys_init_thread(void *ctx)
 	int rc = -1;
 	const char *init_argv[] = {
 		"/init",
+		"-d",
 		NULL
 	};
 
@@ -23,6 +24,4 @@ void sys_init_thread(void *ctx)
 	if (rc != 0) {
 		PANIC("sys_init_proc: could not start init process.\n");
 	}
-
-	while (TRUE);
 }

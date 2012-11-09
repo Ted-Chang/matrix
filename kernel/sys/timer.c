@@ -29,6 +29,7 @@ useconds_t tmrs_clrtimer(struct list *head, struct timer *t)
 		at = LIST_ENTRY(l, struct timer, link);
 		if (at == t) {
 			list_del(l);
+			break;
 		}
 	}
 
@@ -76,10 +77,11 @@ useconds_t tmrs_settimer(struct list *head, struct timer *t, useconds_t expire_t
 	return old_head;
 }
 
-void tmrs_exptimers(struct list *head, useconds_t now)
+boolean_t tmrs_exptimers(struct list *head, useconds_t now)
 {
 	struct timer *t;
 	struct list *l, *p;
+	boolean_t preempt = FALSE;
 
 	ASSERT(head != NULL);
 
@@ -91,8 +93,8 @@ void tmrs_exptimers(struct list *head, useconds_t now)
 		t = LIST_ENTRY(l, struct timer, link);
 		if (t->expire_time <= now) {
 			list_del(&t->link);
-			t->expire_time = TIMER_NEVER;
 			t->func(t);
+			preempt = TRUE;
 		} else {
 			/* As our timer list is ordered, so just break if we have
 			 * no timer expired
@@ -100,6 +102,8 @@ void tmrs_exptimers(struct list *head, useconds_t now)
 			break;
 		}
 	}
+
+	return preempt;
 }
 
 void init_timer(struct timer *t, const char *name)

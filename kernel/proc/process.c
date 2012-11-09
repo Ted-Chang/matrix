@@ -307,7 +307,7 @@ static void process_entry_thread(void *ctx)
 	info = (struct process_creation *)ctx;
 
 	ASSERT(CURR_ASPACE == info->mmu);
-	
+
 	/* Load the ELF file into this process */
 	rc = elf_load_binary(info->argv[0], info->mmu, &entry);
 	if (rc != 0) {

@@ -1,6 +1,8 @@
 #ifndef __CLOCK_H__
 #define __CLOCK_H__
 
+#include "sys/time.h"
+
 /* Seconds to microseconds */
 #define SECS2USECS(secs)	((useconds_t)secs * 1000000)
 

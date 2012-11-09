@@ -156,11 +156,6 @@ static void sched_adjust_priority(struct sched_cpu *c, struct thread *t)
 static void sched_timer_func(struct timer *t)
 {
 	CURR_THREAD->quantum = 0;
-
-	/* Timer function was called in the context of interrupt. This is not
-	 * good for performance. Fix this in future code.
-	 */
-	sched_reschedule(FALSE);
 }
 
 /**
@@ -265,9 +260,11 @@ void sched_reschedule(boolean_t state)
 	 * one.
 	 */
 	if (CURR_THREAD != c->prev_thread) {
-		//DEBUG(DL_DBG, ("sched_reschedule: switching to (%s:%d:%s:%d:%d).\n",
-		//	       CURR_PROC->name, CURR_PROC->id, CURR_THREAD->name,
-		//	       CURR_THREAD->id, CURR_CPU->id));
+#ifdef _DEBUG_SCHED
+		DEBUG(DL_DBG, ("sched_reschedule: switching to (%s:%d:%s:%d:%d).\n",
+			       CURR_PROC->name, CURR_PROC->id, CURR_THREAD->name,
+			       CURR_THREAD->id, CURR_CPU->id));
+#endif	/* _DEBUG_SCHED */
 		
 		/* Switch the address space. The NULL case will be handled by the
 		 * context switch function.

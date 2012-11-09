@@ -7,6 +7,7 @@
 #include "mm/mlayout.h"
 #include "mm/page.h"
 #include "div64.h"
+#include "clock.h"
 
 extern struct idt_ptr _idt_ptr;
 extern struct irq_hook *_irq_handlers[];
@@ -65,8 +66,6 @@ static void cpu_ctor(struct cpu *c, cpu_id_t id, int state)
 
 void dump_cpu(struct cpu *c)
 {
-	uint32_t count = 0;
-	
 	DEBUG(DL_DBG, ("CPU(%d) detail information:\n", c->id));
 	DEBUG(DL_DBG, ("vendor: %s\n", c->arch.vendor_str));
 	DEBUG(DL_DBG, ("cpu step(%d), phys_bits(%d), virt_bits(%d)\n",
