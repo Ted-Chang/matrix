@@ -224,7 +224,7 @@ void sched_reschedule(boolean_t state)
 			sched_enqueue(c->active, CURR_THREAD);
 		}
 	} else {
-		DEBUG(DL_DBG, ("sched_reschedule: t(%s:%d), state(%d).\n",
+		DEBUG(DL_DBG, ("t(%s:%d), state(%d).\n",
 			       CURR_THREAD->name, CURR_THREAD->id, CURR_THREAD->state));
 		ASSERT(CURR_THREAD != c->idle_thread);
 		c->total--;
@@ -240,7 +240,7 @@ void sched_reschedule(boolean_t state)
 	} else {
 		next = c->idle_thread;
 		if (next != CURR_THREAD) {
-			DEBUG(DL_DBG, ("sched_reschedule: cpu(%d) has no runnable threads.\n",
+			DEBUG(DL_DBG, ("cpu(%d) has no runnable threads.\n",
 				       CURR_CPU->id));
 		}
 		next->quantum = 0;
@@ -261,7 +261,7 @@ void sched_reschedule(boolean_t state)
 	 */
 	if (CURR_THREAD != c->prev_thread) {
 #ifdef _DEBUG_SCHED
-		DEBUG(DL_DBG, ("sched_reschedule: switching to (%s:%d:%s:%d:%d).\n",
+		DEBUG(DL_DBG, ("switching to (%s:%d:%s:%d:%d).\n",
 			       CURR_PROC->name, CURR_PROC->id, CURR_THREAD->name,
 			       CURR_THREAD->id, CURR_CPU->id));
 #endif	/* _DEBUG_SCHED */
@@ -312,7 +312,7 @@ static void sched_reaper_thread(void *ctx)
 		LIST_FOR_EACH_SAFE(l, p, &_dead_threads) {
 			t = LIST_ENTRY(l, struct thread, runq_link);
 			list_del(&t->runq_link);
-			DEBUG(DL_INF, ("sched_reaper_thread: release thread(%d).\n",
+			DEBUG(DL_INF, ("release thread(%d).\n",
 				       t->id));
 			thread_release(t);
 		}
@@ -352,7 +352,7 @@ void init_sched_percpu()
 	rc = thread_create(name, NULL, 0, sched_idle_thread, NULL,
 			   &CURR_CPU->sched->idle_thread);
 	ASSERT((rc == 0) && (CURR_CPU->sched->idle_thread != NULL));
-	DEBUG(DL_DBG, ("init_sched_percpu: idle thread(%p).\n",
+	DEBUG(DL_DBG, ("idle thread(%p).\n",
 		       CURR_CPU->sched->idle_thread));
 
 	/* Set the idle thread as the current thread */
@@ -381,7 +381,7 @@ void init_sched()
 	rc = thread_create("reaper", NULL, 0, sched_reaper_thread, NULL, NULL);
 	ASSERT(rc == 0);
 
-	DEBUG(DL_DBG, ("init_sched: sched queues initialization done.\n"));
+	DEBUG(DL_DBG, ("sched queues initialization done.\n"));
 }
 
 void sched_enter()

@@ -59,7 +59,7 @@ void page_alloc(struct page *p, boolean_t kernel, boolean_t write)
 	ASSERT(p != NULL);
 	
 	if (p->frame != 0) {
-		//DEBUG(DL_DBG, ("page_alloc: page(0x%x), frame(0x%x), kernel(%d), write(%d)\n",
+		//DEBUG(DL_DBG, ("page(0x%x), frame(0x%x), kernel(%d), write(%d)\n",
 		//	       p, p->frame, kernel, write));
 		return;
 	} else {

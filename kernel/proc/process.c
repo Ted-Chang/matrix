@@ -166,7 +166,7 @@ static void process_ctor(void *obj)
  */
 static void process_dtor(void *obj)
 {
-	DEBUG(DL_DBG, ("process_dtor: process (%p) destructed.\n", obj));
+	DEBUG(DL_DBG, ("process (%p) destructed.\n", obj));
 }
 
 static int process_alloc(const char *name, struct process *parent, struct mmu_ctx *mmu,
@@ -181,7 +181,7 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 	/* Create the new process */
 	p = kmalloc(sizeof(struct process), 0);
 	if (!p) {
-		DEBUG(DL_DBG, ("process_create: kmalloc process failed.\n"));
+		DEBUG(DL_DBG, ("kmalloc process failed.\n"));
 		rc = -1;
 		goto out;
 	}
@@ -227,7 +227,7 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 	*procp = p;
 	rc = 0;
 
-	DEBUG(DL_DBG, ("process_alloc: created process (%s:%d:%p:%p).\n",
+	DEBUG(DL_DBG, ("created process (%s:%d:%p:%p).\n",
 		       p->name, p->id, p, p->mmu_ctx));
 out:
 	if (rc != 0) {
@@ -311,7 +311,7 @@ static void process_entry_thread(void *ctx)
 	/* Load the ELF file into this process */
 	rc = elf_load_binary(info->argv[0], info->mmu, &entry);
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("process_entry_thread: elf_load_binary failed, err(%d).\n",
+		DEBUG(DL_DBG, ("elf_load_binary failed, err(%d).\n",
 			       rc));
 		return;
 	}
@@ -320,7 +320,7 @@ static void process_entry_thread(void *ctx)
 	CURR_THREAD->ustack = (void *)(USTACK_BOTTOM + USTACK_SIZE);
 	
 	/* Switch to user space */
-	arch_thread_enter_userspace(entry, (void *)(USTACK_BOTTOM + USTACK_SIZE));
+	arch_thread_enter_uspace(entry, (void *)(USTACK_BOTTOM + USTACK_SIZE));
 }
 
 static struct process_creation *alloc_process_creation(const char *args[])
@@ -370,7 +370,7 @@ int process_create(const char *args[], struct process *parent, int flags,
 	struct process_creation *info;
 
 	if (!args || !args[0] || priority >= 32) {
-		DEBUG(DL_DBG, ("process_create: invalid parameter.\n"));
+		DEBUG(DL_DBG, ("invalid parameter.\n"));
 		rc = -1;
 		goto out;
 	}
@@ -380,7 +380,7 @@ int process_create(const char *args[], struct process *parent, int flags,
 	/* Create the address space for the process */
 	mmu = mmu_create_ctx();
 	if (!mmu) {
-		DEBUG(DL_INF, ("process_create: mmu_create_ctx failed.\n"));
+		DEBUG(DL_INF, ("mmu_create_ctx failed.\n"));
 		rc = -1;
 		goto out;
 	}
@@ -392,14 +392,14 @@ int process_create(const char *args[], struct process *parent, int flags,
 	/* Create the new process */
 	rc = process_alloc(args[0], parent, mmu, flags, priority, NULL, &p);
 	if (rc != 0) {
-		DEBUG(DL_INF, ("process_create: process_alloc failed, err(%d).\n", rc));
+		DEBUG(DL_INF, ("process_alloc failed, err(%d).\n", rc));
 		goto out;
 	}
 
 	/* Create the main thread and run it */
 	rc = thread_create("main", p, 0, process_entry_thread, info, &t);
 	if (rc != 0) {
-		DEBUG(DL_INF, ("process_create: thread_create failed, err(%d).\n", rc));
+		DEBUG(DL_INF, ("thread_create failed, err(%d).\n", rc));
 		goto out;
 	}
 
@@ -449,25 +449,26 @@ int process_wait(struct process *p, void *sync)
 		notifier_register(&p->death_notifier, object_wait_notifier, sync);
 		rc = 0;
 	} else {
-		DEBUG(DL_INF, ("process_wait: process(%d) dead.", p->id));
+		DEBUG(DL_INF, ("process(%d) dead.", p->id));
 		rc = -1;
 	}
 
 	return rc;
 }
 
-int process_clone()
+int process_clone(void (*entry)(void *), void *esp, void *args, struct process **procp)
 {
 	int rc = -1;
-	struct process *p = NULL;
-	struct thread *t = NULL;
 	struct mmu_ctx *mmu;
+	struct thread *t = NULL;
+	struct process *p = NULL;
 	struct fd_table *fds = NULL;
+	struct thread_uspace_creation *info;
 	
 	/* Clone the parent(current)'s page directory */
 	mmu = mmu_create_ctx();
 	if (!mmu) {
-		DEBUG(DL_DBG, ("process_clone: mmu_create_ctx failed.\n"));
+		DEBUG(DL_DBG, ("mmu_create_ctx failed.\n"));
 		goto out;
 	}
 	mmu_copy_ctx(mmu, CURR_PROC->mmu_ctx);
@@ -475,24 +476,32 @@ int process_clone()
 	/* Clone the parent(current)'s file descriptor table */
 	fds = fd_table_clone(CURR_PROC->fds);
 	if (!fds) {
-		DEBUG(DL_DBG, ("process_clone: fd_table_clone failed.\n"));
+		DEBUG(DL_DBG, ("fd_table_clone failed.\n"));
 		goto out;
 	}
 
 	/* Create the new process and a handle */
 	rc = process_alloc(CURR_PROC->name, CURR_PROC, mmu, 0, 16, fds, &p);
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("process_clone: process_alloc failed, err(%d).\n", rc));
+		DEBUG(DL_DBG, ("process_alloc failed, err(%d).\n", rc));
 		goto out;
 	}
 
 	/* Create the main thread and run it */
-	rc = thread_create("main", p, 0, process_entry_thread, NULL, &t);
+	info = kmalloc(sizeof(struct thread_uspace_creation), 0);
+	info->entry = entry;
+	info->esp = esp;
+	info->args = args;
+	
+	rc = thread_create("main", p, 0, thread_uspace_trampoline, info, &t);
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("process_clone: thread_create failed, err(%d).\n", rc));
+		DEBUG(DL_DBG, ("thread_create failed, err(%d).\n", rc));
 		goto out;
 	}
 
+	*procp = p;
+
+	/* Run the new thread */
 	thread_run(t);
 	thread_release(t);
 
@@ -544,5 +553,5 @@ void init_process()
 		PANIC("Could not initialize kernel process");
 	}
 
-	DEBUG(DL_DBG, ("init_process: allocated kernel process(%p).\n", _kernel_proc));
+	DEBUG(DL_DBG, ("allocated kernel process(%p).\n", _kernel_proc));
 }

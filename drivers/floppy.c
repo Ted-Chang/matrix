@@ -169,7 +169,7 @@ static int wait_fdc(struct fdd *d)
 
 	_irq_signaled = FALSE;
 	if (irq_timeout) {
-		DEBUG(DL_WRN, ("wait_fdc: irq timeout, drive(%d)\n", d->number));
+		DEBUG(DL_WRN, ("irq timeout, drive(%d)\n", d->number));
 		return -1;	// TODO: Return an error code
 	}
 
@@ -224,7 +224,7 @@ static void recalibrate(struct fdd *d)
 		if (!(d->fdc->sr0 & 0x10)) break;	// Exit if unit check is not set
 	}
 
-	DEBUG(DL_DBG, ("recalibrate: drive(%d), sr0(0x%x), track(%d)\n",
+	DEBUG(DL_DBG, ("drive(%d), sr0(0x%x), track(%d)\n",
 		       d->number, d->fdc->sr0, d->track));
 }
 
@@ -298,7 +298,7 @@ int flpy_seek(struct fdd *d, uint32_t track)
 
 	/* Check that seek worked */
 	if ((d->fdc->sr0 != 0x20 + d->number) || (d->track != track)) {
-		DEBUG(DL_ERR, ("flpy_seek: error on drive(%d)\n"
+		DEBUG(DL_ERR, ("error on drive(%d)\n"
 			       "* sr0(0x%x), track(%d), expected(%d)\n",
 			       d->number, d->fdc->sr0, d->track, track));
 		return -1;	// TODO: return an error code
@@ -334,7 +334,7 @@ int flpy_read(struct fdd *d, uint32_t lba, uint8_t *buf, uint32_t nr_sectors)
 		if (flpy_seek(d, f_addr.c) == 0) {
 			/* If changeline is active, no disk is in drive */
 			if (inportb(d->fdc->base_port + FDC_DIR) & 0x80) {
-				DEBUG(DL_ERR, ("flpy_read: no disk in drive %d\n",
+				DEBUG(DL_ERR, ("no disk in drive %d\n",
 					       d->number));
 				rc = -1;
 				goto errorout;
@@ -377,7 +377,7 @@ int flpy_write(struct fdd *d, uint32_t lba, const uint8_t buf, uint32_t nr_secto
 		if (flpy_seek(d, f_addr.c) == 0) {
 			/* If changeline is active, no disk is in drive */
 			if (inportb(d->fdc->base_port + FDC_DIR) & 0x80) {
-				DEBUG(DL_ERR, ("flpy_write: no disk in drive %d\n",
+				DEBUG(DL_ERR, ("no disk in drive %d\n",
 					       d->number));
 				rc = -1;
 				break;

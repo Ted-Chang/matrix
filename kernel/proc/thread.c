@@ -95,7 +95,7 @@ void arch_thread_switch(struct thread *curr, struct thread *prev)
  * @param location	- User address to jump to
  * @param ustack	- User stack
  */
-void arch_thread_enter_userspace(void *location, void *ustack)
+void arch_thread_enter_uspace(void *entry, void *ustack)
 {
 	/* Setup our kernel stack, note that the stack was grow from high address
 	 * to low address
@@ -126,7 +126,36 @@ void arch_thread_enter_userspace(void *location, void *ustack)
 		     "pushl $0x1B\n"
 		     "pushl %0\n"		/* Push the entry point */
 		     "iret\n"
-		     :: "m"(location), "r"(ustack) : "%ax", "%esp", "%eax");
+		     :: "m"(entry), "r"(ustack) : "%ax", "%esp", "%eax");
+}
+
+/* Thread entry function wrapper */
+static void thread_trampoline()
+{
+	/* Upon switching to a newly-created thread's context, execution will
+	 * jump to this function, rather than going back to the scheduler.
+	 */
+	sched_post_switch(TRUE);
+	
+	DEBUG(DL_DBG, ("entered thread %p on CPU %d.\n",
+		       CURR_THREAD, CURR_CPU->id));
+
+	/* Run the thread's main function and exit when it returns */
+	CURR_THREAD->entry(CURR_THREAD->args);
+	
+	thread_exit();
+}
+
+/* Userspace thread entry function wrapper */
+void thread_uspace_trampoline(void *ctx)
+{
+	struct thread_uspace_creation *info;
+
+	ASSERT(ctx != NULL);
+	
+	info = (struct thread_uspace_creation *)ctx;
+	
+	arch_thread_enter_uspace(info->entry, info->esp);
 }
 
 static void thread_ctor(void *obj)
@@ -145,23 +174,6 @@ static void thread_ctor(void *obj)
 static void thread_dtor(void *obj)
 {
 	;
-}
-
-/* Thread entry function wrapper */
-static void thread_trampoline()
-{
-	/* Upon switching to a newly-created thread's context, execution will
-	 * jump to this function, rather than going back to the scheduler.
-	 */
-	sched_post_switch(TRUE);
-	
-	DEBUG(DL_DBG, ("thread_trampoline: entered thread %p on CPU %d.\n",
-		       CURR_THREAD, CURR_CPU->id));
-
-	/* Run the thread's main function and exit when it returns */
-	CURR_THREAD->entry(CURR_THREAD->args);
-	
-	thread_exit();
 }
 
 static boolean_t thread_interrupt_internal(struct thread *t, int flags)
@@ -189,7 +201,7 @@ int thread_create(const char *name, struct process *owner, int flags,
 	
 	t = kmalloc(sizeof(struct thread), 0);
 	if (!t) {
-		DEBUG(DL_INF, ("thread_create: kmalloc thread failed.\n"));
+		DEBUG(DL_INF, ("kmalloc thread failed.\n"));
 		goto out;
 	}
 
@@ -204,7 +216,7 @@ int thread_create(const char *name, struct process *owner, int flags,
 	/* Allocate kernel stack for the process */
 	t->kstack = kmalloc(KSTACK_SIZE, MM_ALIGN_F) + KSTACK_SIZE;
 	if (!t->kstack) {
-		DEBUG(DL_INF, ("thread_create: kmalloc kstack failed.\n"));
+		DEBUG(DL_INF, ("kmalloc kstack failed.\n"));
 		goto out;
 	}
 	memset((void *)((uint32_t)t->kstack - KSTACK_SIZE), 0, KSTACK_SIZE);
@@ -282,7 +294,7 @@ void thread_release(struct thread *t)
 
 	/* Cleanup the thread */
 	kstack = (void *)((uint32_t)t->kstack - KSTACK_SIZE);
-	DEBUG(DL_DBG, ("thread_release: kstack(%p).\n", kstack));
+	DEBUG(DL_DBG, ("kstack(%p).\n", kstack));
 
 	kfree(kstack);
 

@@ -3,16 +3,18 @@
 
 #include "util.h"
 
-#define DL_ERR		0x00000004
-#define DL_WRN		0x00000003
-#define DL_INF		0x00000002
 #define DL_DBG		0x00000001
+#define DL_INF		0x00000002
+#define DL_WRN		0x00000003
+#define DL_ERR		0x00000004
+
+#define DL_MAX		DL_ERR
 
 #define DEBUG(level, params) do { \
 		if (_debug_level <= (level)) { \
-			kprintf("[DBG] ");     \
-			kprintf params;	       \
-		}			       \
+			kprintf("[%s] %s: ", dbglevel_string(level), __func__);	\
+			kprintf params;						\
+		}								\
 	} while (0)
 
 
@@ -23,12 +25,8 @@
 
 extern uint32_t _debug_level;
 
-void panic(const char *message, const char *file, uint32_t line);
-
-void panic_assert(const char *file, uint32_t line, const char *desc);
-
-#ifdef _DEBUG_SCHED
-void check_runqueues(char *when);
-#endif	/* _DEBUG_SCHED */
+extern const char *dbglevel_string(uint32_t level);
+extern void panic(const char *message, const char *file, uint32_t line);
+extern void panic_assert(const char *file, uint32_t line, const char *desc);
 
 #endif	/* __DEBUG_H__ */

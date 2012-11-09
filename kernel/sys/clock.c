@@ -163,27 +163,6 @@ void stop_clock()
 	outportb(0x40, 0);
 }
 
-clock_t get_uptime()
-{
-	return _real_time;
-}
-
-u_long read_clock()
-{
-	u_long count;
-
-	/* Read the counter of channel 0 of the 8253A timer. This counter counts
-	 * down at a rate of PIT_BASE_FREQ and restarts at TIMER_COUNT - 1 when it
-	 * reaches zero. A hardware interrupt (clock tick) occurs when the counter
-	 * gets to zero and restarts its cycle.
-	 */
-	outportb(0x43, 0x00);
-	count = inportb(0x40);
-	count |= (inportb(0x40) << 8);
-
-	return count;
-}
-
 static uint32_t msec_2_ticks(uint32_t msec)
 {
 	uint32_t ticks;
@@ -199,7 +178,7 @@ void pit_delay(uint32_t msec)
 
 	when = _real_time + msec_2_ticks(msec);
 	
-	DEBUG(DL_DBG, ("pit_delay: msec(%d), _real_time(%d), when(%d)\n",
+	DEBUG(DL_DBG, ("msec(%d), _real_time(%d), when(%d)\n",
 		       msec, _real_time, when));
 	
 	while (TRUE) {

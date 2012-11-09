@@ -23,8 +23,6 @@ typedef struct timer timer_t;
 
 extern void init_clock();
 extern void stop_clock();
-extern clock_t get_uptime();
-extern u_long read_clock();
 extern void init_timer(struct timer *t, const char *name);
 extern void set_timer(struct timer *t, useconds_t expire_time, timer_func_t callback);
 extern void cancel_timer(struct timer *t);

@@ -400,7 +400,7 @@ static int kbd_send_cmd(uint8_t cmd)
 		}
 	}
 
-	DEBUG(DL_ERR, ("kbd_send_cmd: sending control CMD error\n"));
+	DEBUG(DL_ERR, ("sending control CMD error\n"));
 	return -1;
 }
 
@@ -422,7 +422,7 @@ static void kbd_ack_hdlr()
 		_ack_left--;
 		break;
 	default:
-		DEBUG(DL_ERR, ("kbd_ack_hdlr: CRITICAL_ERROR\n"));
+		DEBUG(DL_ERR, ("CRITICAL_ERROR\n"));
 		break;
 	}
 }
@@ -540,7 +540,7 @@ static int preprocess(u_char code)
 		break;
 	case MK_SYSRQ:
 		_kbd_data.kbd_flag |= FLAG_SYSRQ;
-		DEBUG(DL_DBG, ("preprocess: SYSRQ pressed...\n"));
+		DEBUG(DL_DBG, ("SYSRQ pressed...\n"));
 		break;
 		/* Normal function key released */
 	case BREAK|MK_CTRL:

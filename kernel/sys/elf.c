@@ -41,7 +41,7 @@ int elf_load_sections(struct mmu_ctx *mmu, elf_ehdr_t *ehdr)
 	uint32_t virt, size, i = 0, entry;
 	elf_shdr_t *shdr;
 
-	DEBUG(DL_DBG, ("elf_load_sections: e_shnum(%d), e_shentsize(%d), e_shoff(%d)\n",
+	DEBUG(DL_DBG, ("e_shnum(%d), e_shentsize(%d), e_shoff(%d)\n",
 		       ehdr->e_shnum, ehdr->e_shentsize, ehdr->e_shoff));
 
 	entry = ehdr->e_entry;
@@ -52,7 +52,7 @@ int elf_load_sections(struct mmu_ctx *mmu, elf_ehdr_t *ehdr)
 
 		/* Read a section header */
 		shdr = (elf_shdr_t *)(((uint8_t *)ehdr) + (ehdr->e_shoff + virt));
-		DEBUG(DL_DBG, ("elf_load_sections: i(%d), sh_addr(0x%x), sh_size(0x%x), sh_type(%d)\n",
+		DEBUG(DL_DBG, ("i(%d), sh_addr(0x%x), sh_size(0x%x), sh_type(%d)\n",
 			       i, shdr->sh_addr, shdr->sh_size, shdr->sh_type));
 		
 		if (shdr->sh_addr) {
@@ -73,14 +73,14 @@ int elf_load_sections(struct mmu_ctx *mmu, elf_ehdr_t *ehdr)
 			for (virt = 0; virt < (shdr->sh_size + 0x2000); virt += PAGE_SIZE) {
 				page = mmu_get_page(mmu, shdr->sh_addr + virt, TRUE, 0);
 				if (!page) {
-					DEBUG(DL_ERR, ("elf_load_section: mmu_get_page failed.\n"));
+					DEBUG(DL_ERR, ("mmu_get_page failed.\n"));
 					goto out;
 				}
 			
 				page_alloc(page, FALSE, TRUE);
 			}
 
-			DEBUG(DL_DBG, ("elf_load_sections: i(%d), memory space mapped.\n", i));
+			DEBUG(DL_DBG, ("i(%d), memory space mapped.\n", i));
 			
 			switch (shdr->sh_type) {
 			case ELF_SHT_NOBITS:
@@ -116,7 +116,7 @@ int elf_load_binary(const char *path, struct mmu_ctx *mmu, void **entry)
 	/* Lookup the file from the file system */
 	n = vfs_lookup(path, VFS_FILE);
 	if (!n) {
-		DEBUG(DL_DBG, ("exec: file(%s) not found.\n", path));
+		DEBUG(DL_DBG, ("file(%s) not found.\n", path));
 		return -1;
 	}
 
@@ -131,7 +131,7 @@ int elf_load_binary(const char *path, struct mmu_ctx *mmu, void **entry)
 	for (virt = temp; virt < (temp + n->length); virt += PAGE_SIZE) {
 		page = mmu_get_page(CURR_PROC->mmu_ctx, virt, TRUE, 0);
 		if (!page) {
-			DEBUG(DL_ERR, ("exec: mmu_get_page failed, virt(0x%x).\n", virt));
+			DEBUG(DL_ERR, ("mmu_get_page failed, virt(0x%x).\n", virt));
 			rc = -1;
 			goto out;
 		}
@@ -144,7 +144,7 @@ int elf_load_binary(const char *path, struct mmu_ctx *mmu, void **entry)
 	/* Read in the executive content */
 	rc = vfs_read(n, 0, n->length, (uint8_t *)ehdr);
 	if (rc == -1 || rc < sizeof(elf_ehdr_t)) {
-		DEBUG(DL_INF, ("exec: read file(%s) failed.\n", path));
+		DEBUG(DL_INF, ("read file(%s) failed.\n", path));
 		rc = -1;
 		goto out;
 	}
@@ -152,7 +152,7 @@ int elf_load_binary(const char *path, struct mmu_ctx *mmu, void **entry)
 	/* Check whether it is valid ELF */
 	is_elf = elf_ehdr_check(ehdr);
 	if (!is_elf) {
-		DEBUG(DL_INF, ("exec: invalid ELF, file(%s).\n", path));
+		DEBUG(DL_INF, ("invalid ELF, file(%s).\n", path));
 		rc = -1;
 		goto out;
 	}
@@ -163,13 +163,13 @@ int elf_load_binary(const char *path, struct mmu_ctx *mmu, void **entry)
 	 */
 	rc = elf_load_sections(mmu, ehdr);
 	if (rc != 0) {
-		DEBUG(DL_WRN, ("exec: load sections failed, file(%s).\n", path));
+		DEBUG(DL_WRN, ("load sections failed, file(%s).\n", path));
 		goto out;
 	}
 
 	/* Save the entry point to the code segment */
 	*entry = (void *)ehdr->e_entry;
-	DEBUG(DL_DBG, ("exec: entry(%p)\n", *entry));
+	DEBUG(DL_DBG, ("entry(%p)\n", *entry));
 
 	/* Free the memory we used for temporarily store the ELF files */
 	for (virt = temp; virt < (temp + n->length); virt += PAGE_SIZE) {
@@ -182,7 +182,7 @@ int elf_load_binary(const char *path, struct mmu_ctx *mmu, void **entry)
 	for (virt = USTACK_BOTTOM; virt <= (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
 		page = mmu_get_page(mmu, virt, TRUE, 0);
 		if (!page) {
-			DEBUG(DL_ERR, ("exec: mmu_get_page failed, virt(0x%x)\n", virt));
+			DEBUG(DL_ERR, ("mmu_get_page failed, virt(0x%x)\n", virt));
 			rc = -1;
 			goto out;
 		}

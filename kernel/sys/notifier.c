@@ -36,7 +36,7 @@ void notifier_run(struct notifier *n)
 	LIST_FOR_EACH_SAFE(l, p, &n->functions) {
 		nf = LIST_ENTRY(l, struct notifier_func, link);
 
-		DEBUG(DL_DBG, ("notifier_run: nf(%p), func(%p), data(%p).\n",
+		DEBUG(DL_DBG, ("nf(%p), func(%p), data(%p).\n",
 			       nf, nf->func, nf->data));
 
 		ASSERT((nf != NULL) && (nf->func != NULL) && (nf->data != NULL));
@@ -58,7 +58,7 @@ void notifier_register(struct notifier *n, void (*func)(void *), void *data)
 
 	list_add_tail(&nf->link, &n->functions);
 
-	DEBUG(DL_DBG, ("notifier_register: nf(%p), func(%p), data(%p).\n",
+	DEBUG(DL_DBG, ("nf(%p), func(%p), data(%p).\n",
 		       nf, nf->func, nf->data));
 }
 

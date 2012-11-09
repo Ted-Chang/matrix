@@ -23,7 +23,7 @@ static uint32_t initrd_read(struct vfs_node *node, uint32_t offset,
 	hdr = file_hdrs[node->inode];
 	
 	if (offset > hdr.length) {
-		DEBUG(DL_DBG, ("initrd_read: offset(%d), length(%d)\n", offset, hdr.length));
+		DEBUG(DL_DBG, ("offset(%d), length(%d)\n", offset, hdr.length));
 		return 0;
 	}
 	if (offset + size > hdr.length)

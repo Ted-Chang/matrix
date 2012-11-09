@@ -17,7 +17,7 @@ void sys_init_thread(void *ctx)
 		NULL
 	};
 
-	DEBUG(DL_DBG, ("sys_init_proc: CURR_PROC(%p).\n", CURR_PROC));
+	DEBUG(DL_DBG, ("CURR_PROC(%p).\n", CURR_PROC));
 
 	/* Run init process from executable file init */
 	rc = process_create(init_argv, _kernel_proc, 0, 16, NULL);

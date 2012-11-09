@@ -123,7 +123,7 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t make,
 		
 		return &pdir->ptbl[dir_idx]->pte[tbl_idx];
 	} else {
-		DEBUG(DL_INF, ("mmu_get_page: no page for addr(0x%08x) in mmu ctx(0x%08x)\n",
+		DEBUG(DL_INF, ("no page for addr(0x%08x) in mmu ctx(0x%08x)\n",
 			       virt, ctx));
 		return NULL;
 	}
@@ -208,7 +208,7 @@ void mmu_switch_ctx(struct mmu_ctx *ctx)
 
 		state = irq_disable();
 
-		DEBUG(DL_DBG, ("mmu_switch_ctx: mmu(%p->%p).\n",
+		DEBUG(DL_DBG, ("mmu(%p->%p).\n",
 			       CURR_ASPACE, ctx));
 	
 		/* Update the current mmu context */
@@ -287,7 +287,7 @@ void mmu_copy_ctx(struct mmu_ctx *dst, struct mmu_ctx *src)
 			/* Physically clone the page table if it's not kernel stuff */
 			uint32_t pde;
 
-			DEBUG(DL_DBG, ("mmu_cpy_ctx: dst(0x%x), src(0x%x), addr(0x%x).\n",
+			DEBUG(DL_DBG, ("dst(0x%x), src(0x%x), addr(0x%x).\n",
 				       dst, src, i * 1024 * PAGE_SIZE));
 			dst_dir->ptbl[i] = clone_ptbl(src_dir->ptbl[i], &pde);
 			dst_dir->pde[i] = pde | 0x07;
@@ -335,7 +335,7 @@ void init_mmu()
 	_kernel_mmu_ctx.pdbr = pdbr;
 	memset(_kernel_mmu_ctx.pdir, 0, sizeof(struct pdir));
 	
-	DEBUG(DL_DBG, ("init_mmu: kernel mmu ctx(0x%08x), pdbr(0x%08x)\n",
+	DEBUG(DL_DBG, ("kernel mmu ctx(0x%08x), pdbr(0x%08x)\n",
 		       &_kernel_mmu_ctx, _kernel_mmu_ctx.pdbr));
 
 	/* Allocate some pages in the kernel heap area. Here we call mmu_get_page

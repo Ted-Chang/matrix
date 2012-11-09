@@ -23,6 +23,13 @@ struct arch_thread {
 	struct registers *syscall_regs;	// Store the regs on stack for this thread
 };
 
+/* Thread creation arguments structure, for thread_uspace_trampoline() */
+struct thread_uspace_creation {
+	void *entry;			// Instruction pointer
+	void *esp;			// Stack pointer
+	void *args;			// Argument
+};
+
 /* Definition of a thread */
 struct thread {
 	/* Architecture thread implementation */
@@ -86,7 +93,8 @@ typedef struct thread thread_t;
 #define CURR_THREAD	(CURR_CPU->thread)
 
 extern void arch_thread_switch(struct thread *curr, struct thread *prev);
-extern void arch_thread_enter_userspace(void *location, void *ustack);
+extern void arch_thread_enter_uspace(void *entry, void *ustack);
+extern void thread_uspace_trampoline(void *ctx);
 extern int thread_create(const char *name, struct process *owner, int flags,
 			 thread_func_t func, void *args, struct thread **tp);
 extern void thread_run(struct thread *t);

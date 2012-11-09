@@ -33,10 +33,10 @@ int open(const char *file, int flags, int mode)
 
 	/* Lookup file system node */
 	n = vfs_lookup(file, file_type);
-	DEBUG(DL_DBG, ("open: file(%s), n(0x%x)\n", file, n));
+	DEBUG(DL_DBG, ("file(%s), n(0x%x)\n", file, n));
 	if (!n && FLAG_ON(flags, 0x600)) {
 
-		DEBUG(DL_DBG, ("open: %s not found, create it.\n", file));
+		DEBUG(DL_DBG, ("%s not found, create it.\n", file));
 		
 		/* The file was not found, make one */
 		rc = vfs_create(file, VFS_FILE, &n);
@@ -142,13 +142,13 @@ int readdir(int fd, int index, struct dirent *entry)
 	
 	n = fd_2_vfs_node(NULL, fd);
 	if (!n) {
-		DEBUG(DL_DBG, ("readdir: invalid fd(%d)\n", fd));
+		DEBUG(DL_DBG, ("invalid fd(%d)\n", fd));
 		goto out;
 	}
 
 	e = vfs_readdir(n, index);
 	if (!e) {
-		DEBUG(DL_DBG, ("readdir: fd(%d), no entry\n", fd));
+		DEBUG(DL_DBG, ("fd(%d), no entry\n", fd));
 		goto out;
 	}
 
@@ -168,7 +168,7 @@ int lseek(int fd, int offset, int whence)
 
 	n = fd_2_vfs_node(NULL, fd);
 	if (!n) {
-		DEBUG(DL_DBG, ("seek: invalid fd(%d)\n", fd));
+		DEBUG(DL_DBG, ("invalid fd(%d)\n", fd));
 		goto out;
 	}
 
@@ -186,7 +186,7 @@ int lseek(int fd, int offset, int whence)
 		off = n->offset;
 		break;
 	default:
-		DEBUG(DL_DBG, ("seek: invalid whence(%d)\n", whence));
+		DEBUG(DL_DBG, ("invalid whence(%d)\n", whence));
 	}
 
 out:
@@ -205,7 +205,7 @@ int lstat(int fd, void *stat)
 	
 	n = fd_2_vfs_node(NULL, fd);
 	if (!n) {
-		DEBUG(DL_DBG, ("stat: invalid fd(%d)\n", fd));
+		DEBUG(DL_DBG, ("invalid fd(%d)\n", fd));
 		goto out;
 	}
 
@@ -386,7 +386,7 @@ int waitpid(int pid)
 	struct process *proc;
 	
 	if (pid < 1) {
-		DEBUG(DL_DBG, ("waitpid: group wait not supported, pid(%d).\n", pid));
+		DEBUG(DL_DBG, ("group wait not supported, pid(%d).\n", pid));
 		rc = 0;
 		goto out;
 	}
@@ -394,14 +394,14 @@ int waitpid(int pid)
 	/* Get the process corresponding to the process id */
 	proc = process_lookup(pid);
 	if (!proc) {
-		DEBUG(DL_DBG, ("waitpid: pid(%d) not found in process tree.\n", pid));
+		DEBUG(DL_DBG, ("pid(%d) not found in process tree.\n", pid));
 		goto out;
 	}
 
 	/* Put the current process into the wait queue of proc */
 	rc = process_wait(proc, NULL);
 	if (rc != 0) {
-		DEBUG(DL_INF, ("waitpid: process_wait failed, proc(%p).\n", proc));
+		DEBUG(DL_INF, ("process_wait failed, proc(%p).\n", proc));
 		goto out;
 	}
 
@@ -469,7 +469,7 @@ void syscall_handler(struct registers *regs)
 	 */
 	syscall_id = regs->eax;
 	if (syscall_id >= _nr_syscalls) {
-		DEBUG(DL_WRN, ("syscall_handler: invalid syscall(%d)", syscall_id));
+		DEBUG(DL_WRN, ("invalid syscall(%d)", syscall_id));
 		return;
 	}
 

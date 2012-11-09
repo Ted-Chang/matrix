@@ -281,7 +281,7 @@ void *slab_cache_alloc(slab_cache_t *cache, int mmflag)
 	if (!FLAG_ON(cache->flags, SLAB_CACHE_NOMAG)) {
 		ret = slab_cpu_obj_alloc(cache);
 		if (ret) {
-			DEBUG(DL_DBG, ("slab: allocated %p from cache %s (magazine).\n",
+			DEBUG(DL_DBG, ("allocated %p from cache %s (magazine).\n",
 				       ret, cache->name));
 			return ret;
 		}
@@ -290,7 +290,7 @@ void *slab_cache_alloc(slab_cache_t *cache, int mmflag)
 	/* Cannot allocate from magazine layer, allocate from slab layer */
 	ret = slab_obj_alloc(cache, mmflag);
 	if (ret) {
-		DEBUG(DL_DBG, ("slab: allocated %p from cache %s (slab).\n",
+		DEBUG(DL_DBG, ("allocated %p from cache %s (slab).\n",
 			       ret, cache->name));
 	}
 	
@@ -306,7 +306,7 @@ void slab_cache_free(slab_cache_t *cache, void *obj)
 	if (!FLAG_ON(cache->flags, SLAB_CACHE_NOMAG)) {
 		ret = slab_cpu_obj_free(cache, obj);
 		if (ret) {
-			DEBUG(DL_DBG, ("slab: freed %p to cache %s (magazine).\n",
+			DEBUG(DL_DBG, ("freed %p to cache %s (magazine).\n",
 				       obj, cache->name));
 			return;
 		}
@@ -315,7 +315,7 @@ void slab_cache_free(slab_cache_t *cache, void *obj)
 	/* Cannot free to magazine layer, free to slab layer */
 	slab_obj_free(cache, obj);
 
-	DEBUG(DL_DBG, ("slab: freed %p to cache %s (slab).\n",
+	DEBUG(DL_DBG, ("freed %p to cache %s (slab).\n",
 		       obj, cache->name));
 }
 
@@ -357,7 +357,7 @@ static int slab_cache_init(slab_cache_t *cache, const char *name, size_t size,
 		
 	list_add(&cache->link, l->prev);
 
-	DEBUG(DL_DBG, ("slab_cache_init: cache created %s\n", cache->name));
+	DEBUG(DL_DBG, ("cache created %s\n", cache->name));
 	
 	return 0;
 }

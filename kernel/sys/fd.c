@@ -88,7 +88,7 @@ void fd_table_destroy(fd_table_t *table)
 {
 	size_t i;
 
-	DEBUG(DL_DBG, ("fd_table_destroy: table(%x)\n", table));
+	DEBUG(DL_DBG, ("table(%x)\n", table));
 	
 	for (i = 0; i < table->slots_count; i++) {
 		if (table->nodes[i]) {
@@ -136,7 +136,7 @@ fd_table_t *fd_table_clone(fd_table_t *src)
 		}
 	}
 
-	DEBUG(DL_DBG, ("fd_table_clone: src(%p).\n", src));
+	DEBUG(DL_DBG, ("src(%p).\n", src));
 
 out:
 	return t;

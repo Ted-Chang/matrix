@@ -160,7 +160,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 			 * path string is trying to treat a non-directory as a
 			 * directory. Reject this.
 			 */
-			DEBUG(DL_DBG, ("vfs_lookup_internal: component(%s) type(0x%x)\n",
+			DEBUG(DL_DBG, ("component(%s) type(0x%x)\n",
 				       n->name, n->type));
 			return NULL;
 		} else if (!tok[0]) {
@@ -171,7 +171,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 		/* Look up this name within the directory */
 		v = vfs_finddir(n, tok);
 		if (!v) {
-			DEBUG(DL_DBG, ("vfs_finddir: %s not found.\n", tok));
+			DEBUG(DL_DBG, ("%s not found.\n", tok));
 			vfs_node_deref(n);
 			return NULL;
 		}
