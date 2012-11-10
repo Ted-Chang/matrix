@@ -103,16 +103,22 @@ void clear_scr()
 
 int kprintf(const char *fmt, ...)
 {
+	boolean_t state;
 	char buf[DBG_BUFF_SIZE];
 	va_list args;
 
-	if (!fmt)
+	if (!fmt) {
 		return 0;
+	}
+
+	state = irq_disable();
 
 	va_start(args, fmt);
 	vsnprintf(buf, DBG_BUFF_SIZE, fmt, args);
 	putstr(buf);
 	va_end(args);
+
+	irq_restore(state);
 	
 	return 1;
 }

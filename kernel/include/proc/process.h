@@ -65,15 +65,15 @@ extern struct process *process_lookup(pid_t pid);
 extern void process_attach(struct process *p, struct thread *t);
 extern void process_detach(struct thread *t);
 
-extern void process_exit(int status);
-
+extern int process_exit(int status);
 extern int process_create(const char *args[], struct process *parent, int flags,
 			  int priority, struct process **procp);
 extern int process_destroy(struct process *proc);
 extern int process_clone(void (*entry)(void *), void *esp, void *args,
 			 struct process **procp);
 extern int process_wait(struct process *p, void *sync);
-extern int process_getpid();
+extern int process_getid();
+
 extern void init_process();
 
 #endif	/* __PROCESS_H__ */

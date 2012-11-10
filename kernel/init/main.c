@@ -25,8 +25,6 @@
 #include "proc/sched.h"
 #include "proc/thread.h"
 #include "exceptn.h"
-#include "keyboard.h"
-#include "floppy.h"
 #include "system.h"
 #include "kd.h"
 
@@ -124,12 +122,6 @@ int kmain(u_long addr, uint32_t initial_stack)
 
 	init_syscalls();
 	kprintf("System call initialization done.\n");
-
-	init_keyboard();
-	kprintf("Keyboard driver initialization done.\n");
-
-	init_floppy();
-	kprintf("Floppy driver initialization done.\n");
 
 	/* Create the initialization process */
 	rc = thread_create("init", NULL, 0, sys_init_thread, NULL, NULL);

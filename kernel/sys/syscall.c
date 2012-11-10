@@ -370,7 +370,7 @@ int setgid(gid_t gid)
 
 int getpid()
 {
-	return process_getpid();
+	return process_getid();
 }
 
 int sleep(uint32_t ms)
@@ -384,11 +384,20 @@ int create_process(const char *path, char *args, int flags, int priority)
 {
 	int rc = -1;
 	struct process *p;
+	const char **argv = (const char **)kmalloc(sizeof(char *) * 2, 0);
+
+	if (!argv) {
+		DEBUG(DL_DBG, ("kmalloc argv failed.\n"));
+		goto out;
+	}
+	
+	argv[0] = path;
+	argv[1] = args;
 
 	p = NULL;
 	
 	/* By default we all use kernel process as the parent process */
-	rc = process_create(path, _kernel_proc, 0, 16, &p);
+	rc = process_create(argv, _kernel_proc, 0, 16, &p);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("process_create failed, err(%d).\n", rc));
 		goto out;
@@ -397,6 +406,10 @@ int create_process(const char *path, char *args, int flags, int priority)
 	rc = p->id;
 
 out:
+	if (argv) {
+		kfree(argv);
+	}
+	
 	return rc;
 }
 

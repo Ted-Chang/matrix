@@ -3,6 +3,11 @@
 
 #include "util.h"
 
+/* Compiler macro to get function name */
+#ifndef __FUNC__
+#define __FUNC__	__func__
+#endif	/* __FUNC__ */
+
 #define DL_DBG		0x00000001
 #define DL_INF		0x00000002
 #define DL_WRN		0x00000003
@@ -12,7 +17,7 @@
 
 #define DEBUG(level, params) do { \
 		if (_debug_level <= (level)) { \
-			kprintf("[%s] %s: ", dbglevel_string(level), __func__);	\
+			kprintf("[%s] %s: ", dbglevel_string(level), __FUNC__);	\
 			kprintf params;						\
 		}								\
 	} while (0)

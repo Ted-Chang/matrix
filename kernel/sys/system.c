@@ -7,6 +7,17 @@
 #include "proc/process.h"
 #include "mm/malloc.h"
 #include "system.h"
+#include "keyboard.h"
+#include "floppy.h"
+
+void load_modules()
+{
+	init_keyboard();
+	kprintf("Keyboard driver initialization done.\n");
+
+	init_floppy();
+	kprintf("Floppy driver initialization done.\n");
+}
 
 void sys_init_thread(void *ctx)
 {
@@ -17,7 +28,8 @@ void sys_init_thread(void *ctx)
 		NULL
 	};
 
-	DEBUG(DL_DBG, ("CURR_PROC(%p).\n", CURR_PROC));
+	/* Load the modules */
+	load_modules();
 
 	/* Run init process from executable file init */
 	rc = process_create(init_argv, _kernel_proc, 0, 16, NULL);

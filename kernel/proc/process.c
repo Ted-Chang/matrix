@@ -115,34 +115,6 @@ static void move_stack(uint32_t new_stack, uint32_t size)
 	asm volatile("mov %0, %%ebp" :: "r"(new_ebp));
 }
 
-/* Relocate the stack, this must be done when you copy the stack to another place */
-static void relocate_stack(uint32_t new_stack, uint32_t old_stack, uint32_t size)
-{
-	uint32_t i, tmp, off;
-
-	if (new_stack > old_stack) {
-		off = new_stack - old_stack;
-	} else {
-		off = old_stack - new_stack;
-	}
-
-	for (i = new_stack; i > (new_stack - size); i -= 4) {
-		tmp = *((uint32_t *)i);
-		if ((tmp < old_stack) && (tmp > (old_stack - size))) {
-			uint32_t *tmp2;
-
-			if (new_stack > old_stack) {
-				tmp += off;
-			} else {
-				tmp -= off;
-			}
-			
-			tmp2 = (uint32_t *)i;
-			*tmp2 = tmp;
-		}
-	}
-}
-
 /**
  * Construct a process
  */
@@ -229,7 +201,7 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 	*procp = p;
 	rc = 0;
 
-	DEBUG(DL_DBG, ("created process (%s:%d:%p:%p).\n",
+	DEBUG(DL_DBG, ("allocated process(%s:%d:%p:%p).\n",
 		       p->name, p->id, p, p->mmu_ctx));
 out:
 	if (rc != 0) {
@@ -283,7 +255,7 @@ void process_detach(struct thread *t)
 	t->owner = NULL;
 }
 
-void process_exit(int status)
+int process_exit(int status)
 {
 	struct thread *t;
 	struct list *l;
@@ -300,6 +272,8 @@ void process_exit(int status)
 	CURR_PROC->status = status;
 
 	thread_exit();
+
+	return 0;
 }
 
 static void process_entry_thread(void *ctx)
@@ -453,7 +427,7 @@ int process_wait(struct process *p, void *sync)
 		notifier_register(&p->death_notifier, object_wait_notifier, sync);
 		rc = 0;
 	} else {
-		DEBUG(DL_INF, ("process(%d) dead.", p->id));
+		DEBUG(DL_INF, ("process(%s:%d) dead.", p->name, p->id));
 		rc = -1;
 	}
 
@@ -531,7 +505,7 @@ int process_replace(const char *path, const char *args[])
 	return -1;
 }
 
-int process_getpid()
+int process_getid()
 {
 	return CURR_PROC->id;
 }
