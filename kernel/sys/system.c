@@ -3,7 +3,10 @@
 #include <stdarg.h>
 #include <string.h>
 #include "sys/time.h"
+#include "matrix/matrix.h"
 #include "matrix/debug.h"
+#include "list.h"
+#include "hal/cpu.h"
 #include "proc/process.h"
 #include "mm/malloc.h"
 #include "system.h"
@@ -22,11 +25,19 @@ void load_modules()
 void sys_init_thread(void *ctx)
 {
 	int rc = -1;
+	struct list *l;
+	struct cpu *c;
 	const char *init_argv[] = {
 		"/init",
 		"-d",
 		NULL
 	};
+
+	/* Dump all the CPU in the system */
+	LIST_FOR_EACH(l, &_running_cpus) {
+		c = LIST_ENTRY(l, struct cpu, link);
+		dump_cpu(c);
+	}
 
 	/* Load the modules */
 	load_modules();

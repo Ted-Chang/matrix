@@ -116,7 +116,7 @@ static void move_stack(uint32_t new_stack, uint32_t size)
 }
 
 /**
- * Construct a process
+ * Process constructor for slab allocator
  */
 static void process_ctor(void *obj)
 {
@@ -136,7 +136,7 @@ static void process_ctor(void *obj)
 }
 
 /**
- * Destruct a process
+ * Process destructor for slab allocator
  */
 static void process_dtor(void *obj)
 {

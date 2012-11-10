@@ -5,7 +5,10 @@
 
 struct spinlock {
 	atomic_t value;
+
+	/* State of the IRQ */
 	volatile boolean_t state;
+	
 	const char *name;
 };
 typedef struct spinlock spinlock_t;
@@ -18,6 +21,8 @@ static INLINE boolean_t spinlock_held(struct spinlock *lock)
 
 extern void spinlock_init(struct spinlock *lock, const char *name);
 extern void spinlock_acquire(struct spinlock *lock);
+extern void spinlock_acquire_noirq(struct spinlock *lock);
 extern void spinlock_release(struct spinlock *lock);
+extern void spinlock_release_noirq(struct spinlock *lock);
 
 #endif	/* __SPINLOCK_H__ */

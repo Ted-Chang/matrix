@@ -275,6 +275,4 @@ void init_cpu()
 	/* Get the ID of the boot CPU */
 	_boot_cpu.id = _highest_cpu_id = cpu_id();
 	_nr_cpus = 1;
-
-	dump_cpu(&_boot_cpu);
 }

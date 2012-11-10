@@ -97,6 +97,8 @@ extern void arch_thread_enter_uspace(void *entry, void *ustack);
 extern void thread_uspace_trampoline(void *ctx);
 extern int thread_create(const char *name, struct process *owner, int flags,
 			 thread_func_t func, void *args, struct thread **tp);
+extern int thread_sleep(struct spinlock *lock, useconds_t timeout,
+			const char *name, int flags);
 extern void thread_run(struct thread *t);
 extern void thread_kill(struct thread *t);
 extern void thread_release(struct thread *t);

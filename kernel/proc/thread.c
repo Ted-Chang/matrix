@@ -260,6 +260,56 @@ out:
 	return rc;
 }
 
+int thread_sleep(struct spinlock *lock, useconds_t timeout, const char *name, int flags)
+{
+	int rc = -1;
+	boolean_t state;
+
+	/* Convert an absolute expire time to a relative time */
+
+	if (!timeout) {
+		rc = -1;
+		goto cancel;
+	}
+
+	/* If interruptible and interrupted flag is set we also return error
+	 * immediately
+	 */
+	if (FLAG_ON(CURR_THREAD->flags, THREAD_INTERRUPTED_F)) {
+		CLEAR_FLAG(CURR_THREAD->flags, THREAD_INTERRUPTED_F);
+		rc = -1;
+		goto cancel;
+	}
+
+	/* We are definitely going to sleep. Get the interrupt state to restore */
+	state = lock ? lock->state : irq_disable();
+
+	/* Start the timer if required */
+	if (timeout > 0) {
+		;
+	}
+
+	/* Release the specified lock */
+	if (lock) {
+		spinlock_release_noirq(lock);
+	}
+
+	/* Set the current thread to sleeping, it will be removed from runq by
+	 * sched_reschedule()
+	 */
+	CURR_THREAD->state = THREAD_SLEEPING;
+	sched_reschedule(state);
+	
+	return CURR_THREAD->sleep_status;
+
+cancel:
+	list_del(&CURR_THREAD->wait_link);
+	if (lock) {
+		spinlock_release(lock);
+	}
+	return rc;
+}
+
 void thread_run(struct thread *t)
 {
 	ASSERT(t->state == THREAD_CREATED);

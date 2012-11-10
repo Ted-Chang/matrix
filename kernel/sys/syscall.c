@@ -261,53 +261,6 @@ out:
 	return rc;
 }
 
-int fork()
-{
-	return 0;
-}
-
-int execve(const char *filename, const char *argv[], const char *envp[])
-{
-	int rc = -1, i, j;
-	char **args;
-
-	if (!filename || !argv || !argv[0]) {
-		goto out;
-	}
-
-	/* Get number of arguments */
-	i = 0;
-	while (argv[i]) {
-		i++;
-	}
-	
-	args = kmalloc(sizeof(char *) * i, 0);
-	if (!args) {
-		goto out;
-	}
-	memset(args, 0, sizeof(char *) * i);
-
-	for (j = 0; j < i; j++) {
-		args[j] = kmalloc((strlen(argv[j]) + 1) * sizeof(char), 0);
-		if (!args[j]) {
-			goto out;
-		}
-		strcpy(args[j], argv[j]);
-	}
-
-	//rc = exec(filename, i, args);
-	
-out:
-	/* Free the arguments */
-	for (j = 0; j < i; j++) {
-		if (args[j]) {
-			kfree(args[j]);
-		}
-	}
-	
-	return rc;
-}
-
 int gethostname(char *name, size_t len)
 {
 	int rc = -1;
@@ -380,24 +333,20 @@ int sleep(uint32_t ms)
 	return 0;
 }
 
-int create_process(const char *path, char *args, int flags, int priority)
+int create_process(const char *path, char *args[], int flags, int priority)
 {
 	int rc = -1;
 	struct process *p;
-	const char **argv = (const char **)kmalloc(sizeof(char *) * 2, 0);
 
-	if (!argv) {
-		DEBUG(DL_DBG, ("kmalloc argv failed.\n"));
+	if (!path) {
+		DEBUG(DL_DBG, ("invalid arguments.\n"));
 		goto out;
 	}
-	
-	argv[0] = path;
-	argv[1] = args;
 
 	p = NULL;
 	
 	/* By default we all use kernel process as the parent process */
-	rc = process_create(argv, _kernel_proc, 0, 16, &p);
+	rc = process_create(args, _kernel_proc, 0, 16, &p);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("process_create failed, err(%d).\n", rc));
 		goto out;
@@ -406,10 +355,6 @@ int create_process(const char *path, char *args, int flags, int priority)
 	rc = p->id;
 
 out:
-	if (argv) {
-		kfree(argv);
-	}
-	
 	return rc;
 }
 

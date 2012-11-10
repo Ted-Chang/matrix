@@ -224,8 +224,9 @@ void sched_reschedule(boolean_t state)
 			sched_enqueue(c->active, CURR_THREAD);
 		}
 	} else {
-		DEBUG(DL_DBG, ("t(%s:%d), state(%d).\n",
-			       CURR_THREAD->name, CURR_THREAD->id, CURR_THREAD->state));
+		DEBUG(DL_DBG, ("thread(%s:%s:%d), state(%d).\n",
+			       CURR_PROC->name, CURR_THREAD->name, CURR_THREAD->id,
+			       CURR_THREAD->state));
 		ASSERT(CURR_THREAD != c->idle_thread);
 		c->total--;
 		atomic_dec(&_nr_running_threads);

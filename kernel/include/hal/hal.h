@@ -114,6 +114,7 @@ extern uint8_t inportb(uint16_t port);
 extern uint16_t inportw(uint16_t port);
 extern boolean_t irq_enable();
 extern boolean_t irq_disable();
+extern boolean_t irq_state();
 extern void irq_restore(boolean_t state);
 extern void irq_done(uint32_t int_no);
 extern void set_kernel_stack(void *stack);

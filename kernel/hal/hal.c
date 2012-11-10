@@ -59,6 +59,17 @@ boolean_t irq_disable()
 }
 
 /*
+ * Get current interrupt state
+ */
+boolean_t irq_state()
+{
+	unsigned long flags;
+
+	asm volatile("pushf; pop %0" : "=r"(flags));
+	return (flags & (1<<9)) ? TRUE : FALSE;
+}
+
+/*
  * Restore the hardware interrupts
  */
 void irq_restore(boolean_t state)

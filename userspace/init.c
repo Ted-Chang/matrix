@@ -50,7 +50,7 @@ void start_crond()
 		NULL
 	};
 
-	rc = create_process(crond, NULL, 0, 16);
+	rc = create_process(crond[0], crond, 0, 16);
 	if (rc == -1) {
 		printf("create_process failed.\n");
 		goto out;
