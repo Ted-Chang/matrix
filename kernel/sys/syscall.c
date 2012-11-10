@@ -380,6 +380,26 @@ int sleep(uint32_t ms)
 	return 0;
 }
 
+int create_process(const char *path, char *args, int flags, int priority)
+{
+	int rc = -1;
+	struct process *p;
+
+	p = NULL;
+	
+	/* By default we all use kernel process as the parent process */
+	rc = process_create(path, _kernel_proc, 0, 16, &p);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("process_create failed, err(%d).\n", rc));
+		goto out;
+	}
+
+	rc = p->id;
+
+out:
+	return rc;
+}
+
 int waitpid(int pid)
 {
 	int rc = -1;
@@ -434,8 +454,6 @@ static void *_syscalls[] = {
 	lstat,
 	chdir,
 	mkdir,
-	execve,
-	fork,
 	gethostname,
 	sethostname,
 	getuid,
@@ -444,6 +462,7 @@ static void *_syscalls[] = {
 	setgid,
 	getpid,
 	sleep,
+	create_process,
 	waitpid,
 	NULL
 };

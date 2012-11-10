@@ -208,8 +208,8 @@ void mmu_switch_ctx(struct mmu_ctx *ctx)
 
 		state = irq_disable();
 
-		DEBUG(DL_DBG, ("mmu(%p->%p).\n",
-			       CURR_ASPACE, ctx));
+		//DEBUG(DL_DBG, ("mmu(%p->%p).\n",
+		//	       CURR_ASPACE, ctx));
 	
 		/* Update the current mmu context */
 		CURR_ASPACE = ctx;

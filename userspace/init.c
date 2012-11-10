@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 	uid_t uid;
 	gid_t gid;
 
-	printf("init process started.\n");
+	printf("init: process started.\n");
 
 	memset(buf, 0, 256);
 	rc = gethostname(buf, 255);
@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 	announce();
 
 	/* Start the cron daemon */
-	//start_crond();
+	start_crond();
 	
 	while (TRUE) {
 		printf("init: sleeping...\n");
@@ -44,22 +44,22 @@ int main(int argc, char **argv)
 
 void start_crond()
 {
-	int pid, status;
+	int rc, status;
 	char *crond[] = {
 		"/crond",
 		NULL
 	};
 
-	pid = fork();
-	if (pid == 0) {
-		printf("start_crond: fork in child.\n");
-		execve(crond[0], crond, NULL);
-	} else {
-		printf("start_crond: fork in parent.\n");
-		status = 0;
-		pid = waitpid(pid, &status, 0);
-		printf("start_crond: waitpid pid(%d).\n", pid);
+	rc = create_process(crond, NULL, 0, 16);
+	if (rc == -1) {
+		printf("create_process failed.\n");
+		goto out;
 	}
+
+	printf("crond started, process id(%d).\n", rc);
+
+out:
+	return;
 }
 
 void announce()

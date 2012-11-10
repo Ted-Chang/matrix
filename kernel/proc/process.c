@@ -155,6 +155,8 @@ static void process_ctor(void *obj)
 	/* Initialize the signature */
 	p->ref_count = 0;
 
+	LIST_INIT(&p->threads);
+
 	/* Initialize the death notifier */
 	init_notifier(&p->death_notifier);
 
@@ -284,9 +286,11 @@ void process_detach(struct thread *t)
 void process_exit(int status)
 {
 	struct thread *t;
-	struct list *l, *p;
+	struct list *l;
+
+	DEBUG(DL_DBG, ("process(%s:%d).\n", CURR_PROC->name, CURR_PROC->id));
 	
-	LIST_FOR_EACH_SAFE(l, p, &CURR_PROC->threads) {
+	LIST_FOR_EACH(l, &CURR_PROC->threads) {
 		t = LIST_ENTRY(l, struct thread, owner_link);
 		if (t != CURR_THREAD) {
 			thread_kill(t);

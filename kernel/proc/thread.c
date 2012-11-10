@@ -270,6 +270,8 @@ void thread_run(struct thread *t)
 
 void thread_kill(struct thread *t)
 {
+	DEBUG(DL_DBG, ("killing thread(%s:%d).\n", t->name, t->id));
+	
 	if (t->owner != _kernel_proc) {
 		thread_interrupt_internal(t, THREAD_KILLED_F);
 	}

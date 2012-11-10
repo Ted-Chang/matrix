@@ -22,17 +22,16 @@ DEFN_SYSCALL3(lseek, 9, int, int, int)
 DEFN_SYSCALL2(lstat, 10, int, void *)
 DEFN_SYSCALL1(chdir, 11, const char *)
 DEFN_SYSCALL2(mkdir, 12, const char *, uint32_t)
-DEFN_SYSCALL3(execve, 13, const char *, const char **, const char **)
-DEFN_SYSCALL0(fork, 14)
-DEFN_SYSCALL2(gethostname, 15, char *, size_t)
-DEFN_SYSCALL2(sethostname, 16, const char *, size_t)
-DEFN_SYSCALL0(getuid, 17)
-DEFN_SYSCALL1(setuid, 18, uint32_t)
-DEFN_SYSCALL0(getgid, 19)
-DEFN_SYSCALL1(setgid, 20, uint32_t)
-DEFN_SYSCALL0(getpid, 21)
-DEFN_SYSCALL1(sleep, 22, uint32_t)
-DEFN_SYSCALL1(waitpid, 23, int)
+DEFN_SYSCALL2(gethostname, 13, char *, size_t)
+DEFN_SYSCALL2(sethostname, 14, const char *, size_t)
+DEFN_SYSCALL0(getuid, 15)
+DEFN_SYSCALL1(setuid, 16, uint32_t)
+DEFN_SYSCALL0(getgid, 17)
+DEFN_SYSCALL1(setgid, 18, uint32_t)
+DEFN_SYSCALL0(getpid, 19)
+DEFN_SYSCALL1(sleep, 20, uint32_t)
+DEFN_SYSCALL4(create_process, 21, const char *, char *, int, int)
+DEFN_SYSCALL1(waitpid, 22, int)
 
 
 int open(const char *file, int flags, int mode)
@@ -95,16 +94,6 @@ int mkdir(const char *path, int mode)
 	return mtx_mkdir(path, mode);
 }
 
-int execve(const char *filename, const char *argv[], const char *envp[])
-{
-	return mtx_execve(filename, argv, envp);
-}
-
-int fork()
-{
-	return mtx_fork();
-}
-
 int gethostname(char *name, size_t len)
 {
 	return mtx_gethostname(name, len);
@@ -143,6 +132,11 @@ int getpid()
 int sleep(int ms)
 {
 	return mtx_sleep(ms);
+}
+
+int create_process(const char *path, char *args, int flags, int priority)
+{
+	return mtx_create_process(path, args, flags, priority);
 }
 
 pid_t wait(int *status)

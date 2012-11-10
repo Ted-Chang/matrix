@@ -67,8 +67,6 @@ DECL_SYSCALL3(lseek, int, int, int);
 DECL_SYSCALL2(lstat, int, void *);
 DECL_SYSCALL1(chdir, const char *);
 DECL_SYSCALL2(mkdir, const char *, uint32_t);
-DECL_SYSCALL3(execve, const char *, const char **, const char **);
-DECL_SYSCALL0(fork);
 DECL_SYSCALL2(gethostname, char *, size_t);
 DECL_SYSCALL2(sethostname, const char *, size_t);
 DECL_SYSCALL0(getuid);
@@ -77,6 +75,7 @@ DECL_SYSCALL0(getgid);
 DECL_SYSCALL1(setgid, uint32_t);
 DECL_SYSCALL0(getpid);
 DECL_SYSCALL1(sleep, uint32_t);
+DECL_SYSCALL4(create_process, const char *, char *, int, int);
 DECL_SYSCALL1(wait, int)
 /* System call declaration end */
 
