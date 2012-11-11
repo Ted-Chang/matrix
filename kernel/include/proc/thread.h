@@ -1,7 +1,6 @@
 #ifndef __THREAD_H__
 #define __THREAD_H__
 
-#include <types.h>
 #include "list.h"
 #include "matrix/const.h"
 #include "hal/cpu.h"

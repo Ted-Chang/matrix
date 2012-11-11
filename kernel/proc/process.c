@@ -18,6 +18,7 @@
 #include "proc/thread.h"
 #include "elf.h"
 #include "object.h"
+#include "semaphore.h"
 
 struct process_creation {
 	/* Arguments provided by the caller */
@@ -143,6 +144,26 @@ static void process_dtor(void *obj)
 	DEBUG(DL_DBG, ("process (%p) destructed.\n", obj));
 }
 
+static void process_release(struct process *p)
+{
+	if (atomic_dec(&p->ref_count) == 0) {
+		process_destroy(p);
+	}
+}
+
+static void process_cleanup(struct process *p)
+{
+	if (p->mmu_ctx) {
+		mmu_destroy_ctx(p->mmu_ctx);
+		p->mmu_ctx = NULL;
+	}
+	
+	if (p->fds) {
+		fd_table_destroy(p->fds);
+		p->fds = NULL;
+	}
+}
+
 static int process_alloc(const char *name, struct process *parent, struct mmu_ctx *mmu,
 			 int flags, int priority, struct fd_table *fds,
 			 struct process **procp)
@@ -234,6 +255,7 @@ void process_attach(struct process *p, struct thread *t)
 	t->owner = p;
 	ASSERT(p->state != PROCESS_DEAD);
 	list_add_tail(&t->owner_link, &p->threads);
+	atomic_inc(&p->ref_count);
 }
 
 /**
@@ -250,25 +272,33 @@ void process_detach(struct thread *t)
 	if (LIST_EMPTY(&p->threads)) {
 		ASSERT(p->state != PROCESS_DEAD);
 		p->state = PROCESS_DEAD;
+		process_cleanup(p);
+
+		/* Run the death notifier */
+		notifier_run(&p->death_notifier);
 	}
 	
 	t->owner = NULL;
+	process_release(p);
 }
 
 int process_exit(int status)
 {
 	struct thread *t;
 	struct list *l;
+	size_t n = 0;
 
-	DEBUG(DL_DBG, ("process(%s:%d).\n", CURR_PROC->name, CURR_PROC->id));
-	
 	LIST_FOR_EACH(l, &CURR_PROC->threads) {
 		t = LIST_ENTRY(l, struct thread, owner_link);
 		if (t != CURR_THREAD) {
 			thread_kill(t);
 		}
+		n++;
 	}
 
+	DEBUG(DL_DBG, ("process(%s:%d), n(%d).\n", CURR_PROC->name,
+		       CURR_PROC->id, n));
+	
 	CURR_PROC->status = status;
 
 	thread_exit();
@@ -417,14 +447,24 @@ int process_destroy(struct process *proc)
 	return 0;
 }
 
+static void process_wait_notifier(void *ctx)
+{
+	struct semaphore *s;
+
+	s = (struct semaphore *)ctx;
+	semaphore_up(s, 1);
+}
+
 int process_wait(struct process *p, void *sync)
 {
 	int rc = -1;
 	boolean_t state;
 
+	DEBUG(DL_DBG, ("process(%s:%d:%d)\n", p->name, p->id, p->state));
+	
 	if (p->state != PROCESS_DEAD) {
 		/* Register us to the death notifier of the specified process */
-		notifier_register(&p->death_notifier, object_wait_notifier, sync);
+		notifier_register(&p->death_notifier, process_wait_notifier, sync);
 		rc = 0;
 	} else {
 		DEBUG(DL_INF, ("process(%s:%d) dead.", p->name, p->id));

@@ -127,6 +127,10 @@ void set_timer(struct timer *t, useconds_t expire_time, timer_func_t callback)
 	t->cpu = CURR_CPU;
 	
 	tmrs_settimer(&CURR_CPU->timers, t, expire_time, callback);
+
+#ifdef _DEBUG_SCHED
+	DEBUG(DL_DBG, ("name(%s), expire_time(%lld).\n", t->name, t->expire_time));
+#endif	/* _DEBUG_SCHED */
 }
 
 void cancel_timer(struct timer *t)

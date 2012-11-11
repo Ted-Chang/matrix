@@ -367,6 +367,7 @@ void thread_kill(struct thread *t)
 void thread_release(struct thread *t)
 {
 	void *kstack;
+	struct process *p;
 
 	if (atomic_dec(&t->ref_count) > 0) {
 		return;
@@ -378,12 +379,15 @@ void thread_release(struct thread *t)
 	ASSERT((t->state == THREAD_CREATED) || (t->state == THREAD_DEAD));
 	ASSERT(LIST_EMPTY(&t->runq_link));
 
+	p = t->owner;
+
 	/* Detach from its owner */
 	process_detach(t);
 
 	/* Cleanup the thread */
 	kstack = (void *)((uint32_t)t->kstack - KSTACK_SIZE);
-	DEBUG(DL_DBG, ("kstack(%p).\n", kstack));
+	DEBUG(DL_DBG, ("process(%s:%d:%d), kstack(%p).\n", p->name,
+		       p->id, p->state, kstack));
 
 	kfree(kstack);
 

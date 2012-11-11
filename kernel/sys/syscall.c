@@ -6,18 +6,19 @@
 #include <string.h>
 #include "sys/time.h"
 #include "hal/hal.h"
-#include "hal/isr.h"	// register_irq_handler
+#include "hal/isr.h"
 #include "mm/malloc.h"
-#include "util.h"	// putstr
+#include "util.h"
 #include "dirent.h"
 #include "sys/stat.h"
 #include "proc/process.h"
 #include "matrix/matrix.h"
-#include "div64.h"	// do_div
+#include "div64.h"
 #include "matrix/debug.h"
 #include "fd.h"
 #include "timer.h"
-#include "clock.h"	// get_cmostime
+#include "clock.h"
+#include "semaphore.h"
 
 #define MAX_HOSTNAME_LEN	256
 
@@ -362,6 +363,7 @@ int waitpid(int pid)
 {
 	int rc = -1;
 	struct process *proc;
+	struct semaphore *s;
 	
 	if (pid < 1) {
 		DEBUG(DL_DBG, ("group wait not supported, pid(%d).\n", pid));
@@ -376,12 +378,23 @@ int waitpid(int pid)
 		goto out;
 	}
 
+	/* Allocate semaphore */
+	s = kmalloc(sizeof(struct semaphore), 0);
+	if (!s) {
+		DEBUG(DL_DBG, ("kmalloc semaphore failed.\n"));
+		goto out;
+	}
+	semaphore_init(s, "waitpid-sem", 0);
+
 	/* Put the current process into the wait queue of proc */
-	rc = process_wait(proc, NULL);
+	rc = process_wait(proc, s);
 	if (rc != 0) {
 		DEBUG(DL_INF, ("process_wait failed, proc(%p).\n", proc));
 		goto out;
 	}
+
+	/* Make current thread goto sleep */
+	semaphore_down(s);
 
 	rc = proc->status;
 
