@@ -8,6 +8,7 @@
 #include "hal/spinlock.h"
 #include "avltree.h"
 #include "notifier.h"
+#include "timer.h"
 
 struct process;
 
@@ -65,7 +66,8 @@ struct thread {
 
 	/* Sleeping information */
 	struct list wait_link;		// Link to a waiting list
-	int sleep_status;
+	struct timer sleep_timer;	// Sleep timeout timer
+	int sleep_status;		// Sleep status (timed out/interrupted)
 
 	/* Reference count for the thread */
 	int ref_count;
@@ -102,6 +104,7 @@ extern int thread_sleep(struct spinlock *lock, useconds_t timeout,
 extern void thread_run(struct thread *t);
 extern void thread_kill(struct thread *t);
 extern void thread_release(struct thread *t);
+extern void thread_wake(struct thread *t);
 extern void thread_exit();
 extern void init_thread();
 

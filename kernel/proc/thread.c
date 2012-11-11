@@ -162,10 +162,15 @@ static void thread_ctor(void *obj)
 {
 	struct thread *t = (struct thread *)obj;
 
+	spinlock_init(&t->lock, "t-lock");
+	
 	t->ref_count = 0;
 	
 	LIST_INIT(&t->runq_link);
 	LIST_INIT(&t->wait_link);
+	LIST_INIT(&t->owner_link);
+
+	init_timer(&t->sleep_timer, "t-slp-tmr", t);
 
 	/* Initialize the death notifier */
 	init_notifier(&t->death_notifier);
@@ -180,13 +185,40 @@ static boolean_t thread_interrupt_internal(struct thread *t, int flags)
 {
 	boolean_t ret = FALSE;
 	
-	if ((t->state == THREAD_SLEEPING) && (t->flags & THREAD_INTERRUPTIBLE_F)) {
+	if ((t->state == THREAD_SLEEPING) &&
+	    FLAG_ON(t->flags, THREAD_INTERRUPTIBLE_F)) {
 		ret = TRUE;
 	} else {
-		t->flags |= THREAD_INTERRUPTIBLE_F;
+		SET_FLAG(t->flags, THREAD_INTERRUPTIBLE_F);
 	}
 
 	return ret;
+}
+
+static void thread_wake_internal(struct thread *t)
+{
+	ASSERT(t->state == THREAD_SLEEPING);
+
+	/* Stop the timer */
+	cancel_timer(&t->sleep_timer);
+
+	/* Remove the thread from the list and wake it up */
+	list_del(&t->wait_link);
+	CLEAR_FLAG(t->flags, THREAD_INTERRUPTIBLE_F);
+
+	t->state = THREAD_READY;
+	sched_insert_thread(t);
+}
+
+static void thread_timeout(void *ctx)
+{
+	struct thread *t = ctx;
+
+	/* The thread could have been woken up already by another CPU */
+	if (t->state == THREAD_SLEEPING) {
+		t->sleep_status = -1;
+		thread_wake_internal(t);
+	}
 }
 
 int thread_create(const char *name, struct process *owner, int flags,
@@ -286,7 +318,7 @@ int thread_sleep(struct spinlock *lock, useconds_t timeout, const char *name, in
 
 	/* Start the timer if required */
 	if (timeout > 0) {
-		;
+		set_timer(&CURR_THREAD->sleep_timer, timeout, thread_timeout);
 	}
 
 	/* Release the specified lock */
@@ -308,6 +340,11 @@ cancel:
 		spinlock_release(lock);
 	}
 	return rc;
+}
+
+void thread_wake(struct thread *t)
+{
+	thread_wake_internal(t);
 }
 
 void thread_run(struct thread *t)
@@ -359,7 +396,6 @@ void thread_exit()
 
 	if (CURR_THREAD->ustack_size) {
 		/* TODO: Unmap the user mode stack */
-		;
 	}
 
 	notifier_run(&CURR_THREAD->death_notifier);

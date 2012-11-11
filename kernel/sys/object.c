@@ -2,7 +2,17 @@
 #include <stddef.h>
 #include "object.h"
 
-void object_wait_notifier(void *sync)
+/* Object waiting internal data structure */
+struct object_wait_sync {
+	;
+};
+
+void object_wait_signal(void *sync)
 {
 	;
+}
+
+void object_wait_notifier(void *data)
+{
+	object_wait_signal(data);
 }

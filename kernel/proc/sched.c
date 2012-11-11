@@ -363,7 +363,7 @@ void init_sched_percpu()
 	CURR_CPU->thread = CURR_CPU->sched->idle_thread;
 	
 	/* Create the preemption timer */
-	init_timer(&CURR_CPU->sched->timer, "sched-timer");
+	init_timer(&CURR_CPU->sched->timer, "sched-tmr", NULL);
 
 	/* Initialize queues */
 	for (i = 0; i < 2; i++) {

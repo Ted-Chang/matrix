@@ -94,7 +94,7 @@ boolean_t tmrs_exptimers(struct list *head, useconds_t now)
 		t = LIST_ENTRY(l, struct timer, link);
 		if (t->expire_time <= now) {
 			list_del(&t->link);
-			t->func(t);
+			t->func(t->data);
 			preempt = TRUE;
 		} else {
 			/* As our timer list is ordered, so just break if we have
@@ -107,14 +107,15 @@ boolean_t tmrs_exptimers(struct list *head, useconds_t now)
 	return preempt;
 }
 
-void init_timer(struct timer *t, const char *name)
+void init_timer(struct timer *t, const char *name, void *data)
 {
 	ASSERT(t != NULL);
 	
 	LIST_INIT(&t->link);
 	t->expire_time = TIMER_NEVER;
 	t->func = NULL;
-	t->args = NULL;
+	t->data = NULL;
+	t->data = data;
 	strncpy(t->name, name, 15);
 	t->name[15] = 0;
 }

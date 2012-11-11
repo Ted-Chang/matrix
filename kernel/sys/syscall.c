@@ -384,7 +384,6 @@ int waitpid(int pid)
 	}
 
 	rc = proc->status;
-	// TODO: destroy the process
 
 out:
 	return rc;
