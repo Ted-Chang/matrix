@@ -18,7 +18,7 @@
 #define NR_PRIORITIES	32
 
 /* Time quantum to give to threads */
-#define THREAD_QUANTUM	32
+#define THREAD_QUANTUM	4000
 
 /* Run queue structure */
 struct sched_queue {
@@ -237,7 +237,7 @@ void sched_reschedule(boolean_t state)
 	 */
 	next = sched_pick_thread(c);
 	if (next) {
-		next->quantum = P_QUANTUM;
+		next->quantum = THREAD_QUANTUM;
 	} else {
 		next = c->idle_thread;
 		if (next != CURR_THREAD) {

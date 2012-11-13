@@ -23,10 +23,10 @@ const char *dbglevel_string(uint32_t level)
 	return _dbglevel_string[level];
 }
 
-void panic(const char *message, const char *file, uint32_t line)
+void panic(const char *file, uint32_t line, const char *msg)
 {
 	irq_disable();	// Disable all interrupts
-	kprintf("PANIC(%s) at %s:%d\n", message, file, line);
+	kprintf("PANIC(%s) at %s:%d\n", msg, file, line);
 	for (; ; ) ;
 }
 

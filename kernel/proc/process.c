@@ -80,7 +80,7 @@ static void move_stack(uint32_t new_stack, uint32_t size)
 	new_esp = old_esp + offset;
 	new_ebp = old_ebp + offset;
 
-	DEBUG(DL_DBG, ("move_stack: move stack to new address.\n"
+	DEBUG(DL_DBG, ("move stack to new address.\n"
 		       "- old_esp(0x%x), old_ebp(0x%x)\n"
 		       "- new_esp(0x%x), new_ebp(0x%x)\n"
 		       "- _initial_esp(0x%x)\n",

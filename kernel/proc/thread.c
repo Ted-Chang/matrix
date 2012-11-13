@@ -297,8 +297,6 @@ int thread_sleep(struct spinlock *lock, useconds_t timeout, const char *name, in
 	int rc = -1;
 	boolean_t state;
 
-	/* Convert an absolute expire time to a relative time */
-
 	if (!timeout) {
 		rc = -1;
 		goto cancel;

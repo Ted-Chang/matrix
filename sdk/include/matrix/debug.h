@@ -23,7 +23,7 @@
 	} while (0)
 
 
-#define PANIC(msg)	panic(msg, __FILE__, __LINE__)
+#define PANIC(msg)	panic(__FILE__, __LINE__, msg)
 
 #define ASSERT(b)	((b) ? (void)0: panic_assert(__FILE__, __LINE__, #b))
 
@@ -31,7 +31,7 @@
 extern uint32_t _debug_level;
 
 extern const char *dbglevel_string(uint32_t level);
-extern void panic(const char *message, const char *file, uint32_t line);
+extern void panic(const char *file, uint32_t line, const char *msg);
 extern void panic_assert(const char *file, uint32_t line, const char *desc);
 
 #endif	/* __DEBUG_H__ */
