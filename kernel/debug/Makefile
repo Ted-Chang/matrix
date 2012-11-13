@@ -6,6 +6,8 @@ OBJ := ../../bin/obji386
 
 TARGETOBJ := $(OBJ)/debug.o \
 	$(OBJ)/kd.o \
+	$(OBJ)/dbgheap.o \
+	$(OBJ)/symbol.o \
 
 .PHONY: clean help
 

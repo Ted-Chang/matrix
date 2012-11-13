@@ -45,7 +45,7 @@ int kmain(u_long addr, uint32_t initial_stack)
 	uint32_t initrd_end;
 
 	/* Make the debugger available as soon as possible */
-	kd_init();
+	init_kd();
 
 	/* Clear the screen */
 	clear_scr();

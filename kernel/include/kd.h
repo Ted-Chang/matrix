@@ -12,6 +12,6 @@ typedef int (*kd_cmd_t)(int argc, char **argv, kd_filter_t *filter);
 
 extern void kd_register_cmd(const char *name, const char *desc, kd_cmd_t func);
 extern void kd_unregister_cmd(const char *name);
-extern void kd_init();
+extern void init_kd();
 
 #endif	/* __KD_H__ */
