@@ -153,7 +153,7 @@ static void sched_adjust_priority(struct sched_cpu *c, struct thread *t)
 	;
 }
 
-static void sched_timer_func(struct timer *t)
+static void sched_timer_func(void *ctx)
 {
 	CURR_THREAD->quantum = 0;
 }

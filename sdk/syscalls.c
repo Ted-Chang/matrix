@@ -30,7 +30,7 @@ DEFN_SYSCALL0(getgid, 17)
 DEFN_SYSCALL1(setgid, 18, uint32_t)
 DEFN_SYSCALL0(getpid, 19)
 DEFN_SYSCALL1(sleep, 20, uint32_t)
-DEFN_SYSCALL4(create_process, 21, const char *, char **, int, int)
+DEFN_SYSCALL4(create_process, 21, const char *, const char **, int, int)
 DEFN_SYSCALL1(waitpid, 22, int)
 
 
@@ -134,7 +134,7 @@ int sleep(int ms)
 	return mtx_sleep(ms);
 }
 
-int create_process(const char *path, char *args[], int flags, int priority)
+int create_process(const char *path, const char *args[], int flags, int priority)
 {
 	return mtx_create_process(path, args, flags, priority);
 }

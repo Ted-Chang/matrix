@@ -9,7 +9,6 @@ TARGETOBJ := \
 	$(OBJ)/clock.o \
 	$(OBJ)/timer.o \
 	$(OBJ)/syscall.o \
-	$(OBJ)/system.o \
 	$(OBJ)/util.o \
 	$(OBJ)/fd.o \
 	$(OBJ)/notifier.o \

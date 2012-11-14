@@ -334,7 +334,7 @@ int sleep(uint32_t ms)
 	return 0;
 }
 
-int create_process(const char *path, char *args[], int flags, int priority)
+int create_process(const char *path, const char *args[], int flags, int priority)
 {
 	int rc = -1;
 	struct process *p;

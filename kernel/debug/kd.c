@@ -43,6 +43,20 @@ void arch_init_kd()
 	// Do nothing here
 }
 
+void kd_vprintf(const char *fmt, va_list args)
+{
+	;
+}
+
+void kd_printf(const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	kd_vprintf(fmt, args);
+	va_end(args);
+}
+
 void *kd_malloc(size_t size)
 {
 	void *ret;
@@ -63,20 +77,6 @@ void *kd_malloc(size_t size)
 void kd_free(void *addr)
 {
 	dbg_heap_free(&_kd_heap, addr);
-}
-
-void kd_vprintf(const char *fmt, va_list args)
-{
-	;
-}
-
-void kd_printf(const char *fmt, ...)
-{
-	va_list args;
-
-	va_start(args, fmt);
-	kd_vprintf(fmt, args);
-	va_end(args);
 }
 
 static int kd_cmd_help(int argc, char **argv, kd_filter_t *filter)

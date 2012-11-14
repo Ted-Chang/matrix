@@ -267,6 +267,7 @@ static INLINE void cpu_idle()
 	asm volatile("sti;hlt;cli");
 }
 
+extern void dump_cpu(struct cpu *c);
 extern void preinit_cpu_percpu();
 extern void preinit_cpu();
 extern void init_cpu_percpu();
