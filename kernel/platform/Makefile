@@ -5,19 +5,8 @@ include ../Makefile.inc
 OBJ := ../../bin/obji386
 
 TARGETOBJ := \
-	$(OBJ)/exceptn.o \
-	$(OBJ)/clock.o \
-	$(OBJ)/timer.o \
-	$(OBJ)/syscall.o \
-	$(OBJ)/system.o \
-	$(OBJ)/util.o \
-	$(OBJ)/fd.o \
-	$(OBJ)/notifier.o \
-	$(OBJ)/mutex.o \
-	$(OBJ)/semaphore.o \
-	$(OBJ)/elf.o \
-	$(OBJ)/object.o \
-	$(OBJ)/avltree.o \
+	$(OBJ)/rtc.o \
+	$(OBJ)/platform.o \
 
 .PHONY: clean help
 

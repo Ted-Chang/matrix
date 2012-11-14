@@ -18,7 +18,7 @@ include Makefile.inc
 AUXFILES := Makefile README
 
 # Define modules in the project.
-MODULES := hal libc mm sys fs proc init ../drivers debug
+MODULES := hal libc mm sys fs proc platform init ../drivers debug
 
 # Define target file
 TARGET := ../bin/matrix
@@ -35,7 +35,7 @@ LDFLAGS := -melf_i386 -TLink.ld
 all: $(TARGET)
 	@echo "Making default target."
 
-$(TARGET): hal_module libc_module debug_module mm_module sys_module proc_module drivers_module fs_module init_module
+$(TARGET): hal_module libc_module debug_module mm_module sys_module proc_module drivers_module fs_module platform_module init_module
 	$(LD) $(LDFLAGS) -Map ../bin/matrix.map -o $(TARGET) $(OBJ)/*.o
 
 hal_module:
@@ -61,6 +61,9 @@ drivers_module:
 
 proc_module:
 	@cd proc && $(MAKE) $(MAKEFLAGS)
+
+platform_module:
+	@cd platform && $(MAKE) $(MAKEFLAGS)
 
 init_module:
 	@cd init && $(MAKE) $(MAKEFLAGS)

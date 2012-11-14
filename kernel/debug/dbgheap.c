@@ -1,5 +1,6 @@
 #include <types.h>
 #include <stddef.h>
+#include "matrix/matrix.h"
 #include "matrix/debug.h"
 #include "dbgheap.h"
 
@@ -50,7 +51,7 @@ void *dbg_heap_alloc(struct dbg_heap *heap, size_t size)
 
 		/* Mark as allocated */
 		tag->data |= (1 << 0);
-		return (void *)((u_char *)tag + sizeof(struct dbg_heap_tag))
+		return (void *)((u_char *)tag + sizeof(struct dbg_heap_tag));
 	}
 	
 	return NULL;
