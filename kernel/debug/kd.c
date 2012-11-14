@@ -1,6 +1,7 @@
 #include <types.h>
 #include <stddef.h>
 #include <stdarg.h>
+#include <string.h>
 #include "matrix/matrix.h"
 #include "matrix/debug.h"
 #include "list.h"
@@ -15,6 +16,9 @@
 /* Kernel debugger heap size */
 #define KD_HEAP_SIZE	0x4000
 
+/* Maximum number of arguments to a function */
+#define KD_MAX_ARGS	16
+
 /* KD command descriptor */
 struct kd_cmd_desc {
 	struct list link;		// Link to the command list
@@ -23,6 +27,22 @@ struct kd_cmd_desc {
 	kd_cmd_t func;			// Command handler function
 };
 typedef struct kd_cmd_desc kd_cmd_desc_t;
+
+/* KD command argument */
+struct kd_args {
+	struct list link;		// For internal use
+	int count;			// Number of arguments
+	char *args[KD_MAX_ARGS];	// Array of arguments
+};
+typedef struct kd_args kd_args_t;
+
+/* Structure containing parsed line information */
+struct kd_line {
+	struct kd_args call;		// Primary command call
+	struct list filters;		// List of filter commands
+	int filter_count;		// Number of filters
+};
+typedef struct kd_line kd_line_t;
 
 /* Whether KD is currently running on any CPU */
 atomic_t _kd_running = 0;
@@ -41,6 +61,21 @@ static struct spinlock _kd_cmds_lock;
 void arch_init_kd()
 {
 	// Do nothing here
+}
+
+static kd_cmd_desc_t *lookup_cmd(const char *name)
+{
+	kd_cmd_desc_t *cmd;
+	struct list *l;
+
+	LIST_FOR_EACH(l, &_kd_cmds) {
+		cmd = LIST_ENTRY(l, kd_cmd_desc_t, link);
+		if (strcmp(name, cmd->name) == 0) {
+			return cmd;
+		}
+	}
+
+	return NULL;
 }
 
 void kd_vprintf(const char *fmt, va_list args)
@@ -79,13 +114,92 @@ void kd_free(void *addr)
 	dbg_heap_free(&_kd_heap, addr);
 }
 
+static char *kd_read_line(int count)
+{
+	return NULL;
+}
+
+static boolean_t kd_parse_line(char *line, kd_line_t *data)
+{
+	return FALSE;
+}
+
+int perform_call(kd_args_t *call, kd_filter_t *filter, kd_filter_t *filter_arg)
+{
+	int rc;
+
+	rc = -1;
+
+	return rc;
+}
+
+int kd_main(int reason, u_long index)
+{
+	static u_long _nr_cmds = 0;
+	int rc = 0;
+	boolean_t state;
+	char *line;
+	kd_line_t data;
+	kd_filter_t *filter;
+	
+	/* Disable the interrupts while we're running */
+	state = irq_disable();
+
+	/* Check if we're already running. This shouldn't happen */
+	if (!atomic_tas(&_kd_running, 0, 1)) {
+		kd_printf("Multiple entries to KD.\n");
+		irq_restore(state);
+		return -1;
+	}
+
+	/* Main loop, get and process the input */
+	while (TRUE) {
+		line = kd_read_line(_nr_cmds++);
+		if (!line) {
+			kd_printf("KD: Please enter a command.\n");
+			continue;
+		}
+
+		/* Parse the line */
+		if (!kd_parse_line(line, &data)) {
+			continue;
+		}
+
+		/* Setup the filter if any */
+		if (data.filter_count) {
+			if (data.filter_count > 1) {
+				kd_printf("KD: Multiple filters not supported.\n");
+				continue;
+			}
+		} else {
+			filter = NULL;
+		}
+
+		/* Perform the main call */
+		rc = perform_call(&data.call, filter, NULL);
+		if (filter) {
+			;
+		}
+
+		/* Handle the return code */
+		if (rc == 0) {
+			;
+		}
+	}
+
+	_kd_running = 0;
+	irq_restore(state);
+
+	return rc;
+}
+
 static int kd_cmd_help(int argc, char **argv, kd_filter_t *filter)
 {
-	struct kd_cmd_desc *cmd;
+	kd_cmd_desc_t *cmd;
 	struct list *l;
 
 	LIST_FOR_EACH(l, &_kd_cmds) {
-		cmd = LIST_ENTRY(l, struct kd_cmd_desc, link);
+		cmd = LIST_ENTRY(l, kd_cmd_desc_t, link);
 		kd_printf("%s %s", cmd->name, cmd->description);
 	}
 	
@@ -100,13 +214,13 @@ static int kd_cmd_reboot(int argc, char **argv, kd_filter_t *filter)
 
 void kd_register_cmd(const char *name, const char *desc, kd_cmd_t func)
 {
-	struct kd_cmd_desc *cmd, *exist;
+	kd_cmd_desc_t *cmd, *exist;
 	struct list *l;
 	int rc;
 
 	spinlock_acquire(&_kd_cmds_lock);
 
-	cmd = kd_malloc(sizeof(struct kd_cmd_desc));
+	cmd = kd_malloc(sizeof(kd_cmd_desc_t));
 	LIST_INIT(&cmd->link);
 	cmd->name = name;
 	cmd->description = desc;
@@ -114,7 +228,7 @@ void kd_register_cmd(const char *name, const char *desc, kd_cmd_t func)
 
 	/* Keep the command list sorted alphabetically */
 	LIST_FOR_EACH(l, &_kd_cmds) {
-		exist = LIST_ENTRY(l, struct kd_cmd_desc, link);
+		exist = LIST_ENTRY(l, kd_cmd_desc_t, link);
 		rc = strcmp(name, exist->name);
 		if (rc == 0) {	// Already registered
 			kd_free(cmd);
@@ -139,7 +253,7 @@ void kd_unregister_cmd(const char *name)
 	spinlock_acquire(&_kd_cmds_lock);
 
 	LIST_FOR_EACH(l, &_kd_cmds) {
-		cmd = LIST_ENTRY(l, struct kd_cmd_desc, link);
+		cmd = LIST_ENTRY(l, kd_cmd_desc_t, link);
 		if (strcmp(name, cmd->name) == 0) {
 			list_del(&cmd->link);
 			kd_free(cmd);

@@ -458,7 +458,6 @@ static void process_wait_notifier(void *ctx)
 int process_wait(struct process *p, void *sync)
 {
 	int rc = -1;
-	boolean_t state;
 
 	DEBUG(DL_DBG, ("process(%s:%d:%d)\n", p->name, p->id, p->state));
 	
