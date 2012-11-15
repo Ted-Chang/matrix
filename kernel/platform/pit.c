@@ -6,7 +6,6 @@
 #include "hal/isr.h"
 #include "hal/hal.h"
 #include "hal/cpu.h"
-#include "clock.h"
 #include "timer.h"
 #include "proc/process.h"
 #include "proc/sched.h"
@@ -16,8 +15,6 @@
 
 #define LEAPYEAR(y)	(((y) % 4) == 0 && (((y) % 100) != 0 || ((y) % 400) == 0))
 #define DAYS(y)		(LEAPYEAR(y) ? 366 : 365)
-
-extern boolean_t tmrs_exptimers(struct list *head, useconds_t now);
 
 static int _current_frequency = 0;
 
@@ -84,23 +81,6 @@ useconds_t sys_time()
 	return value;
 }
 
-static void do_clocktick()
-{
-	useconds_t now;
-	boolean_t prempt = FALSE;
-
-	if (!CURR_CPU->timer_enabled) {
-		return;
-	}
-
-	now = sys_time();
-	
-	prempt = tmrs_exptimers(&CURR_CPU->timers, now);
-	if (prempt) {
-		sched_reschedule(FALSE);
-	}
-}
-
 static void clock_callback(struct registers *regs)
 {
 	uint32_t ticks;
@@ -110,7 +90,7 @@ static void clock_callback(struct registers *regs)
 	_lost_ticks = 0;
 	_real_time += ticks;
 
-	do_clocktick();
+	timer_tick();
 }
 
 void tsc_init_target()

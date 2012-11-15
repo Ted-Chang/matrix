@@ -17,7 +17,6 @@
 #include "matrix/debug.h"
 #include "fd.h"
 #include "timer.h"
-#include "clock.h"
 #include "semaphore.h"
 
 #define MAX_HOSTNAME_LEN	256

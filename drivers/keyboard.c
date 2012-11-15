@@ -327,16 +327,18 @@ static int wait_kbd(boolean_t op_read)
 	int8_t t;
 
 	for (i = 0; i < KBD_CTRL_TIMEOUT; i++) {
-		if (op_read)
+		if (op_read) {
 			;
-		else
+		} else {
 			t = inportb(KBD_DATA_PORT);
+		}
 	}
 	
-	if (i < KBD_CTRL_TIMEOUT)
+	if (i < KBD_CTRL_TIMEOUT) {
 		return 0;
-	else
+	} else {
 		return -1;
+	}
 }
 
 static int kbd_layout_decode(uint8_t c, union kbd_std_status st)
@@ -358,8 +360,9 @@ static int kbd_wait_read()
 		t = inportb(KBD_DATA_PORT);
 	}
 
-	if (i < KBD_CTRL_TIMEOUT)
+	if (i < KBD_CTRL_TIMEOUT) {
 		return 0;
+	}
 
 	return -1;
 }
@@ -375,8 +378,9 @@ static int kbd_wait_write()
 		timer_delay(1);
 	}
 
-	if (i < KBD_CTRL_TIMEOUT)
+	if (i < KBD_CTRL_TIMEOUT) {
 		return 0;
+	}
 	
 	return -1;
 }
@@ -563,8 +567,9 @@ static int preprocess(u_char code)
 		break;
 	}
 
-	if (!rc)
+	if (!rc) {
 		rawq_put(code | e0_keycode_1);
+	}
 
 	return rc;
 }
@@ -626,6 +631,7 @@ void init_keyboard()
 	/* Reset keyboard status */
 	kbd_state_reset();
 
+	/* Register the interrupt handler */
 	register_irq_handler(IRQ1, &_kbd_hook, kbd_callback);
 
 	/* Clear the keyboard queue */

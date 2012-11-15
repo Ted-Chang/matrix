@@ -28,6 +28,7 @@
 #include "kd.h"
 #include "keyboard.h"
 #include "floppy.h"
+#include "console.h"
 
 uint32_t _initial_esp;
 struct multiboot_info *_mbi;
@@ -48,6 +49,9 @@ int kmain(u_long addr, uint32_t initial_stack)
 
 	/* Make the debugger available as soon as possible */
 	init_kd();
+
+	/* Bring up the debug console */
+	preinit_console();
 
 	/* Clear the screen */
 	clear_scr();
@@ -136,11 +140,12 @@ int kmain(u_long addr, uint32_t initial_stack)
 }
 
 #ifdef _UNIT_TEST
+extern void serial_console_putc(char ch);
 static void test_timer_func(void *ctx)
 {
 	struct timer *tmr;
 
-	DEBUG(DL_DBG, ("test timer expired.\n"));
+	serial_console_putc('T');
 	tmr = (struct timer *)ctx;
 	set_timer(tmr, 1000000, test_timer_func);
 }

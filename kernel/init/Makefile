@@ -12,7 +12,7 @@ TARGETOBJ := $(OBJ)/entry.o \
 all: $(TARGETOBJ)
 
 $(OBJ)/%.o: %.c
-	$(CC) -D__KERNEL__ -m32 $(CFLAGS_global) -I../include -I../../sdk/include -c -o $@ $<
+	$(CC) -D_UNIT_TEST -D__KERNEL__ -m32 $(CFLAGS_global) -I../include -I../../sdk/include -c -o $@ $<
 
 $(OBJ)/entry.o:
 	nasm $(ASFLAGS) -o $(OBJ)/entry.o entry.s

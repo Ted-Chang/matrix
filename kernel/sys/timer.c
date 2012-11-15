@@ -5,7 +5,6 @@
 #include "matrix/debug.h"
 #include "hal/cpu.h"
 #include "pit.h"
-#include "clock.h"
 #include "timer.h"
 
 extern void pit_delay(uint32_t usec);
@@ -148,3 +147,21 @@ void timer_delay(uint32_t usec)
 {
 	pit_delay(usec);
 }
+
+void timer_tick()
+{
+	useconds_t now;
+	boolean_t prempt = FALSE;
+
+	if (!CURR_CPU->timer_enabled) {
+		return;
+	}
+
+	now = sys_time();
+	
+	prempt = tmrs_exptimers(&CURR_CPU->timers, now);
+	if (prempt) {
+		sched_reschedule(FALSE);
+	}
+}
+

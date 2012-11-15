@@ -7,7 +7,6 @@
 #include "mm/mlayout.h"
 #include "mm/page.h"
 #include "div64.h"
-#include "clock.h"
 #include "exceptn.h"
 
 extern struct idt_ptr _idt_ptr;
