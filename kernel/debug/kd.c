@@ -127,8 +127,21 @@ static boolean_t kd_parse_line(char *line, kd_line_t *data)
 int perform_call(kd_args_t *call, kd_filter_t *filter, kd_filter_t *filter_arg)
 {
 	int rc;
+	kd_cmd_desc_t *cmd;
 
+	/* Look up the command */
+	cmd = lookup_cmd(call->args[0]);
+	if (!cmd) {
+		kd_printf("KD: Unknown command %s\n", call->args[0]);
+		return -1;
+	}
+
+	/* Set _kd_running to 2 to signal that we're in a command */
+	_kd_running = 2;
+	
 	rc = -1;
+
+	_kd_running = 1;
 
 	return rc;
 }

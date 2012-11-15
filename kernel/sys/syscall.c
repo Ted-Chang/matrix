@@ -18,6 +18,7 @@
 #include "fd.h"
 #include "timer.h"
 #include "semaphore.h"
+#include "pit.h"
 
 #define MAX_HOSTNAME_LEN	256
 
