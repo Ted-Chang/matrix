@@ -10,11 +10,6 @@ void divide_by_zero_fault(struct registers *regs)
 	PANIC("Divide by zero");
 }
 
-void single_step_trap(struct registers *regs)
-{
-	PANIC("Single step");
-}
-
 void nmi_trap(struct registers *regs)
 {
 	PANIC("NMI trap");
@@ -103,7 +98,8 @@ void init_exception_handlers()
 {
 	/* Install the exception handlers */
 	register_irq_handler(0, &_exceptn_hooks[0], divide_by_zero_fault);
-	register_irq_handler(1, &_exceptn_hooks[1], single_step_trap);
+	/* Single step was registered in kernel debugger */
+	//register_irq_handler(1, &_exceptn_hooks[1], single_step_trap);
 	register_irq_handler(2, &_exceptn_hooks[2], nmi_trap);
 	register_irq_handler(3, &_exceptn_hooks[3], breakpoint_trap);
 	register_irq_handler(4, &_exceptn_hooks[4], overflow_trap);

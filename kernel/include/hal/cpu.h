@@ -205,6 +205,96 @@ extern size_t _nr_cpus;
 extern size_t _highest_cpu_id;
 extern struct list _running_cpus;
 
+/* Read DR0 */
+static INLINE uint32_t x86_read_dr0()
+{
+	uint32_t r;
+
+	asm volatile("mov %%dr0, %0" : "=r"(r));
+	return r;
+}
+
+/* Write DR0 */
+static INLINE void x86_write_dr0(uint32_t val)
+{
+	asm volatile("mov %0, %%dr0" :: "r"(val));
+}
+
+/* Read DR1 */
+static INLINE uint32_t x86_read_dr1()
+{
+	uint32_t r;
+
+	asm volatile("mov %%dr1, %0" : "=r"(r));
+	return r;
+}
+
+/* Write DR1 */
+static INLINE void x86_write_dr1(uint32_t val)
+{
+	asm volatile("mov %0, %%dr1" :: "r"(val));
+}
+
+/* Read DR2 */
+static INLINE uint32_t x86_read_dr2()
+{
+	uint32_t r;
+
+	asm volatile("mov %%dr2, %0" : "=r"(r));
+	return r;
+}
+
+/* Write DR2 */
+static INLINE void x86_write_dr2(uint32_t val)
+{
+	asm volatile("mov %0, %%dr2" :: "r"(val));
+}
+
+/* Read DR3 */
+static INLINE uint32_t x86_read_dr3()
+{
+	uint32_t r;
+
+	asm volatile("mov %%dr3, %0" : "=r"(r));
+	return r;
+}
+
+/* Write DR3 */
+static INLINE void x86_write_dr3(uint32_t val)
+{
+	asm volatile("mov %0, %%dr3" :: "r"(val));
+}
+
+/* Read DR6 */
+static INLINE uint32_t x86_read_dr6()
+{
+	uint32_t r;
+
+	asm volatile("mov %%dr6, %0" : "=r"(r));
+	return r;
+}
+
+/* Write DR6 */
+static INLINE void x86_write_dr6(uint32_t val)
+{
+	asm volatile("mov %0, %%dr6" :: "r"(val));
+}
+
+/* Read DR7 */
+static INLINE uint32_t x86_read_dr7()
+{
+	uint32_t r;
+
+	asm volatile("mov %%dr7, %0" : "=r"(r));
+	return r;
+}
+
+/* Write DR7 */
+static INLINE void x86_write_dr7(uint32_t val)
+{
+	asm volatile("mov %0, %%dr7" :: "r"(val));
+}
+
 /* Read an MSR */
 static INLINE uint64_t x86_read_msr(uint32_t msr)
 {

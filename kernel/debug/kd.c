@@ -9,11 +9,13 @@
 #include "atomic.h"
 #include "hal/cpu.h"
 #include "hal/spinlock.h"
+#include "hal/isr.h"
 #include "mm/page.h"
 #include "dbgheap.h"
 #include "kd.h"
 #include "platform.h"
 #include "console.h"
+#include "proc/thread.h"
 
 /* Kernel debugger heap size */
 #define KD_HEAP_SIZE	0x4000
@@ -46,8 +48,14 @@ struct kd_line {
 };
 typedef struct kd_line kd_line_t;
 
+/* Debug interrupt handler */
+static struct irq_hook _kd_hook;
+
 /* Whether KD is currently running on any CPU */
 atomic_t _kd_running = 0;
+
+/* Interrupt context that KD was entered with */
+struct registers *_curr_kd_regs = NULL;
 
 /* Statically allocated heap for use within KD */
 static u_char _kd_heap_area[KD_HEAP_SIZE]__attribute__((aligned(PAGE_SIZE)));
@@ -59,6 +67,41 @@ static struct list _kd_cmds = {
 	.next = &_kd_cmds
 };
 static struct spinlock _kd_cmds_lock;
+
+static void kd_enter_internal(int reason, struct registers *regs, u_long index)
+{
+	/* Disable breakpoints while KD is running */
+	;
+}
+
+static void kd_callback(struct registers *regs)
+{
+	int reason = 1;
+	uint32_t dr6;
+	u_long i = 0;
+
+	/* Work out the reason */
+	dr6 = x86_read_dr6();
+
+	kd_enter_internal(reason, regs, i);
+
+	/* Clear the Debug Status Register (DR6) */
+	x86_write_dr6(0);
+}
+
+void kd_enter(int reason, struct registers *regs)
+{
+	if (regs) {
+		kd_enter_internal(reason, regs, 0);
+	} else {
+		/* Raise a debug interrupt so we can get into the debugger
+		 * with an interrupt frame. Store the entry in EAX, which
+		 * will be picked up in the #DB handler above.
+		 */
+		asm volatile("int $1" :: "a"((u_long)reason));
+		return;
+	}
+}
 
 void arch_init_kd()
 {
@@ -163,7 +206,7 @@ int perform_call(kd_args_t *call, kd_filter_t *filter, kd_filter_t *filter_arg)
 	return rc;
 }
 
-int kd_main(int reason, u_long index)
+int kd_main(int reason, struct registers *regs, u_long index)
 {
 	static u_long _nr_cmds = 0;
 	int rc = 0;
@@ -181,6 +224,14 @@ int kd_main(int reason, u_long index)
 		irq_restore(state);
 		return -1;
 	}
+
+	_curr_kd_regs = regs;
+
+	/* Print information about why we entered the debugger and where from */
+	kd_printf("Entered debugger, reason:%d\n", reason);
+
+	kd_printf("Thread(%d:%s) on CPU(%d)\n", (CURR_THREAD) ? CURR_THREAD->id : -1,
+		  (CURR_THREAD) ? CURR_THREAD->name : "<none>", cpu_id());
 
 	/* Main loop, get and process the input */
 	while (TRUE) {

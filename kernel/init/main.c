@@ -143,9 +143,15 @@ int kmain(u_long addr, uint32_t initial_stack)
 static void test_timer_func(void *ctx)
 {
 	struct timer *tmr;
+	unsigned long long lld = 0x100000000;
+	unsigned long num = 0xFF;
+	char *str = "Hello, world!";
 
-	kd_printf("This is a test.\n");
 	tmr = (struct timer *)ctx;
+	
+	kd_printf("test: lld(%lld), dec(%d), hex(%x), ptr(%p), str(%s).\n",
+		  lld, num, num, tmr, str);
+	
 	set_timer(tmr, 1000000, test_timer_func);
 }
 #endif	/* _UNIT_TEST */
