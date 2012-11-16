@@ -49,6 +49,9 @@ struct ansi_parser {
 };
 typedef struct ansi_parser ansi_parser_t;
 
+/* Serial debug console */
+extern struct console_output_ops *_debug_console_ops;
+
 extern void preinit_console();
 
 #endif	/* __CONSOLE_H__ */

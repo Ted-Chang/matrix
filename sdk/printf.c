@@ -11,8 +11,9 @@ int printf(const char *fmt, ...)
 	char buf[DBG_BUFF_SIZE];
 	va_list args;
 
-	if (!fmt)
+	if (!fmt) {
 		return 0;
+	}
 
 	va_start(args, fmt);
 	vsnprintf(buf, DBG_BUFF_SIZE, fmt, args);
@@ -21,4 +22,3 @@ int printf(const char *fmt, ...)
 	
 	return 1;
 }
-

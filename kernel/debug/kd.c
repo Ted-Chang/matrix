@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <string.h>
+#include <stdio.h>
 #include "matrix/matrix.h"
 #include "matrix/debug.h"
 #include "list.h"
@@ -12,6 +13,7 @@
 #include "dbgheap.h"
 #include "kd.h"
 #include "platform.h"
+#include "console.h"
 
 /* Kernel debugger heap size */
 #define KD_HEAP_SIZE	0x4000
@@ -78,9 +80,25 @@ static kd_cmd_desc_t *lookup_cmd(const char *name)
 	return NULL;
 }
 
-void kd_vprintf(const char *fmt, va_list args)
+static void kd_putc(char ch)
 {
-	;
+	if (_debug_console_ops) {
+		_debug_console_ops->putc(ch);
+	}
+}
+
+static void kd_printf_helper(const char *str, size_t size)
+{
+	size_t i;
+	
+	for (i = 0; i < size; i++) {
+		kd_putc(str[i]);
+	}
+}
+
+static void kd_vprintf(const char *fmt, va_list args)
+{
+	do_printf(kd_printf_helper, fmt, args);
 }
 
 void kd_printf(const char *fmt, ...)
@@ -142,7 +160,6 @@ int perform_call(kd_args_t *call, kd_filter_t *filter, kd_filter_t *filter_arg)
 	rc = -1;
 
 	_kd_running = 1;
-
 	return rc;
 }
 

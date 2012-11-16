@@ -14,7 +14,7 @@ TARGETOBJ := \
 	$(OBJ)/string.o \
 	$(OBJ)/vsprintf.o \
 	$(OBJ)/sprintf.o \
-	$(OBJ)/print.o \
+	$(OBJ)/printf.o \
 
 
 .PHONY: clean help

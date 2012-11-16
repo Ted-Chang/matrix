@@ -25,10 +25,10 @@
 #include "proc/sched.h"
 #include "proc/thread.h"
 #include "exceptn.h"
+#include "console.h"
 #include "kd.h"
 #include "keyboard.h"
 #include "floppy.h"
-#include "console.h"
 
 uint32_t _initial_esp;
 struct multiboot_info *_mbi;
@@ -140,12 +140,11 @@ int kmain(u_long addr, uint32_t initial_stack)
 }
 
 #ifdef _UNIT_TEST
-extern void serial_console_putc(char ch);
 static void test_timer_func(void *ctx)
 {
 	struct timer *tmr;
 
-	serial_console_putc('T');
+	kd_printf("This is a test.\n");
 	tmr = (struct timer *)ctx;
 	set_timer(tmr, 1000000, test_timer_func);
 }
