@@ -81,7 +81,7 @@ void init_ansi_parser(struct ansi_parser *parser)
 void serial_putc(char ch)
 {
 	if (ch == '\n') {
-		serial_terminal_putc('\r');
+		serial_putc('\r');
 	}
 
 	outportb(SERIAL_PORT, ch);
