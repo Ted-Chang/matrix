@@ -94,12 +94,11 @@ void simd_fpu_fault(struct registers *regs)
  * Initialize the exception handlers. Exception handlers don't need to
  * call irq_done now as we didn't go that far.
  */
-void init_exception_handlers()
+void init_exceptn_handlers()
 {
 	/* Install the exception handlers */
 	register_irq_handler(0, &_exceptn_hooks[0], divide_by_zero_fault);
 	/* Single step was registered in kernel debugger */
-	//register_irq_handler(1, &_exceptn_hooks[1], single_step_trap);
 	register_irq_handler(2, &_exceptn_hooks[2], nmi_trap);
 	register_irq_handler(3, &_exceptn_hooks[3], breakpoint_trap);
 	register_irq_handler(4, &_exceptn_hooks[4], overflow_trap);

@@ -170,7 +170,7 @@ static void arch_preinit_cpu()
 
 	/* Clear the irq handlers table and initialize them */
 	memset(&_irq_handlers[0], 0, sizeof(struct irq_hook *) * 256);
-	init_exception_handlers();
+	init_exceptn_handlers();
 }
 
 static void arch_preinit_cpu_percpu(struct cpu *c)

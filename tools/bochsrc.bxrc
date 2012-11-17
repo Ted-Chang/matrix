@@ -19,4 +19,5 @@ log:~/vm/matrix/bochsrc.log
 keyboard_mapping: enabled=1, map=$BXSHARE/keymaps/x11-pc-us.map
 
 # enable com1 port, store output to serial.txt in running directory
-com1: enabled=1, mode=file, dev=serial.txt
+com1: enabled=1, mode=term, dev=/dev/tty2
+#com1: enabled=1, mode=file, dev=serial.txt

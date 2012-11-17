@@ -25,7 +25,7 @@
 #include "proc/sched.h"
 #include "proc/thread.h"
 #include "exceptn.h"
-#include "console.h"
+#include "terminal.h"
 #include "kd.h"
 #include "keyboard.h"
 #include "floppy.h"
@@ -50,8 +50,8 @@ int kmain(u_long addr, uint32_t initial_stack)
 	/* Make the debugger available as soon as possible */
 	init_kd();
 
-	/* Bring up the debug console */
-	preinit_console();
+	/* Bring up the debug terminal */
+	preinit_terminal();
 
 	/* Clear the screen */
 	clear_scr();

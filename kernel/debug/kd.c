@@ -14,7 +14,7 @@
 #include "dbgheap.h"
 #include "kd.h"
 #include "platform.h"
-#include "console.h"
+#include "terminal.h"
 #include "proc/thread.h"
 
 /* Kernel debugger heap size */
@@ -71,7 +71,9 @@ static struct spinlock _kd_cmds_lock;
 static void kd_enter_internal(int reason, struct registers *regs, u_long index)
 {
 	/* Disable breakpoints while KD is running */
-	;
+	x86_write_dr7(0);
+
+	kd_main(reason, regs, index);
 }
 
 static void kd_callback(struct registers *regs)
@@ -123,10 +125,27 @@ static kd_cmd_desc_t *lookup_cmd(const char *name)
 	return NULL;
 }
 
+static uint16_t kd_getc()
+{
+	struct terminal_input_ops *ops;
+	struct list *l;
+	uint16_t ch;
+
+	while (TRUE) {
+		LIST_FOR_EACH(l, &_terminal_input_ops) {
+			ops = LIST_ENTRY(l, struct terminal_input_ops, link);
+			ch = ops->getc();
+			if (ch) {
+				return ch;
+			}
+		}
+	}
+}
+
 static void kd_putc(char ch)
 {
-	if (_debug_console_ops) {
-		_debug_console_ops->putc(ch);
+	if (_debug_terminal_ops) {
+		_debug_terminal_ops->putc(ch);
 	}
 }
 
@@ -177,6 +196,27 @@ void kd_free(void *addr)
 
 static char *kd_read_line(int count)
 {
+	uint16_t ch;
+	
+	/* Handle input */
+	while (TRUE) {
+		ch = kd_getc();
+		if (ch == '\n') {
+			kd_putc('\n');
+			break;
+		} else if (ch == '\t') {
+			;
+		} else if (ch == '\b') {
+			;
+		} else if (ch == TERMINAL_KEY_DEL) {
+			;
+		} else if (ch == TERMINAL_KEY_UP) {
+			;
+		} else if (ch == TERMINAL_KEY_DOWN) {
+			;
+		}
+	}
+	
 	return NULL;
 }
 

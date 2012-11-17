@@ -8,7 +8,7 @@ TARGETOBJ := \
 	$(OBJ)/rtc.o \
 	$(OBJ)/platform.o \
 	$(OBJ)/pit.o \
-	$(OBJ)/console.o \
+	$(OBJ)/terminal.o \
 
 .PHONY: clean help
 

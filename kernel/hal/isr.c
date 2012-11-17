@@ -53,8 +53,9 @@ void irq_handler(struct registers regs)
 	hook = _irq_handlers[regs.int_no];
 	while (hook) {
 		isr_t handler = hook->handler;
-		if (handler)
+		if (handler) {
 			handler(&regs);
+		}
 		hook = hook->next;
 	}
 }
@@ -63,8 +64,9 @@ void register_irq_handler(uint8_t irq, struct irq_hook *hook, isr_t handler)
 {
 	struct irq_hook **line;
 	
-	if (irq < 0 || irq >= 256)
+	if (irq < 0 || irq >= 256) {
 		PANIC("register_irq_handler: invalid irq!\n");
+	}
 	
 	irq_disable();
 
@@ -91,8 +93,9 @@ void unregister_irq_handler(struct irq_hook *hook)
 	int irq = hook->irq;
 	struct irq_hook **line;
 
-	if (irq < 0 || irq >= 256)
+	if (irq < 0 || irq >= 256) {
 		PANIC("unregister_irq_handler: invalid irq!\n");
+	}
 	
 	irq_disable();
 

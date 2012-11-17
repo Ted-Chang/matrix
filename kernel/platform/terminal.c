@@ -5,22 +5,24 @@
 #include "hal/hal.h"
 #include "hal/spinlock.h"
 #include "kd.h"
-#include "console.h"
+#include "terminal.h"
 
 struct klog_buffer {
-	uint32_t level;
+	u_char level;
 	u_char ch;
 };
 static struct klog_buffer _klog_buffer[10];
 
-/* Lock for the kernel console */
-static struct spinlock _console_lock;
-/* Debug console operations */
-struct console_output_ops *_debug_console_ops = NULL;
-/* List of kernel console input operations */
-struct list _console_input_ops = {
-	.prev = &_console_input_ops,
-	.next = &_console_input_ops
+/* Lock for the kernel terminal */
+static struct spinlock _terminal_lock;
+
+/* Debug terminal operations */
+struct terminal_output_ops *_debug_terminal_ops = NULL;
+
+/* List of kernel terminal input operations */
+struct list _terminal_input_ops = {
+	.prev = &_terminal_input_ops,
+	.next = &_terminal_input_ops
 };
 
 static struct ansi_parser _serial_ansi_parser;
@@ -42,25 +44,25 @@ uint16_t ansi_parser_filter(struct ansi_parser *parser, u_char ch)
 		/* Check for known sequence */
 		if (parser->length == 2) {
 			if (strncmp(parser->buffer, "[A", 2) == 0) {
-				ret = CONSOLE_KEY_UP;
+				ret = TERMINAL_KEY_UP;
 			} else if (strncmp(parser->buffer, "[B", 2) == 0) {
-				ret = CONSOLE_KEY_DOWN;
+				ret = TERMINAL_KEY_DOWN;
 			} else if (strncmp(parser->buffer, "[D", 2) == 0) {
-				ret = CONSOLE_KEY_LEFT;
+				ret = TERMINAL_KEY_LEFT;
 			} else if (strncmp(parser->buffer, "[C", 2) == 0) {
-				ret = CONSOLE_KEY_RIGHT;
+				ret = TERMINAL_KEY_RIGHT;
 			} else if (strncmp(parser->buffer, "[H", 2) == 0) {
-				ret = CONSOLE_KEY_HOME;
+				ret = TERMINAL_KEY_HOME;
 			} else if (strncmp(parser->buffer, "[F", 2) == 0) {
-				ret = CONSOLE_KEY_END;
+				ret = TERMINAL_KEY_END;
 			}
 		} else if (parser->length == 3) {
 			if (strncmp(parser->buffer, "[3~", 3) == 0) {
-				ret = CONSOLE_KEY_DEL;
+				ret = TERMINAL_KEY_DEL;
 			} else if (strncmp(parser->buffer, "[5~", 3) == 0) {
-				ret = CONSOLE_KEY_PGUP;
+				ret = TERMINAL_KEY_PGUP;
 			} else if (strncmp(parser->buffer, "[6~", 3) == 0) {
-				ret = CONSOLE_KEY_PGDN;
+				ret = TERMINAL_KEY_PGDN;
 			}
 		}
 
@@ -76,17 +78,17 @@ void init_ansi_parser(struct ansi_parser *parser)
 	parser->length = -1;
 }
 
-void serial_console_putc(char ch)
+void serial_terminal_putc(char ch)
 {
 	if (ch == '\n') {
-		serial_console_putc('\r');
+		serial_terminal_putc('\r');
 	}
 
 	outportb(SERIAL_PORT, ch);
 	while (!(inportb(SERIAL_PORT + 5) & 0x20));
 }
 
-uint16_t serial_console_getc()
+uint16_t serial_terminal_getc()
 {
 	u_char ch = inportb(SERIAL_PORT + 6);
 	uint16_t converted;
@@ -113,39 +115,39 @@ uint16_t serial_console_getc()
 	return 0;
 }
 
-/* Serial port console input/output operation */
-static struct console_output_ops _serial_console_output_ops = {
-	.putc = serial_console_putc
+/* Serial port terminal input/output operation */
+static struct terminal_output_ops _serial_terminal_output_ops = {
+	.putc = serial_terminal_putc
 };
-static struct console_input_ops _serial_console_input_ops = {
-	.getc = serial_console_getc
+static struct terminal_input_ops _serial_terminal_input_ops = {
+	.getc = serial_terminal_getc
 };
 
-void register_console_input_ops(struct console_input_ops *ops)
+void register_terminal_input_ops(struct terminal_input_ops *ops)
 {
 	LIST_INIT(&ops->link);
 
-	spinlock_acquire(&_console_lock);
-	list_add_tail(&ops->link, &_console_input_ops);
-	spinlock_release(&_console_lock);
+	spinlock_acquire(&_terminal_lock);
+	list_add_tail(&ops->link, &_terminal_input_ops);
+	spinlock_release(&_terminal_lock);
 }
 
-void unregister_console_input_ops(struct console_input_ops *ops)
+void unregister_terminal_input_ops(struct terminal_input_ops *ops)
 {
-	spinlock_acquire(&_console_lock);
+	spinlock_acquire(&_terminal_lock);
 	list_del(&ops->link);
-	spinlock_release(&_console_lock);
+	spinlock_release(&_terminal_lock);
 }
 
-/* Setup the debug console */
-void platform_preinit_console()
+/* Setup the debug terminal */
+void platform_preinit_terminal()
 {
 	uint8_t status = inportb(SERIAL_PORT + 6);
 
 	if ((status & ((1 << 4) | (1 << 5))) && status != 0xFF) {
 		outportb(SERIAL_PORT + 1, 0x00);	// Disable all interrupts
 		outportb(SERIAL_PORT + 3, 0x80);	// Enable DLAB (set baud rate divisor)
-		outportb(SERIAL_PORT + 0, 0x03);	// Set divisor to 3 (lo byte) 38400 baud
+		outportb(SERIAL_PORT + 0, 0x01);	// Set divisor to 1 (lo byte) 115200 baud
 		outportb(SERIAL_PORT + 1, 0x00);	//		    (hi byte)
 		outportb(SERIAL_PORT + 3, 0x03);	// 8 bits, no parity, one stop bit
 		outportb(SERIAL_PORT + 2, 0xC7);	// Enable FIFO, clear them, with 14-byte threshold
@@ -154,15 +156,15 @@ void platform_preinit_console()
 		/* Wait for transmit to be empty */
 		while (!(inportb(SERIAL_PORT + 5) & 0x20));
 
-		/* Register serial console input and output operation */
+		/* Register serial terminal input and output operation */
 		init_ansi_parser(&_serial_ansi_parser);
-		_debug_console_ops = &_serial_console_output_ops;
-		register_console_input_ops(&_serial_console_input_ops);
+		_debug_terminal_ops = &_serial_terminal_output_ops;
+		register_terminal_input_ops(&_serial_terminal_input_ops);
 	}
 }
 
-/* Setup the console */
-void platform_init_console()
+/* Setup the terminal */
+void platform_init_terminal()
 {
 	;
 }
@@ -172,12 +174,12 @@ static int kd_cmd_log(int argc, char **argv, kd_filter_t *filter)
 	return 0;
 }
 
-/* Initialize the debug console */
-void preinit_console()
+/* Initialize the debug terminal */
+void preinit_terminal()
 {
-	spinlock_init(&_console_lock, "console-lock");
+	spinlock_init(&_terminal_lock, "term-lock");
 	
-	platform_preinit_console();
+	platform_preinit_terminal();
 
 	/* Register the KD command */
 	kd_register_cmd("log", "Display the kernel log buffer.", kd_cmd_log);

@@ -358,6 +358,7 @@ static INLINE void cpu_idle()
 }
 
 extern void dump_cpu(struct cpu *c);
+extern cpu_id_t cpu_id();
 extern void preinit_cpu_percpu();
 extern void preinit_cpu();
 extern void init_cpu_percpu();
