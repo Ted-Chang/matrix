@@ -78,7 +78,7 @@ void init_ansi_parser(struct ansi_parser *parser)
 	parser->length = -1;
 }
 
-void serial_terminal_putc(char ch)
+void serial_putc(char ch)
 {
 	if (ch == '\n') {
 		serial_terminal_putc('\r');
@@ -88,7 +88,7 @@ void serial_terminal_putc(char ch)
 	while (!(inportb(SERIAL_PORT + 5) & 0x20));
 }
 
-uint16_t serial_terminal_getc()
+uint16_t serial_getc()
 {
 	u_char ch = inportb(SERIAL_PORT + 6);
 	uint16_t converted;
@@ -117,10 +117,10 @@ uint16_t serial_terminal_getc()
 
 /* Serial port terminal input/output operation */
 static struct terminal_output_ops _serial_terminal_output_ops = {
-	.putc = serial_terminal_putc
+	.putc = serial_putc
 };
 static struct terminal_input_ops _serial_terminal_input_ops = {
-	.getc = serial_terminal_getc
+	.getc = serial_getc
 };
 
 void register_terminal_input_ops(struct terminal_input_ops *ops)
