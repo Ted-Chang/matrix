@@ -35,8 +35,8 @@ typedef struct kd_cmd_desc kd_cmd_desc_t;
 /* KD command argument */
 struct kd_args {
 	struct list link;		// For internal use
-	int count;			// Number of arguments
-	char *args[KD_MAX_ARGS];	// Array of arguments
+	int argc;			// Number of arguments
+	char *argv[KD_MAX_ARGS];	// Array of arguments
 };
 typedef struct kd_args kd_args_t;
 
@@ -48,8 +48,10 @@ struct kd_line {
 };
 typedef struct kd_line kd_line_t;
 
+int kd_main(int reason, struct registers *regs, u_long index);
+
 /* Debug interrupt handler */
-static struct irq_hook _kd_hook;
+struct irq_hook _kd_hook;
 
 /* Whether KD is currently running on any CPU */
 atomic_t _kd_running = 0;
@@ -68,6 +70,9 @@ static struct list _kd_cmds = {
 };
 static struct spinlock _kd_cmds_lock;
 
+/* Current output filter */
+static kd_filter_t *_curr_filter = NULL;
+
 static void kd_enter_internal(int reason, struct registers *regs, u_long index)
 {
 	/* Disable breakpoints while KD is running */
@@ -76,7 +81,7 @@ static void kd_enter_internal(int reason, struct registers *regs, u_long index)
 	kd_main(reason, regs, index);
 }
 
-static void kd_callback(struct registers *regs)
+void kd_callback(struct registers *regs)
 {
 	int reason = 1;
 	uint32_t dr6;
@@ -152,9 +157,13 @@ static void kd_putc(char ch)
 static void kd_printf_helper(const char *str, size_t size)
 {
 	size_t i;
-	
-	for (i = 0; i < size; i++) {
-		kd_putc(str[i]);
+
+	if (_curr_filter) {
+		;
+	} else {
+		for (i = 0; i < size; i++) {
+			kd_putc(str[i]);
+		}
 	}
 }
 
@@ -231,17 +240,19 @@ int perform_call(kd_args_t *call, kd_filter_t *filter, kd_filter_t *filter_arg)
 	kd_cmd_desc_t *cmd;
 
 	/* Look up the command */
-	cmd = lookup_cmd(call->args[0]);
+	cmd = lookup_cmd(call->argv[0]);
 	if (!cmd) {
-		kd_printf("KD: Unknown command %s\n", call->args[0]);
+		kd_printf("KD: Unknown command %s\n", call->argv[0]);
 		return -1;
 	}
 
 	/* Set _kd_running to 2 to signal that we're in a command */
 	_kd_running = 2;
-	
-	rc = -1;
+	_curr_filter = filter;
 
+	rc = cmd->func(call->argc, call->argv, filter_arg);
+
+	_curr_filter = NULL;
 	_kd_running = 1;
 	return rc;
 }

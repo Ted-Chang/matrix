@@ -3,7 +3,6 @@
 
 struct kd_filter {
 	int (*func)(const char *line, void *data);
-
 	void *data;	// Data for the filter
 };
 typedef struct kd_filter kd_filter_t;

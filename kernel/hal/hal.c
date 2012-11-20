@@ -86,7 +86,7 @@ void irq_restore(boolean_t state)
  */
 void irq_done(uint32_t int_no)
 {
-	if (int_no >= 40) {
+	if (int_no >= 8) {
 		outportb(PIC2_CMD, PIC_EOI);
 	}
 	
@@ -95,10 +95,13 @@ void irq_done(uint32_t int_no)
 
 static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags)
 {
-	if (num >= NR_IDT_ENTRIES)
+	if (num >= NR_IDT_ENTRIES) {
 		return;
-	if (!base)
+	}
+	
+	if (!base) {
 		return;
+	}
 
 	_idt_entries[num].base_low = base & 0xFFFF;
 	_idt_entries[num].base_high = (base >> 16) & 0xFFFF;
@@ -114,6 +117,12 @@ static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags
 
 static void pic_remap(int offset1, int offset2)
 {
+	uint8_t mask1, mask2;
+
+	/* Save the masks */
+	mask1 = inportb(PIC1_DATA);
+	mask2 = inportb(PIC2_DATA);
+	
 	/* Starts the initialization sequence (in cascade mode) */
 	outportb(PIC1_CMD, ICW1_INIT|ICW1_ICW4);
 	outportb(PIC2_CMD, ICW1_INIT|ICW1_ICW4);
@@ -128,9 +137,10 @@ static void pic_remap(int offset1, int offset2)
 	
 	outportb(PIC1_DATA, ICW4_8086);
 	outportb(PIC2_DATA, ICW4_8086);
-	
-	outportb(0x21, 0x0);
-	outportb(0xA1, 0x0);
+
+	/* Restore saved masks */
+	outportb(PIC1_DATA, mask1);
+	outportb(PIC2_DATA, mask2);
 }
 
 /**
@@ -179,7 +189,8 @@ void init_idt()
 	idt_set_gate(29, (uint32_t)isr29, 0x08, 0x8E);
 	idt_set_gate(30, (uint32_t)isr30, 0x08, 0x8E);
 	idt_set_gate(31, (uint32_t)isr31, 0x08, 0x8E);
-	
+
+	/* The following are all IRQs */
 	idt_set_gate(32, (uint32_t)irq0, 0x08, 0x8E);
 	idt_set_gate(33, (uint32_t)irq1, 0x08, 0x8E);
 	idt_set_gate(34, (uint32_t)irq2, 0x08, 0x8E);

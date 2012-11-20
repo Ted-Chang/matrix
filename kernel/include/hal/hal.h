@@ -2,6 +2,7 @@
 #define __HAL_H__
 
 #include "hal/isr.h"
+#include "hal/spinlock.h"
 #include "matrix/matrix.h"
 
 #define PIC1		0x20		// IO base address for master PIC
@@ -104,9 +105,10 @@ typedef void (*isr_t)(struct registers *);
  * IRQ hook chain for precess the interrupt
  */
 struct irq_hook {
+	struct spinlock lock;
 	struct irq_hook *next;
 	isr_t handler;
-	int irq;
+	uint8_t irq;
 };
 
 extern void outportb(uint16_t port, uint8_t value);

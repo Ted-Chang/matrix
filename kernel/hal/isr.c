@@ -46,6 +46,7 @@ void isr_handler(struct registers regs)
 void irq_handler(struct registers regs)
 {
 	struct irq_hook *hook;
+	boolean_t processed = FALSE;
 	
 	/* Notify the PIC that we have done so we can accept >= priority IRQs now */
 	irq_done(regs.int_no);
@@ -57,16 +58,17 @@ void irq_handler(struct registers regs)
 			handler(&regs);
 		}
 		hook = hook->next;
+		processed = TRUE;
+	}
+
+	if (!processed) {
+		kprintf("unhandled IRQ: %d\n", regs.int_no);
 	}
 }
 
 void register_irq_handler(uint8_t irq, struct irq_hook *hook, isr_t handler)
 {
 	struct irq_hook **line;
-	
-	if (irq < 0 || irq >= 256) {
-		PANIC("register_irq_handler: invalid irq!\n");
-	}
 	
 	irq_disable();
 
@@ -93,10 +95,6 @@ void unregister_irq_handler(struct irq_hook *hook)
 	int irq = hook->irq;
 	struct irq_hook **line;
 
-	if (irq < 0 || irq >= 256) {
-		PANIC("unregister_irq_handler: invalid irq!\n");
-	}
-	
 	irq_disable();
 
 	line = &_irq_handlers[irq];

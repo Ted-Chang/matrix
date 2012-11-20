@@ -56,5 +56,6 @@ extern struct terminal_output_ops *_debug_terminal_ops;
 extern struct list _terminal_input_ops;
 
 extern void preinit_terminal();
+extern void init_terminal();
 
 #endif	/* __TERMINAL_H__ */

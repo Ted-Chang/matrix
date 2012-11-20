@@ -94,6 +94,10 @@ int kmain(u_long addr, uint32_t initial_stack)
 
 	kprintf("Memory manager initialization done.\n");
 
+	/* Initialize our terminal */
+	init_terminal();
+	kprintf("Terminal initialization done.\n");
+
 	/* Perform more per-CPU initialization that can be done after the
 	 * memory management subsystem was up
 	 */

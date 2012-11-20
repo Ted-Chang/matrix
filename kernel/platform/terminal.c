@@ -3,6 +3,7 @@
 #include <string.h>
 #include "matrix/matrix.h"
 #include "hal/hal.h"
+#include "hal/isr.h"
 #include "hal/spinlock.h"
 #include "kd.h"
 #include "terminal.h"
@@ -12,6 +13,10 @@ struct klog_buffer {
 	u_char ch;
 };
 static struct klog_buffer _klog_buffer[10];
+
+/* Kernel Debugger hook and callback */
+extern struct irq_hook _kd_hook;
+extern void kd_callback(struct registers *regs);
 
 /* Lock for the kernel terminal */
 static struct spinlock _terminal_lock;
@@ -183,4 +188,10 @@ void preinit_terminal()
 
 	/* Register the KD command */
 	kd_register_cmd("log", "Display the kernel log buffer.", kd_cmd_log);
+}
+
+/* Initialize the terminal */
+void init_terminal()
+{
+	platform_init_terminal();
 }
