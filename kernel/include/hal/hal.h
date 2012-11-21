@@ -99,18 +99,6 @@ struct tss {
 				// redirection bit maps
 } __attribute__((packed));
 
-typedef void (*isr_t)(struct registers *);
-
-/*
- * IRQ hook chain for precess the interrupt
- */
-struct irq_hook {
-	struct spinlock lock;
-	struct irq_hook *next;
-	isr_t handler;
-	uint8_t irq;
-};
-
 extern void outportb(uint16_t port, uint8_t value);
 extern uint8_t inportb(uint16_t port);
 extern uint16_t inportw(uint16_t port);
@@ -120,8 +108,6 @@ extern boolean_t irq_state();
 extern void irq_restore(boolean_t state);
 extern void irq_done(uint32_t int_no);
 extern void set_kernel_stack(void *stack);
-extern void register_irq_handler(uint8_t irq, struct irq_hook *hook, isr_t handler);
-extern void unregister_irq_handler(struct irq_hook *hook);
 
 /* Declaration of the interrupt service routines */
 extern void isr0();

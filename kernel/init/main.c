@@ -24,7 +24,6 @@
 #include "proc/process.h"
 #include "proc/sched.h"
 #include "proc/thread.h"
-#include "exceptn.h"
 #include "terminal.h"
 #include "kd.h"
 #include "keyboard.h"

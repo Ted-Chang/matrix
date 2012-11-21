@@ -37,4 +37,19 @@ struct registers {
 	uint32_t ss;
 };
 
+typedef void (*isr_t)(struct registers *);
+
+/*
+ * IRQ hook chain for precess the interrupt
+ */
+struct irq_hook {
+	struct irq_hook *next;
+	isr_t handler;
+	uint8_t irq;
+};
+
+void init_irqs();
+extern void register_irq_handler(uint8_t irq, struct irq_hook *hook, isr_t handler);
+extern void unregister_irq_handler(struct irq_hook *hook);
+
 #endif	/* __ISR_H__ */

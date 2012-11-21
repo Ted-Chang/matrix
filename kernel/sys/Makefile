@@ -5,7 +5,6 @@ include ../Makefile.inc
 OBJ := ../../bin/obji386
 
 TARGETOBJ := \
-	$(OBJ)/exceptn.o \
 	$(OBJ)/timer.o \
 	$(OBJ)/syscall.o \
 	$(OBJ)/util.o \

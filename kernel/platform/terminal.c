@@ -174,6 +174,11 @@ void platform_init_terminal()
 	;
 }
 
+static int kd_cmd_help(int argc, char **argv, kd_filter_t *filter)
+{
+	return 0;
+}
+
 static int kd_cmd_log(int argc, char **argv, kd_filter_t *filter)
 {
 	return 0;
@@ -187,6 +192,7 @@ void preinit_terminal()
 	platform_preinit_terminal();
 
 	/* Register the KD command */
+	kd_register_cmd("help", "Display usage information of KD.", kd_cmd_help);
 	kd_register_cmd("log", "Display the kernel log buffer.", kd_cmd_log);
 }
 

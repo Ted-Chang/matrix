@@ -86,7 +86,7 @@ void irq_restore(boolean_t state)
  */
 void irq_done(uint32_t int_no)
 {
-	if (int_no >= 8) {
+	if (int_no >= 32) {
 		outportb(PIC2_CMD, PIC_EOI);
 	}
 	

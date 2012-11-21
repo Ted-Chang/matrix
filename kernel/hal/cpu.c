@@ -7,10 +7,8 @@
 #include "mm/mlayout.h"
 #include "mm/page.h"
 #include "div64.h"
-#include "exceptn.h"
 
 extern struct idt_ptr _idt_ptr;
-extern struct irq_hook *_irq_handlers[];
 extern void init_idt();
 extern void idt_flush();
 extern void init_gdt(struct cpu *c);
@@ -169,8 +167,7 @@ static void arch_preinit_cpu()
 	init_idt();
 
 	/* Clear the irq handlers table and initialize them */
-	memset(&_irq_handlers[0], 0, sizeof(struct irq_hook *) * 256);
-	init_exceptn_handlers();
+	init_irqs();
 }
 
 static void arch_preinit_cpu_percpu(struct cpu *c)
