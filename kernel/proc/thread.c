@@ -269,6 +269,14 @@ int thread_create(const char *name, struct process *owner, int flags,
 	t->entry = func;
 	t->args = args;
 
+	/* Initialize signal handling state */
+	t->pending_signals = 0;
+	t->signal_mask = 0;
+	memset(t->signal_info, 0, sizeof(t->signal_info));
+	t->signal_stack.ss_sp = NULL;
+	t->signal_stack.ss_size = 0;
+	t->signal_stack.ss_flags = 0;
+
 	/* Add the thread to the owner */
 	process_attach(owner, t);
 	rc = 0;
@@ -359,6 +367,16 @@ void thread_kill(struct thread *t)
 	
 	if (t->owner != _kernel_proc) {
 		thread_interrupt_internal(t, THREAD_KILLED_F);
+	}
+}
+
+boolean_t thread_interrupt(struct thread *t)
+{
+	/* Cannot interrupt kernel threads */
+	if (t->owner != _kernel_proc) {
+		return thread_interrupt_internal(t, 0);
+	} else {
+		return FALSE;
 	}
 }
 

@@ -14,10 +14,6 @@ struct klog_buffer {
 };
 static struct klog_buffer _klog_buffer[10];
 
-/* Kernel Debugger hook and callback */
-extern struct irq_hook _kd_hook;
-extern void kd_callback(struct registers *regs);
-
 /* Lock for the kernel terminal */
 static struct spinlock _terminal_lock;
 

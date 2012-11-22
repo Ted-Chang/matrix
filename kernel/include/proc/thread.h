@@ -8,6 +8,7 @@
 #include "avltree.h"
 #include "notifier.h"
 #include "timer.h"
+#include "proc/signal.h"
 
 struct process;
 
@@ -68,13 +69,20 @@ struct thread {
 	struct timer sleep_timer;	// Sleep timeout timer
 	int sleep_status;		// Sleep status (timed out/interrupted)
 
-	/* Reference count for the thread */
+	/* Reference count for the thread
+	 * A running thread always has at least 1 reference on it.
+	 */
 	int ref_count;
+
+	/* Signal information */
+	sigset_t signal_mask;		// Signal mask for the thread
+	sigset_t pending_signals;	// Bitmap of pending signals
+	struct siginfo signal_info[NSIG]; // Information associated with pending signals
+	struct stack signal_stack;	// Alternate signal stack
 
 	/* Other thread information */
 	tid_t id;			// ID of the thread
 	char name[T_NAME_LEN];		// Name of the thread
-	
 	struct avl_tree_node tree_link;	// Link to thread tree
 	struct process *owner;		// Pointer to parent process
 	struct list owner_link;		// Link to the owner process
@@ -104,6 +112,7 @@ extern void thread_run(struct thread *t);
 extern void thread_kill(struct thread *t);
 extern void thread_release(struct thread *t);
 extern void thread_wake(struct thread *t);
+extern boolean_t thread_interrupt(struct thread *t);
 extern void thread_exit();
 extern void init_thread();
 

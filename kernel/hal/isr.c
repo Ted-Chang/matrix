@@ -16,6 +16,10 @@ struct irq_chain {
 };
 typedef struct irq_chain irq_chain_t;
 
+/* Kernel Debugger hook and callback */
+extern struct irq_hook _kd_hook;
+extern void kd_callback(struct registers *regs);
+
 /* Global interrupt hook chain */
 static struct irq_chain _irq_chains[256];
 
@@ -126,6 +130,11 @@ void divide_by_zero_fault(struct registers *regs)
 	PANIC("Divide by zero");
 }
 
+void single_step_fault(struct registers *regs)
+{
+	PANIC("Single step trap");
+}
+
 void nmi_trap(struct registers *regs)
 {
 	PANIC("NMI trap");
@@ -221,7 +230,7 @@ void init_irqs()
 	
 	/* Install the exception handlers */
 	register_irq_handler(0, &_exceptn_hooks[0], divide_by_zero_fault);
-	/* Single step was registered in kernel debugger */
+	register_irq_handler(1, &_exceptn_hooks[1], single_step_fault);
 	register_irq_handler(2, &_exceptn_hooks[2], nmi_trap);
 	register_irq_handler(3, &_exceptn_hooks[3], breakpoint_trap);
 	register_irq_handler(4, &_exceptn_hooks[4], overflow_trap);
@@ -237,4 +246,7 @@ void init_irqs()
 	register_irq_handler(17, &_exceptn_hooks[14], alignment_check_fault);
 	register_irq_handler(18, &_exceptn_hooks[15], machine_check_abort);
 	register_irq_handler(19, &_exceptn_hooks[16], simd_fpu_fault);
+
+	/* Install the serial IRQ handler */
+	register_irq_handler(IRQ4, &_kd_hook, kd_callback);
 }

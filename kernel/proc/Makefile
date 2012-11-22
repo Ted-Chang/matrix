@@ -10,6 +10,7 @@ TARGETOBJ := \
 	$(OBJ)/sched.o \
 	$(OBJ)/switch.o \
 	$(OBJ)/thread.o \
+	$(OBJ)/signal.o \
 
 .PHONY: clean help
 
