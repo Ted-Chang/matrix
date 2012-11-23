@@ -215,6 +215,18 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 		p->fds = fds;
 	}
 
+	/* If this process is a clone of other inherite signal handling information
+	 * from the parent
+	 */
+	if (FLAG_ON(flags, PROCESS_CLONE_F)) {
+		ASSERT(parent != NULL);
+		memcpy(p->signal_act, parent->signal_act, sizeof(p->signal_act));
+		p->signal_mask = parent->signal_mask;
+	} else {
+		memset(p->signal_act, 0, sizeof(p->signal_act));
+		p->signal_mask = 0;
+	}
+
 	/* Insert this process into process tree */
 	avl_tree_insert_node(&_proc_tree, &p->tree_link, p->id, p);
 

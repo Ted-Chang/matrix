@@ -35,6 +35,10 @@ struct process {
 
 	struct list threads;			// List of threads
 
+	/* Signal information */
+	sigset_t signal_mask;			// Bitmap of masked signals
+	struct sigaction signal_act[NSIG];
+
 	/* State of the process */
 	enum {
 		PROCESS_RUNNING,
@@ -56,6 +60,9 @@ typedef struct process process_t;
 
 /* Macro that retrieve the pointer of the current process */
 #define CURR_PROC	(CURR_THREAD->owner)
+
+/* Internal flags for process creation */
+#define PROCESS_CLONE_F		(1<<0)
 
 /* Pointer to the kernel process */
 extern struct process *_kernel_proc;

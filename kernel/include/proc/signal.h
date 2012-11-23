@@ -50,6 +50,22 @@ struct siginfo {
 };
 typedef struct siginfo siginfo_t;
 
+/* Structure describing how to handle a signal */
+struct sigaction {
+	/* Handler function pointer */
+	union {
+		void (*sa_handler)(int);
+		void (*sa_sigaction)(int, struct siginfo *, void *);
+	};
+
+	sigset_t sa_mask;	// Bitmap of signals to block during handler execution
+	int sa_flags;
+};
+
+/* Special signal handler */
+#define SIG_DFT		((void (*)(int))0)	// Default handler
+#define SIG_IGN		((void (*)(int))1)	// Ignore
+
 struct thread;
 
 #endif	/* __SIGNAL_H__ */

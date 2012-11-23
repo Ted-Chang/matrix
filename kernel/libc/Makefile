@@ -9,6 +9,7 @@ TARGETOBJ := \
 	$(OBJ)/div64.o \
 	$(OBJ)/vsprintf.o \
 	$(OBJ)/sprintf.o \
+	$(OBJ)/intrnl.o \
 
 .PHONY: clean help
 
