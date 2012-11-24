@@ -7,6 +7,22 @@
 #include "proc/thread.h"
 #include "proc/process.h"
 
+#define SIG_DFT_IGNORE(s) \
+	((s) == SIGCHLD || (s) == SIGURG || (s) == SIGWINCH)
+
+#define SIG_DFT_STOP(s) \
+	((s) == SIGSTOP || (s) == SIGTSTP || (s) == SIGTTIN || (s) == SIGTTOU)
+
+#define SIG_DFT_CORE(s) \
+	((s) == SIGQUIT || (s) == SIGILL || (s) == SIGTRAP || (s) == SIGABRT || \
+	 (s) == SIGBUS || (s) == SIGFPE || (s) == SIGSEGV)
+
+#define SIG_DFT_TERM(s) \
+	((s) == SIGHUP || (s) == SIGINT || (s) == SIGKILL || (s) == SIGPIPE || \
+	 (s) == SIGALRM || (s) == SIGTERM || (s) == SIGUSR1 || (s) == SIGUSR2)
+
+#define SIG_DFT_CONT(s)	((s) == SIGCONT)
+
 void signal_send(struct thread *t, int num, struct siginfo *info, boolean_t force);
 
 static void signal_force(struct thread *t, int num, int cause)
@@ -55,6 +71,7 @@ void signal_handle_pending()
 {
 	int i;
 	sigset_t pending, mask;
+	struct sigaction *action;
 
 	pending = CURR_THREAD->pending_signals;
 	pending &= ~(CURR_THREAD->signal_mask | CURR_PROC->signal_mask);
@@ -68,5 +85,27 @@ void signal_handle_pending()
 		}
 
 		CURR_THREAD->pending_signals &= ~(1 << i);
+
+		/* Check if the signal is ignored */
+		action = &CURR_PROC->signal_act[i];
+		if (action->sa_handler == SIG_IGN ||
+		    (action->sa_handler == SIG_DFT && SIG_DFT_IGNORE(i))) {
+			continue;
+		}
+
+		if (action->sa_handler != SIG_DFT) {
+			;
+		}
+
+		/* Handle the default action */
+		if (SIG_DFT_TERM(i)) {
+			;
+		} else if (SIG_DFT_CORE(i)) {
+			;
+		} else if (SIG_DFT_STOP(i)) {
+			;
+		} else if (SIG_DFT_CONT(i)) {
+			break;
+		}
 	}
 }

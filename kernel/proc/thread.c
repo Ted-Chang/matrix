@@ -14,7 +14,7 @@
 static tid_t _next_tid = 1;
 
 /* Thread structure cache */
-static struct slab_cache *_thread_cache;
+static slab_cache_t _thread_cache;
 
 extern uint32_t read_eip();
 
@@ -432,8 +432,8 @@ void thread_exit()
 void init_thread()
 {
 	/* Create the thread slab cache */
-	_thread_cache = slab_cache_create("thread_cache", sizeof(struct thread), 0,
-					  thread_ctor, thread_dtor, NULL, 0, 0);
+	slab_cache_init(&_thread_cache, "thread_cache", sizeof(struct thread), 
+			thread_ctor, thread_dtor, 0);
 }
 
 
