@@ -431,8 +431,8 @@ void thread_exit()
 
 void init_thread()
 {
-	/* Create the thread slab cache */
-	slab_cache_init(&_thread_cache, "thread_cache", sizeof(struct thread), 
+	/* Initialize the thread slab cache */
+	slab_cache_init(&_thread_cache, "thread-cache", sizeof(struct thread), 
 			thread_ctor, thread_dtor, 0);
 }
 

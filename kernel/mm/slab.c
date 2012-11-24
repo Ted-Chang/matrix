@@ -14,7 +14,6 @@ struct slab;
 /* Slab structure */
 struct slab {
 	struct list link;		// Link to appropriate slab list in cache
-	
 	slab_cache_t *parent;		// Cache containing the slab
 	void *base;			// Base address of allocation
 };
@@ -70,7 +69,7 @@ void *slab_cache_alloc(slab_cache_t *cache)
 		slab = slab_create(cache, 0);
 		if (slab) {
 			ret = slab->base;
-			DEBUG(DL_INF, ("allocated %p from cache %s (slab).\n",
+			DEBUG(DL_INF, ("allocated %p from cache %s.\n",
 				       ret, cache->name));
 		}
 	}
@@ -92,12 +91,15 @@ void slab_cache_free(slab_cache_t *cache, void *obj)
 		cache->dtor(obj);
 	}
 
-	slab = ((u_char *)obj) - sizeof(slab_t);
+	slab = (slab_t *)(((u_char *)obj) - sizeof(slab_t));
 
-	list_add_tail(&slab->link, &cache->slab_head);
-
-	DEBUG(DL_DBG, ("freed %p to cache %s (slab).\n",
-		       obj, cache->name));
+	if (cache->nr_slabs < cache->color_max) {
+		list_add_tail(&slab->link, &cache->slab_head);
+	} else {
+		slab_destroy(cache, slab);
+		DEBUG(DL_INF, ("freed %p to cache %s.\n",
+			       obj, cache->name));
+	}
 }
 
 void slab_cache_init(slab_cache_t *cache, const char *name, size_t size,
@@ -120,6 +122,9 @@ void slab_cache_init(slab_cache_t *cache, const char *name, size_t size,
 	cache->ctor = ctor;
 	cache->dtor = dtor;
 
+	cache->color_next = 0;
+	cache->color_max = 256;
+
 	list_add(&cache->link, &_slab_caches);
 
 	DEBUG(DL_DBG, ("cache created %s\n", cache->name));
@@ -127,10 +132,17 @@ void slab_cache_init(slab_cache_t *cache, const char *name, size_t size,
 
 void slab_cache_delete(slab_cache_t *cache)
 {
+	slab_t *slab;
+	struct list *l;
+	
 	ASSERT(cache);
 	
-	if (!LIST_EMPTY(&cache->slab_head)) {
-		PANIC("cache still has allocation during destruction");
+	while (!LIST_EMPTY(&cache->slab_head)) {
+		l = cache->slab_head.next;
+		list_del(l);
+		slab = LIST_ENTRY(l, slab_t, link);
+		ASSERT(slab->parent == cache);
+		slab_destroy(cache, slab->base);
 	}
 	
 	list_del(&cache->link);

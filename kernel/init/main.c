@@ -143,18 +143,44 @@ int kmain(u_long addr, uint32_t initial_stack)
 }
 
 #ifdef _UNIT_TEST
+static slab_cache_t _slab_test_cache;
 static void test_timer_func(void *ctx)
 {
 	struct timer *tmr;
 	unsigned long long lld = 0x100000000;
 	unsigned long num = 0xFF;
 	char *str = "Hello, world!";
+	u_char *data1, *data2, *data3;
 
 	tmr = (struct timer *)ctx;
 	
 	kd_printf("test: lld(%lld), dec(%d), hex(%x), ptr(%p), str(%s).\n",
 		  lld, num, num, tmr, str);
-	
+
+	data1 = slab_cache_alloc(&_slab_test_cache);
+	if (!data1) {
+		DEBUG(DL_INF, ("slab_cache_alloc data1 failed.\n"));
+	} else {
+		memset(data1, 0x00, 100);
+		slab_cache_free(&_slab_test_cache, data1);
+	}
+
+	data2 = slab_cache_alloc(&_slab_test_cache);
+	if (!data2) {
+		DEBUG(DL_INF, ("slab_cache_alloc data2 failed.\n"));
+	} else {
+		memset(data2, 0xCC, 100);
+		slab_cache_free(&_slab_test_cache, data2);
+	}
+
+	data3 = slab_cache_alloc(&_slab_test_cache);
+	if (!data3) {
+		DEBUG(DL_INF, ("slab_cache_alloc data3 failed.\n"));
+	} else {
+		memset(data3, 0xFF, 100);
+		slab_cache_free(&_slab_test_cache, data3);
+	}
+
 	set_timer(tmr, 1000000, test_timer_func);
 }
 #endif	/* _UNIT_TEST */
@@ -198,6 +224,7 @@ void sys_init_thread(void *ctx)
 	}
 
 #ifdef _UNIT_TEST
+	slab_cache_init(&_slab_test_cache, "test-cache", 100, NULL, NULL, 0);
 	tmr = kmalloc(sizeof(struct timer), 0);
 	if (!tmr) {
 		DEBUG(DL_INF, ("kmalloc timer failed.\n"));

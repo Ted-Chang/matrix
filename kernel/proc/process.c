@@ -13,6 +13,7 @@
 #include "mm/page.h"
 #include "mm/mmu.h"
 #include "mm/malloc.h"
+#include "mm/slab.h"
 #include "proc/process.h"
 #include "proc/sched.h"
 #include "proc/thread.h"
@@ -34,6 +35,9 @@ struct process_creation {
 };
 
 static pid_t _next_pid = 1;
+
+/* Process structure cache */
+static slab_cache_t _proc_cache;
 
 /* Tree of all processes */
 static struct avl_tree _proc_tree;
@@ -572,6 +576,10 @@ void init_process()
 	 * that this was done in the context of kernel mmu.
 	 */
 	move_stack(0xE0000000, KSTACK_SIZE);
+
+	/* Initialize the process slab cache */
+	slab_cache_init(&_proc_cache, "proc-cache", sizeof(struct process),
+			process_ctor, process_dtor, 0);
 
 	/* Initialize the process avl tree */
 	avl_tree_init(&_proc_tree);
