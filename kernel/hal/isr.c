@@ -75,10 +75,6 @@ void irq_handler(struct registers regs)
 		hook = hook->next;
 		processed = TRUE;
 	}
-
-	if (!processed) {
-		kprintf("unhandled IRQ: %d\n", regs.int_no);
-	}
 }
 
 void register_irq_handler(uint8_t irq, struct irq_hook *hook, isr_t handler)

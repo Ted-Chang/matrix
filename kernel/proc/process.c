@@ -178,16 +178,12 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 	ASSERT((name != NULL) && (procp != NULL));
 
 	/* Create the new process */
-	p = kmalloc(sizeof(struct process), 0);
+	p = slab_cache_alloc(&_proc_cache);
 	if (!p) {
-		DEBUG(DL_DBG, ("kmalloc process failed.\n"));
+		DEBUG(DL_DBG, ("slab allocate process failed.\n"));
 		rc = -1;
 		goto out;
 	}
-	memset(p, 0, sizeof(struct process));
-
-	/* Process constructor */
-	process_ctor(p);
 
 	/* Allocate a process ID. If creating the kernel process, always give
 	 * it an ID of 0.
@@ -457,8 +453,9 @@ int process_destroy(struct process *proc)
 	avl_tree_remove_node(&_proc_tree, &proc->tree_link);
 
 	notifier_clear(&proc->death_notifier);
-	
-	kfree(proc);
+
+	/* Free this process to our process cache */
+	slab_cache_free(&_proc_cache, proc);
 
 	return 0;
 }

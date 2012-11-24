@@ -146,39 +146,34 @@ int kmain(u_long addr, uint32_t initial_stack)
 static slab_cache_t _slab_test_cache;
 static void test_timer_func(void *ctx)
 {
+	int i;
 	struct timer *tmr;
 	unsigned long long lld = 0x100000000;
 	unsigned long num = 0xFF;
 	char *str = "Hello, world!";
-	u_char *data1, *data2, *data3;
+#define NR_SLAB_TEST_CASES	3
+	u_char *data[NR_SLAB_TEST_CASES];
 
 	tmr = (struct timer *)ctx;
 	
 	kd_printf("test: lld(%lld), dec(%d), hex(%x), ptr(%p), str(%s).\n",
 		  lld, num, num, tmr, str);
 
-	data1 = slab_cache_alloc(&_slab_test_cache);
-	if (!data1) {
-		DEBUG(DL_INF, ("slab_cache_alloc data1 failed.\n"));
-	} else {
-		memset(data1, 0x00, 100);
-		slab_cache_free(&_slab_test_cache, data1);
+	memset(data, 0, sizeof(data));
+	
+	for (i = 0; i < NR_SLAB_TEST_CASES; i++) {
+		data[i] = slab_cache_alloc(&_slab_test_cache);
+		if (!data[i]) {
+			DEBUG(DL_INF, ("slab_cache_alloc data1 failed.\n"));
+		} else {
+			memset(data[i], 0x00, 100);
+		}
 	}
 
-	data2 = slab_cache_alloc(&_slab_test_cache);
-	if (!data2) {
-		DEBUG(DL_INF, ("slab_cache_alloc data2 failed.\n"));
-	} else {
-		memset(data2, 0xCC, 100);
-		slab_cache_free(&_slab_test_cache, data2);
-	}
-
-	data3 = slab_cache_alloc(&_slab_test_cache);
-	if (!data3) {
-		DEBUG(DL_INF, ("slab_cache_alloc data3 failed.\n"));
-	} else {
-		memset(data3, 0xFF, 100);
-		slab_cache_free(&_slab_test_cache, data3);
+	for (i = 0; i < NR_SLAB_TEST_CASES; i++) {
+		if (data[i]) {
+			slab_cache_free(&_slab_test_cache, data[i]);
+		}
 	}
 
 	set_timer(tmr, 1000000, test_timer_func);

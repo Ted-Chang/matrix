@@ -13,11 +13,14 @@ struct slab;
 
 /* Slab structure */
 struct slab {
+	uint32_t magic;
 	struct list link;		// Link to appropriate slab list in cache
 	slab_cache_t *parent;		// Cache containing the slab
 	void *base;			// Base address of allocation
 };
 typedef struct slab slab_t;
+
+#define SLAB_MAGIC	'BALS'
 
 /* List of all slab caches */
 static struct list _slab_caches = {
@@ -32,6 +35,7 @@ static slab_t *slab_create(slab_cache_t *cache, int mmflag)
 	/* Allocate a new slab */
 	slab = (slab_t *)kmem_alloc(cache->obj_size + sizeof(slab_t), mmflag);
 	if (slab) {
+		slab->magic = SLAB_MAGIC;
 		LIST_INIT(&slab->link);
 		slab->parent = cache;
 		slab->base = ((u_char *)slab) + sizeof(slab_t);
@@ -43,6 +47,7 @@ static slab_t *slab_create(slab_cache_t *cache, int mmflag)
 
 static void slab_destroy(slab_cache_t *cache, slab_t *slab)
 {
+	ASSERT(slab->magic == SLAB_MAGIC);
 	/* Free an allocated slab */
 	list_del(&slab->link);
 	cache->nr_slabs--;
@@ -53,7 +58,7 @@ void *slab_cache_alloc(slab_cache_t *cache)
 {
 	slab_t *slab;
 	struct list *l;
-	void *ret = NULL;
+	void *obj = NULL;
 
 	ASSERT(cache != NULL);
 
@@ -62,23 +67,24 @@ void *slab_cache_alloc(slab_cache_t *cache)
 		l = cache->slab_head.prev;
 		list_del(l);
 		slab = LIST_ENTRY(l, slab_t, link);
-		ret = slab->base;
+		ASSERT(slab->magic == SLAB_MAGIC);
+		obj = slab->base;
 	}
 
-	if (ret == NULL) {
+	if (obj == NULL) {
 		slab = slab_create(cache, 0);
 		if (slab) {
-			ret = slab->base;
+			obj = slab->base;
 			DEBUG(DL_INF, ("allocated %p from cache %s.\n",
-				       ret, cache->name));
+				       obj, cache->name));
 		}
 	}
 
-	if (ret && cache->ctor) {
-		cache->ctor(ret);
+	if (obj && cache->ctor) {
+		cache->ctor(obj);
 	}
 	
-	return ret;
+	return obj;
 }
 
 void slab_cache_free(slab_cache_t *cache, void *obj)
@@ -92,8 +98,10 @@ void slab_cache_free(slab_cache_t *cache, void *obj)
 	}
 
 	slab = (slab_t *)(((u_char *)obj) - sizeof(slab_t));
+	ASSERT(slab->magic == SLAB_MAGIC);
 
 	if (cache->nr_slabs < cache->color_max) {
+		ASSERT(LIST_EMPTY(&slab->link));
 		list_add_tail(&slab->link, &cache->slab_head);
 	} else {
 		slab_destroy(cache, slab);
@@ -105,8 +113,6 @@ void slab_cache_free(slab_cache_t *cache, void *obj)
 void slab_cache_init(slab_cache_t *cache, const char *name, size_t size,
 		     slab_ctor_t ctor, slab_dtor_t dtor, int flags)
 {
-	struct list *l;
-
 	ASSERT(size);
 
 	LIST_INIT(&cache->slab_head);

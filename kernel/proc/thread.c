@@ -231,9 +231,9 @@ int thread_create(const char *name, struct process *owner, int flags,
 		owner = _kernel_proc;
 	}
 	
-	t = kmalloc(sizeof(struct thread), 0);
+	t = slab_cache_alloc(&_thread_cache);
 	if (!t) {
-		DEBUG(DL_INF, ("kmalloc thread failed.\n"));
+		DEBUG(DL_INF, ("slab allocate thread failed.\n"));
 		goto out;
 	}
 
@@ -402,12 +402,15 @@ void thread_release(struct thread *t)
 
 	/* Cleanup the thread */
 	kstack = (void *)((uint32_t)t->kstack - KSTACK_SIZE);
-	DEBUG(DL_DBG, ("process(%s:%d:%d), kstack(%p).\n", p->name,
-		       p->id, p->state, kstack));
-
 	kfree(kstack);
 
 	notifier_clear(&t->death_notifier);
+
+	DEBUG(DL_DBG, ("process(%s:%d:%d), kstack(%p).\n", p->name,
+		       p->id, p->state, kstack));
+
+	/* Free this thread to the thread cache */
+	slab_cache_free(&_thread_cache, t);
 }
 
 void thread_exit()
