@@ -2,6 +2,7 @@
 #define __SLAB_H__
 
 #include "list.h"
+#include "hal/spinlock.h"
 #include "mm/page.h"
 #include "mm/mm.h"
 
@@ -19,6 +20,7 @@ struct slab_cache {
 	size_t nr_slabs;		// Number of allocated slabs
 
 	/* Slab lists/cache coloring settings */
+	struct spinlock lock;		// Lock for this slab cache
 	struct list slab_head;		// List of allocated slabs
 	
 	uint16_t color_next;		// Next cache color

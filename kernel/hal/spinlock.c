@@ -34,15 +34,6 @@ void spinlock_acquire(struct spinlock *lock)
 	enter_cs_barrier();
 }
 
-void spinlock_acquire_noirq(struct spinlock *lock)
-{
-	ASSERT(!irq_state());
-
-	spinlock_lock_internal(lock);
-
-	enter_cs_barrier();
-}
-
 /**
  * Release a spinlock
  */
@@ -62,6 +53,15 @@ void spinlock_release(struct spinlock *lock)
 	leave_cs_barrier();
 	lock->value = 1;
 	irq_restore(state);
+}
+
+void spinlock_acquire_noirq(struct spinlock *lock)
+{
+	ASSERT(!irq_state());
+
+	spinlock_lock_internal(lock);
+
+	enter_cs_barrier();
 }
 
 void spinlock_release_noirq(struct spinlock *lock)

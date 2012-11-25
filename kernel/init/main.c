@@ -43,8 +43,6 @@ static void dump_mbi(struct multiboot_info *mbi);
 int kmain(u_long addr, uint32_t initial_stack)
 {
 	int rc = 0;
-	uint32_t initrd_location;
-	uint32_t initrd_end;
 
 	/* Make the debugger available as soon as possible */
 	init_kd();
@@ -74,10 +72,6 @@ int kmain(u_long addr, uint32_t initial_stack)
 	/* Initialize our timer */
 	init_clock();
 	kprintf("System PIT initialization done.\n");
-
-	/* Find the location of our initial ramdisk */
-	initrd_location = *((uint32_t *)_mbi->mods_addr);
-	initrd_end = *(uint32_t *)(_mbi->mods_addr + 4);
 
 	/* Initialize our memory manager */
 	init_page();
@@ -123,11 +117,6 @@ int kmain(u_long addr, uint32_t initial_stack)
 	DEBUG(DL_DBG, ("Scheduler initialization done.\n"));
 
 	kprintf("Scheduler initialization done.\n");
-
-	/* Initialize the initial ramdisk and set it as the root filesystem */
-	_root_node = init_initrd(initrd_location);
-	kprintf("Initial ramdisk mounted, location(0x%x), end(0x%x).\n",
-		initrd_location, initrd_end);
 
 	init_syscalls();
 	kprintf("System call initialization done.\n");
@@ -194,6 +183,8 @@ void sys_init_thread(void *ctx)
 	int rc = -1;
 	struct list *l;
 	struct cpu *c;
+	uint32_t initrd_location;
+	uint32_t initrd_end;
 #ifdef _UNIT_TEST
 	struct timer *tmr;
 #endif	/* _UNIT_TEST */
@@ -211,6 +202,16 @@ void sys_init_thread(void *ctx)
 
 	/* Load the modules */
 	load_modules();
+	if (!_root_node) {
+		/* Find the location of our initial ramdisk */
+		initrd_location = *((uint32_t *)_mbi->mods_addr);
+		initrd_end = *(uint32_t *)(_mbi->mods_addr + 4);
+
+		/* Initialize the initial ramdisk and set it as the root filesystem */
+		_root_node = init_initrd(initrd_location);
+		kprintf("Initial ramdisk mounted, location(0x%x), end(0x%x).\n",
+			initrd_location, initrd_end);
+	}
 
 	/* Run init process from executable file init */
 	rc = process_create(init_argv, _kernel_proc, 0, 16, NULL);

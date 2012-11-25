@@ -27,6 +27,7 @@ static struct list _slab_caches = {
 	.prev = &_slab_caches,
 	.next = &_slab_caches
 };
+static struct spinlock _slab_caches_lock;
 
 static slab_t *slab_create(slab_cache_t *cache, int mmflag)
 {
@@ -39,7 +40,9 @@ static slab_t *slab_create(slab_cache_t *cache, int mmflag)
 		LIST_INIT(&slab->link);
 		slab->parent = cache;
 		slab->base = ((u_char *)slab) + sizeof(slab_t);
+		spinlock_acquire(&cache->lock);
 		cache->nr_slabs++;
+		spinlock_release(&cache->lock);
 	}
 
 	return slab;
@@ -50,7 +53,9 @@ static void slab_destroy(slab_cache_t *cache, slab_t *slab)
 	ASSERT(slab->magic == SLAB_MAGIC);
 	/* Free an allocated slab */
 	list_del(&slab->link);
+	spinlock_acquire(&cache->lock);
 	cache->nr_slabs--;
+	spinlock_release(&cache->lock);
 	kmem_free(slab);
 }
 
@@ -62,13 +67,18 @@ void *slab_cache_alloc(slab_cache_t *cache)
 
 	ASSERT(cache != NULL);
 
+	spinlock_acquire(&cache->lock);
 	if (!LIST_EMPTY(&cache->slab_head)) {
 		/* Pop the last entry from the slab list */
 		l = cache->slab_head.prev;
 		list_del(l);
+		cache->color_next--;
+		spinlock_release(&cache->lock);
 		slab = LIST_ENTRY(l, slab_t, link);
 		ASSERT(slab->magic == SLAB_MAGIC);
 		obj = slab->base;
+	} else {
+		spinlock_release(&cache->lock);
 	}
 
 	if (obj == NULL) {
@@ -100,10 +110,16 @@ void slab_cache_free(slab_cache_t *cache, void *obj)
 	slab = (slab_t *)(((u_char *)obj) - sizeof(slab_t));
 	ASSERT(slab->magic == SLAB_MAGIC);
 
-	if (cache->nr_slabs < cache->color_max) {
+	spinlock_acquire(&cache->lock);
+	
+	if (cache->color_next < cache->color_max) {
 		ASSERT(LIST_EMPTY(&slab->link));
 		list_add_tail(&slab->link, &cache->slab_head);
+		cache->color_next++;
+		spinlock_release(&cache->lock);
 	} else {
+		spinlock_release(&cache->lock);
+		
 		slab_destroy(cache, slab);
 		DEBUG(DL_INF, ("freed %p to cache %s.\n",
 			       obj, cache->name));
@@ -131,7 +147,11 @@ void slab_cache_init(slab_cache_t *cache, const char *name, size_t size,
 	cache->color_next = 0;
 	cache->color_max = 256;
 
+	spinlock_init(&cache->lock, "slabs-lock");
+
+	spinlock_acquire(&_slab_caches_lock);
 	list_add(&cache->link, &_slab_caches);
+	spinlock_release(&_slab_caches_lock);
 
 	DEBUG(DL_DBG, ("cache created %s\n", cache->name));
 }
@@ -143,19 +163,32 @@ void slab_cache_delete(slab_cache_t *cache)
 	
 	ASSERT(cache);
 	
-	while (!LIST_EMPTY(&cache->slab_head)) {
+	while (TRUE) {
+		spinlock_acquire(&cache->lock);
+
+		if (LIST_EMPTY(&cache->slab_head)) {
+			ASSERT(cache->color_next == 0);
+			spinlock_release(&cache->lock);
+			break;
+		}
+		
 		l = cache->slab_head.next;
 		list_del(l);
+		cache->color_next--;
+		spinlock_release(&cache->lock);
+		
 		slab = LIST_ENTRY(l, slab_t, link);
 		ASSERT(slab->parent == cache);
 		slab_destroy(cache, slab->base);
 	}
-	
+
+	spinlock_acquire(&_slab_caches_lock);
 	list_del(&cache->link);
+	spinlock_release(&_slab_caches_lock);
 }
 
 /* Initialize the slab allocator */
 void init_slab()
 {
-	;
+	spinlock_init(&_slab_caches_lock, "cache-lock");
 }
