@@ -102,7 +102,7 @@ typedef struct thread thread_t;
 #define CURR_THREAD	(CURR_CPU->thread)
 
 extern void arch_thread_switch(struct thread *curr, struct thread *prev);
-extern void arch_thread_enter_uspace(void *entry, void *ustack);
+extern void arch_thread_enter_uspace(void *entry, void *ustack, void *ctx);
 extern void thread_uspace_trampoline(void *ctx);
 extern int thread_create(const char *name, struct process *owner, int flags,
 			 thread_func_t func, void *args, struct thread **tp);

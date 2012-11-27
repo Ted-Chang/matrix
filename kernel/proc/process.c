@@ -340,7 +340,7 @@ static void process_entry_thread(void *ctx)
 	CURR_THREAD->ustack = (void *)(USTACK_BOTTOM + USTACK_SIZE);
 	
 	/* Switch to user space */
-	arch_thread_enter_uspace(entry, (void *)(USTACK_BOTTOM + USTACK_SIZE));
+	arch_thread_enter_uspace(entry, (void *)(USTACK_BOTTOM + USTACK_SIZE), info);
 }
 
 static struct process_creation *alloc_process_creation(const char *args[])
@@ -360,7 +360,7 @@ static struct process_creation *alloc_process_creation(const char *args[])
 		size += strlen(args[i]) + 1;
 	}
 	
-	info->argc = i;
+	info->argc = i - 1;
 	size += sizeof(char *) * info->argc + 1;
 	
 	info->argv = kmalloc(size, 0);

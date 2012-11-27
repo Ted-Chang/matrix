@@ -8,6 +8,7 @@ OBJ := ../bin/lib
 
 TARGETOBJ := \
 	$(OBJ)/crtlib.o \
+	$(OBJ)/libinit.o \
 	$(OBJ)/syscalls.o \
 	$(OBJ)/div64.o \
 	$(OBJ)/stdio.o \

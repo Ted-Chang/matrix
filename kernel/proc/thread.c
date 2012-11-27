@@ -95,7 +95,7 @@ void arch_thread_switch(struct thread *curr, struct thread *prev)
  * @param location	- User address to jump to
  * @param ustack	- User stack
  */
-void arch_thread_enter_uspace(void *entry, void *ustack)
+void arch_thread_enter_uspace(void *entry, void *ustack, void *ctx)
 {
 	/* Setup our kernel stack, note that the stack was grow from high address
 	 * to low address
@@ -115,7 +115,6 @@ void arch_thread_enter_uspace(void *entry, void *ustack)
 		     "mov %%ax, %%ds\n"
 		     "mov %%ax, %%es\n"
 		     "mov %%ax, %%fs\n"
-		     "mov %%ax, %%gs\n"
 		     "mov %%esp, %%eax\n"	/* Move stack to EAX */
 		     "pushl $0x23\n"		/* Segment selector again */
 		     "pushl %%eax\n"
@@ -155,7 +154,7 @@ void thread_uspace_trampoline(void *ctx)
 	
 	info = (struct thread_uspace_creation *)ctx;
 	
-	arch_thread_enter_uspace(info->entry, info->esp);
+	arch_thread_enter_uspace(info->entry, info->esp, info->args);
 }
 
 static void thread_ctor(void *obj)
@@ -184,6 +183,8 @@ static void thread_dtor(void *obj)
 static boolean_t thread_interrupt_internal(struct thread *t, int flags)
 {
 	boolean_t ret = FALSE;
+
+	spinlock_acquire(&t->lock);
 	
 	if ((t->state == THREAD_SLEEPING) &&
 	    FLAG_ON(t->flags, THREAD_INTERRUPTIBLE_F)) {
@@ -191,6 +192,8 @@ static boolean_t thread_interrupt_internal(struct thread *t, int flags)
 	} else {
 		SET_FLAG(t->flags, THREAD_INTERRUPTIBLE_F);
 	}
+
+	spinlock_release(&t->lock);
 
 	return ret;
 }
@@ -214,11 +217,15 @@ static void thread_timeout(void *ctx)
 {
 	struct thread *t = ctx;
 
+	spinlock_acquire(&t->lock);
+
 	/* The thread could have been woken up already by another CPU */
 	if (t->state == THREAD_SLEEPING) {
 		t->sleep_status = -1;
 		thread_wake_internal(t);
 	}
+
+	spinlock_release(&t->lock);
 }
 
 int thread_create(const char *name, struct process *owner, int flags,
@@ -350,7 +357,9 @@ cancel:
 
 void thread_wake(struct thread *t)
 {
+	spinlock_acquire(&t->lock);
 	thread_wake_internal(t);
+	spinlock_release(&t->lock);
 }
 
 void thread_run(struct thread *t)
