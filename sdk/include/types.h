@@ -24,10 +24,8 @@ typedef char boolean_t;
 typedef unsigned long u_long;
 typedef unsigned char u_char;
 
-/* Physical address type definition */
+/* Physical address type and memory size definition */
 typedef uint32_t phys_addr_t;
-
-/* Physical memory size definition */
 typedef uint32_t phys_size_t;
 
 typedef int ptrdiff_t;
@@ -39,10 +37,11 @@ typedef int64_t useconds_t;
 typedef uint32_t uid_t;
 typedef uint32_t gid_t;
 
-/* Process id */
+/* Process id and thread id */
 typedef int pid_t;
-
-/* Thread id */
 typedef int tid_t;
+
+/* Ptr type definition */
+typedef unsigned long ptr_t;
 
 #endif	/* __TYPES_H__ */

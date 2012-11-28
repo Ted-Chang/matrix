@@ -95,12 +95,16 @@ void arch_thread_switch(struct thread *curr, struct thread *prev)
  * @param location	- User address to jump to
  * @param ustack	- User stack
  */
-void arch_thread_enter_uspace(void *entry, void *ustack, void *ctx)
+void arch_thread_enter_uspace(ptr_t entry, ptr_t ustack, ptr_t ctx)
 {
 	/* Setup our kernel stack, note that the stack was grow from high address
 	 * to low address
 	 */
 	set_kernel_stack(CURR_THREAD->kstack);
+
+	/* Push the arguments pointer to the stack */
+	ustack -= sizeof(ptr_t);
+	*((ptr_t *)ustack) = ctx;
 	
 	/* Setup a stack structure for switching to user mode.
 	 * The code firstly disables interrupts, as we're working on a critical
@@ -129,7 +133,7 @@ void arch_thread_enter_uspace(void *entry, void *ustack, void *ctx)
 }
 
 /* Thread entry function wrapper */
-static void thread_trampoline()
+static void thread_wrapper()
 {
 	/* Upon switching to a newly-created thread's context, execution will
 	 * jump to this function, rather than going back to the scheduler.
@@ -146,7 +150,7 @@ static void thread_trampoline()
 }
 
 /* Userspace thread entry function wrapper */
-void thread_uspace_trampoline(void *ctx)
+void thread_uspace_wrapper(void *ctx)
 {
 	struct thread_uspace_creation *info;
 
@@ -261,7 +265,7 @@ int thread_create(const char *name, struct process *owner, int flags,
 	memset((void *)((uint32_t)t->kstack - KSTACK_SIZE), 0, KSTACK_SIZE);
 
 	/* Initialize the architecture-specific data */
-	arch_thread_init(t, t->kstack, thread_trampoline);
+	arch_thread_init(t, t->kstack, thread_wrapper);
 
 	/* Initially set the CPU to NULL - the thread will be assigned to a
 	 * CPU when thread_run() is called on it.

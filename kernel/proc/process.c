@@ -8,6 +8,7 @@
 #include "matrix/matrix.h"
 #include "matrix/const.h"
 #include "matrix/debug.h"
+#include "matrix/process.h"
 #include "hal/hal.h"
 #include "hal/cpu.h"
 #include "mm/page.h"
@@ -23,9 +24,7 @@
 
 struct process_creation {
 	/* Arguments provided by the caller */
-	char **argv;		// Arguments array
-	char **env;		// Environment array
-	int argc;		// Argument count
+	struct process_args *args;
 
 	/* Information used internally by the loader */
 	struct mmu_ctx *mmu;	// Address space for the process
@@ -321,6 +320,7 @@ int process_exit(int status)
 static void process_entry_thread(void *ctx)
 {
 	int rc = -1;
+	ptr_t ustack;
 	void *entry = NULL;
 	struct process_creation *info;
 
@@ -328,56 +328,69 @@ static void process_entry_thread(void *ctx)
 
 	ASSERT(CURR_ASPACE == info->mmu);
 
+	/* Copy argument string, we need to allocate the arguments using
+	 * current mmu context
+	 */
+	;
+
 	/* Load the ELF file into this process */
-	rc = elf_load_binary(info->argv[0], info->mmu, &entry);
+	rc = elf_load_binary(info->args->argv[0], info->mmu, &entry);
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("elf_load_binary failed, err(%d).\n",
-			       rc));
+		DEBUG(DL_DBG, ("elf_load_binary failed, err(%d).\n", rc));
 		return;
 	}
 
 	/* We use a fixed user stack address for now */
-	CURR_THREAD->ustack = (void *)(USTACK_BOTTOM + USTACK_SIZE);
+	ustack = USTACK_BOTTOM + USTACK_SIZE;
+	CURR_THREAD->ustack = (void *)ustack;
 	
 	/* Switch to user space */
-	arch_thread_enter_uspace(entry, (void *)(USTACK_BOTTOM + USTACK_SIZE), info);
+	arch_thread_enter_uspace((ptr_t)entry, ustack, (ptr_t)info->args);
 }
 
-static struct process_creation *alloc_process_creation(const char *args[])
+static struct process_args *alloc_process_args(const char *argv[])
 {
 	int i;
 	char *ptr;
 	size_t size;
-	struct process_creation *info;
+	struct process_args *args;
 
-	info = kmalloc(sizeof(struct process_creation), 0);
-	if (!info) {
+	args = kmalloc(sizeof(struct process_args), 0);
+	if (!args) {
 		goto out;
 	}
-	memset(info, 0, sizeof(struct process_creation));
+	memset(args, 0, sizeof(struct process_args));
 
-	for (i = 0, size = 0; args[i] != NULL; i++) {
-		size += strlen(args[i]) + 1;
+	for (i = 0, size = 0; argv[i] != NULL; i++) {
+		size += strlen(argv[i]) + 1;
 	}
 	
-	info->argc = i - 1;
-	size += sizeof(char *) * info->argc + 1;
+	args->argc = i;
+	size += (sizeof(char *) * args->argc) + 1;
 	
-	info->argv = kmalloc(size, 0);
-	if (!info->argv) {
-		kfree(info);
-		info = NULL;
+	args->argv = kmalloc(size, 0);
+	if (!args->argv) {
+		kfree(args);
+		args = NULL;
 		goto out;
 	}
 
-	for (i = 0, ptr = (char *)&info->argv[info->argc]; i < info->argc; i++) {
-		strcpy(ptr, args[i]);
-		info->argv[i] = ptr;
+	for (i = 0, ptr = (char *)&args->argv[args->argc]; i < args->argc; i++) {
+		strcpy(ptr, argv[i]);
+		args->argv[i] = ptr;
 		ptr += (strlen(ptr) + 1);
 	}
 
 out:
-	return info;
+	return args;
+}
+
+static void free_process_args(struct process_args *args)
+{
+	if (args->argv) {
+		kfree(args->argv);
+	}
+	kfree(args);
 }
 
 int process_create(const char *args[], struct process *parent, int flags,
@@ -406,7 +419,20 @@ int process_create(const char *args[], struct process *parent, int flags,
 	}
 	mmu_copy_ctx(mmu, &_kernel_mmu_ctx);
 
-	info = alloc_process_creation(args);
+	info = kmalloc(sizeof(struct process_creation), 0);
+	if (!info) {
+		DEBUG(DL_WRN, ("kmalloc process_creation failed.\n"));
+		rc = -1;
+		goto out;
+	}
+
+	/* Copy the process argument from user mode to kernel for later use */
+	info->args = alloc_process_args(args);
+	if (!info->args) {
+		DEBUG(DL_WRN, ("alloc_process_args failed.\n"));
+		rc = -1;
+		goto out;
+	}
 	info->mmu = mmu;
 
 	/* Create the new process */
@@ -436,6 +462,12 @@ out:
 	if (rc != 0) {
 		if (p) {
 			process_destroy(p);
+		}
+		if (info) {
+			if (info->args) {
+				free_process_args(info->args);
+			}
+			kfree(info);
 		}
 		if (mmu) {
 			mmu_destroy_ctx(mmu);
@@ -523,7 +555,7 @@ int process_clone(void (*entry)(void *), void *esp, void *args, struct process *
 	info->esp = esp;
 	info->args = args;
 	
-	rc = thread_create("main", p, 0, thread_uspace_trampoline, info, &t);
+	rc = thread_create("main", p, 0, thread_uspace_wrapper, info, &t);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("thread_create failed, err(%d).\n", rc));
 		goto out;
