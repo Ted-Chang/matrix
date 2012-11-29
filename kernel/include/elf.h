@@ -142,6 +142,6 @@ typedef struct {
 typedef Elf32_Ehdr elf_ehdr_t;
 typedef Elf32_Shdr elf_shdr_t;
 
-extern int elf_load_binary(const char *path, struct mmu_ctx *mmu, void **entry);
+extern int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **entry);
 
 #endif	/* __ELF_H__ */

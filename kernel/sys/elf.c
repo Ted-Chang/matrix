@@ -104,21 +104,13 @@ out:
 	return rc;
 }
 
-int elf_load_binary(const char *path, struct mmu_ctx *mmu, void **entry)
+int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **entry)
 {
 	int rc = -1;
-	struct vfs_node *n;
 	elf_ehdr_t *ehdr;
 	uint32_t virt, temp;
 	struct page *page;
 	boolean_t is_elf;
-
-	/* Lookup the file from the file system */
-	n = vfs_lookup(path, VFS_FILE);
-	if (!n) {
-		DEBUG(DL_DBG, ("file(%s) not found.\n", path));
-		return -1;
-	}
 
 	/* Temporarily use address of user stack to load the ELF file, It will be
 	 * unmapped after we loaded the code section in.
@@ -144,7 +136,7 @@ int elf_load_binary(const char *path, struct mmu_ctx *mmu, void **entry)
 	/* Read in the executive content */
 	rc = vfs_read(n, 0, n->length, (uint8_t *)ehdr);
 	if (rc == -1 || rc < sizeof(elf_ehdr_t)) {
-		DEBUG(DL_INF, ("read file(%s) failed.\n", path));
+		DEBUG(DL_INF, ("read file failed.\n"));
 		rc = -1;
 		goto out;
 	}
@@ -152,7 +144,7 @@ int elf_load_binary(const char *path, struct mmu_ctx *mmu, void **entry)
 	/* Check whether it is valid ELF */
 	is_elf = elf_ehdr_check(ehdr);
 	if (!is_elf) {
-		DEBUG(DL_INF, ("invalid ELF, file(%s).\n", path));
+		DEBUG(DL_INF, ("invalid ELF file.\n"));
 		rc = -1;
 		goto out;
 	}
@@ -163,7 +155,7 @@ int elf_load_binary(const char *path, struct mmu_ctx *mmu, void **entry)
 	 */
 	rc = elf_load_sections(mmu, ehdr);
 	if (rc != 0) {
-		DEBUG(DL_WRN, ("load sections failed, file(%s).\n", path));
+		DEBUG(DL_WRN, ("load sections failed.\n"));
 		goto out;
 	}
 

@@ -317,37 +317,6 @@ int process_exit(int status)
 	return 0;
 }
 
-static void process_entry_thread(void *ctx)
-{
-	int rc = -1;
-	ptr_t ustack;
-	void *entry = NULL;
-	struct process_creation *info;
-
-	info = (struct process_creation *)ctx;
-
-	ASSERT(CURR_ASPACE == info->mmu);
-
-	/* Copy argument string, we need to allocate the arguments using
-	 * current mmu context
-	 */
-	;
-
-	/* Load the ELF file into this process */
-	rc = elf_load_binary(info->args->argv[0], info->mmu, &entry);
-	if (rc != 0) {
-		DEBUG(DL_DBG, ("elf_load_binary failed, err(%d).\n", rc));
-		return;
-	}
-
-	/* We use a fixed user stack address for now */
-	ustack = USTACK_BOTTOM + USTACK_SIZE;
-	CURR_THREAD->ustack = (void *)ustack;
-	
-	/* Switch to user space */
-	arch_thread_enter_uspace((ptr_t)entry, ustack, (ptr_t)info->args);
-}
-
 static struct process_args *alloc_process_args(const char *argv[])
 {
 	int i;
@@ -366,7 +335,7 @@ static struct process_args *alloc_process_args(const char *argv[])
 	}
 	
 	args->argc = i;
-	size += (sizeof(char *) * args->argc) + 1;
+	size += (sizeof(char *) * i) + 1;
 	
 	args->argv = kmalloc(size, 0);
 	if (!args->argv) {
@@ -381,8 +350,29 @@ static struct process_args *alloc_process_args(const char *argv[])
 		ptr += (strlen(ptr) + 1);
 	}
 
-out:
+	args->size = size + sizeof(struct process_args);
+
+ out:
 	return args;
+}
+
+static void copy_process_args_to(void *dst, struct process_args *src)
+{
+	int i;
+	char *ptr;
+	struct process_args *args;
+	
+	args = (struct process_args *)dst;
+	args->size = src->size;
+	args->argc = src->argc;
+	args->argv = (char **)((char *)dst + sizeof(struct process_args));
+	args->env = NULL;
+
+	for (i = 0, ptr = (char *)&args->argv[args->argc]; i < args->argc; i++) {
+		strcpy(ptr, src->argv[i]);
+		args->argv[i] = ptr;
+		ptr += (strlen(ptr) + 1);
+	}
 }
 
 static void free_process_args(struct process_args *args)
@@ -391,6 +381,53 @@ static void free_process_args(struct process_args *args)
 		kfree(args->argv);
 	}
 	kfree(args);
+}
+
+static void process_entry_thread(void *ctx)
+{
+	int rc = -1;
+	ptr_t ustack;
+	void *entry = NULL;
+	uint32_t virt = 0;
+	struct page *page;
+	struct vfs_node *n;
+	struct process_creation *info;
+
+	info = (struct process_creation *)ctx;
+
+	ASSERT(CURR_ASPACE == info->mmu);
+
+	/* Lookup the file from the file system */
+	n = vfs_lookup(info->args->argv[0], VFS_FILE);
+	if (!n) {
+		DEBUG(DL_DBG, ("file(%s) not found.\n", info->args->argv[0]));
+		return;
+	}
+
+	/* Load the ELF file into this process */
+	rc = elf_load_binary(n, info->mmu, &entry);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("elf_load_binary failed, err(%d).\n", rc));
+		return;
+	}
+
+	/* Copy argument string, we need to allocate the arguments using
+	 * current mmu context
+	 */
+	page = mmu_get_page(CURR_PROC->mmu_ctx, virt, TRUE, 0);
+	if (!page) {
+		DEBUG(DL_ERR, ("mmu_get_page failed, virt(0x%x).\n", virt));
+		return;
+	}
+	page_alloc(page, FALSE, TRUE);
+	copy_process_args_to((void *)virt, info->args);
+
+	/* We use a fixed user stack address for now */
+	ustack = USTACK_BOTTOM + USTACK_SIZE;
+	CURR_THREAD->ustack = (void *)ustack;
+	
+	/* Switch to user space */
+	arch_thread_enter_uspace((ptr_t)entry, ustack, (ptr_t)info->args);
 }
 
 int process_create(const char *args[], struct process *parent, int flags,
@@ -551,9 +588,9 @@ int process_clone(void (*entry)(void *), void *esp, void *args, struct process *
 
 	/* Create the main thread and run it */
 	info = kmalloc(sizeof(struct thread_uspace_creation), 0);
-	info->entry = entry;
-	info->esp = esp;
-	info->args = args;
+	info->entry = (ptr_t)entry;
+	info->esp = (ptr_t)esp;
+	info->args = (ptr_t)args;
 	
 	rc = thread_create("main", p, 0, thread_uspace_wrapper, info, &t);
 	if (rc != 0) {

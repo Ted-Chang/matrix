@@ -20,15 +20,13 @@ struct arch_thread {
 	void *esp;			// Stack pointer
 	void *ebp;			// Base pointer
 	void *eip;			// Instruction pointer
-
-	struct registers *syscall_regs;	// Store the regs on stack for this thread
 };
 
 /* Thread creation arguments structure, for thread_uspace_wrapper() */
 struct thread_uspace_creation {
-	void *entry;			// Instruction pointer
-	void *esp;			// Stack pointer
-	void *args;			// Argument
+	ptr_t entry;			// Instruction pointer
+	ptr_t esp;			// Stack pointer
+	ptr_t args;			// Argument
 };
 
 /* Definition of a thread */

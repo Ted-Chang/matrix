@@ -464,9 +464,6 @@ void syscall_handler(struct registers *regs)
 
 	location = _syscalls[syscall_id];
 
-	/* Update the syscall registers for this process */
-	CURR_THREAD->arch.syscall_regs = regs;
-
 	/* We don't know how many parameters the function wants, so we just
 	 * push them all onto the stack in the correct order. The function
 	 * will use all the parameters it wants, and we can pop them all back
@@ -486,12 +483,6 @@ void syscall_handler(struct registers *regs)
 		     pop %%ebx; \
 		     " : "=a"(rc) : "r"(regs->edi), "r"(regs->esi), "r"(regs->edx),
 		     "r"(regs->ecx), "r"(regs->ebx), "r"(location));
-
-	/* The syscall handler may have moved the register pointer, so update
-	 * the pointer here. It is important for system call such as fork because
-	 * it will copy the parent's stack as its own stack. You should use the pointer
-	 * of yourself.
-	 */
-	regs = CURR_THREAD->arch.syscall_regs;
+	
 	regs->eax = rc;
 }
