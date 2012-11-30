@@ -23,8 +23,13 @@
 #include "semaphore.h"
 
 struct process_creation {
+	struct semaphore sem;	// Semaphore for synchronize
+	
 	/* Arguments provided by the caller */
 	struct process_args *args;
+
+	const char **argv;	// Arguments
+	const char **env;	// Environments
 
 	/* Information used internally by the loader */
 	struct mmu_ctx *mmu;	// Address space for the process
@@ -317,18 +322,54 @@ int process_exit(int status)
 	return 0;
 }
 
+static int create_aspace(struct process_creation *info)
+{
+	int rc = -1;
+	uint32_t virt = 0;
+	void *entry = NULL;
+	struct vfs_node *n;
+	struct page *page;
+	struct mmu_ctx *mmu = NULL;
+
+	semaphore_init(&info->sem, "p-create-sem", 0);
+	
+	/* Create the address space for the process */
+	mmu = mmu_create_ctx();
+	if (!mmu) {
+		DEBUG(DL_INF, ("mmu_create_ctx failed.\n"));
+		rc = -1;
+		goto out;
+	}
+	mmu_copy_ctx(mmu, &_kernel_mmu_ctx);
+
+	/* Lookup the file from the file system */
+	n = vfs_lookup(info->argv[0], VFS_FILE);
+	if (!n) {
+		DEBUG(DL_DBG, ("file(%s) not found.\n", info->argv[0]));
+		rc = -1;
+		goto out;
+	}
+
+	/* Load the ELF file into this process */
+	rc = elf_load_binary(n, info->mmu, &entry);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("elf_load_binary failed, err(%d).\n", rc));
+		goto out;
+	}
+
+	info->mmu = mmu;
+
+ out:
+
+	return rc;
+}
+
 static struct process_args *alloc_process_args(const char *argv[])
 {
 	int i;
 	char *ptr;
 	size_t size;
 	struct process_args *args;
-
-	args = kmalloc(sizeof(struct process_args), 0);
-	if (!args) {
-		goto out;
-	}
-	memset(args, 0, sizeof(struct process_args));
 
 	for (i = 0, size = 0; argv[i] != NULL; i++) {
 		size += strlen(argv[i]) + 1;
@@ -375,59 +416,23 @@ static void copy_process_args_to(void *dst, struct process_args *src)
 	}
 }
 
-static void free_process_args(struct process_args *args)
-{
-	if (args->argv) {
-		kfree(args->argv);
-	}
-	kfree(args);
-}
-
 static void process_entry_thread(void *ctx)
 {
-	int rc = -1;
-	ptr_t ustack;
-	void *entry = NULL;
-	uint32_t virt = 0;
-	struct page *page;
-	struct vfs_node *n;
+	ptr_t ustack, entry, args;
 	struct process_creation *info;
 
 	info = (struct process_creation *)ctx;
 
 	ASSERT(CURR_ASPACE == info->mmu);
 
-	/* Lookup the file from the file system */
-	n = vfs_lookup(info->args->argv[0], VFS_FILE);
-	if (!n) {
-		DEBUG(DL_DBG, ("file(%s) not found.\n", info->args->argv[0]));
-		return;
-	}
-
-	/* Load the ELF file into this process */
-	rc = elf_load_binary(n, info->mmu, &entry);
-	if (rc != 0) {
-		DEBUG(DL_DBG, ("elf_load_binary failed, err(%d).\n", rc));
-		return;
-	}
-
-	/* Copy argument string, we need to allocate the arguments using
-	 * current mmu context
-	 */
-	page = mmu_get_page(CURR_PROC->mmu_ctx, virt, TRUE, 0);
-	if (!page) {
-		DEBUG(DL_ERR, ("mmu_get_page failed, virt(0x%x).\n", virt));
-		return;
-	}
-	page_alloc(page, FALSE, TRUE);
-	copy_process_args_to((void *)virt, info->args);
-
 	/* We use a fixed user stack address for now */
 	ustack = USTACK_BOTTOM + USTACK_SIZE;
-	CURR_THREAD->ustack = (void *)ustack;
+	args = (ptr_t)info->args;
+
+	semaphore_up(&info->sem, 1);
 	
 	/* Switch to user space */
-	arch_thread_enter_uspace((ptr_t)entry, ustack, (ptr_t)info->args);
+	arch_thread_enter_uspace(entry, ustack, args);
 }
 
 int process_create(const char *args[], struct process *parent, int flags,
@@ -435,9 +440,8 @@ int process_create(const char *args[], struct process *parent, int flags,
 {
 	int rc = -1;
 	struct process *p = NULL;
-	struct mmu_ctx *mmu = NULL;
 	struct thread *t = NULL;
-	struct process_creation *info;
+	struct process_creation info;
 
 	if (!args || !args[0] || priority >= 32) {
 		DEBUG(DL_DBG, ("invalid parameter.\n"));
@@ -445,69 +449,47 @@ int process_create(const char *args[], struct process *parent, int flags,
 		goto out;
 	}
 
-	memset(&info, 0, sizeof(struct process_creation));
-	
-	/* Create the address space for the process */
-	mmu = mmu_create_ctx();
-	if (!mmu) {
-		DEBUG(DL_INF, ("mmu_create_ctx failed.\n"));
-		rc = -1;
-		goto out;
-	}
-	mmu_copy_ctx(mmu, &_kernel_mmu_ctx);
-
-	info = kmalloc(sizeof(struct process_creation), 0);
-	if (!info) {
-		DEBUG(DL_WRN, ("kmalloc process_creation failed.\n"));
-		rc = -1;
-		goto out;
-	}
+	info.argv = args;
 
 	/* Copy the process argument from user mode to kernel for later use */
-	info->args = alloc_process_args(args);
-	if (!info->args) {
-		DEBUG(DL_WRN, ("alloc_process_args failed.\n"));
-		rc = -1;
+	rc = create_aspace(&info);
+	if (rc != 0) {
+		DEBUG(DL_INF, ("create_aspace failed, err(%d).\n", rc));
 		goto out;
 	}
-	info->mmu = mmu;
 
 	/* Create the new process */
-	rc = process_alloc(args[0], parent, mmu, flags, priority, NULL, &p);
+	rc = process_alloc(args[0], parent, info.mmu, flags, priority, NULL, &p);
 	if (rc != 0) {
 		DEBUG(DL_INF, ("process_alloc failed, err(%d).\n", rc));
 		goto out;
 	}
 
 	/* Create the main thread and run it */
-	rc = thread_create("main", p, 0, process_entry_thread, info, &t);
+	rc = thread_create("main", p, 0, process_entry_thread, &info, &t);
 	if (rc != 0) {
 		DEBUG(DL_INF, ("thread_create failed, err(%d).\n", rc));
 		goto out;
 	}
 
-	p->creation = info;
+	p->creation = &info;
 	thread_run(t);
 	thread_release(t);
 
+	/* Wait for the process to finish loading */
+	semaphore_down(&info.sem);
 	if (procp) {
 		*procp = p;
 	}
-	rc = 0;		// We'are OK
+	rc = info.status;	// We'are OK
 
 out:
 	if (rc != 0) {
 		if (p) {
 			process_destroy(p);
 		}
-		if (info) {
-			if (info->args) {
-				free_process_args(info->args);
-			}
-			kfree(info);
-		}
-		if (mmu) {
-			mmu_destroy_ctx(mmu);
+		if (info.mmu) {
+			mmu_destroy_ctx(info.mmu);
 		}
 	}
 

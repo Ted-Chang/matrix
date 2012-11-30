@@ -112,26 +112,12 @@ int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **entry)
 	struct page *page;
 	boolean_t is_elf;
 
-	/* Temporarily use address of user stack to load the ELF file, It will be
-	 * unmapped after we loaded the code section in.
-	 */
-	temp = USTACK_BOTTOM;
-	
-	/* Map some pages to the address from mmu context of this process, the mapped
-	 * memory page is used for storing the ELF file content
-	 */
-	for (virt = temp; virt < (temp + n->length); virt += PAGE_SIZE) {
-		page = mmu_get_page(CURR_PROC->mmu_ctx, virt, TRUE, 0);
-		if (!page) {
-			DEBUG(DL_ERR, ("mmu_get_page failed, virt(0x%x).\n", virt));
-			rc = -1;
-			goto out;
-		}
-		
-		page_alloc(page, FALSE, TRUE);
+	ehdr = (elf_ehdr_t *)kmalloc(n->length);
+	if (!ehdr) {
+		DEBUG(DL_INF, ("kmalloc buffer for file failed.\n"));
+		rc = -1;
+		goto out;
 	}
-
-	ehdr = (elf_ehdr_t *)temp;
 
 	/* Read in the executive content */
 	rc = vfs_read(n, 0, n->length, (uint8_t *)ehdr);
@@ -162,13 +148,6 @@ int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **entry)
 	/* Save the entry point to the code segment */
 	*entry = (void *)ehdr->e_entry;
 	DEBUG(DL_DBG, ("entry(%p)\n", *entry));
-
-	/* Free the memory we used for temporarily store the ELF files */
-	for (virt = temp; virt < (temp + n->length); virt += PAGE_SIZE) {
-		page = mmu_get_page(mmu, virt, FALSE, 0);
-		ASSERT(page != NULL);
-		page_free(page);
-	}
 
 	/* Map some pages for the user mode stack from current process' mmu context */
 	for (virt = USTACK_BOTTOM; virt <= (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
