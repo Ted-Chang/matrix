@@ -25,14 +25,14 @@
 struct process_creation {
 	struct semaphore sem;	// Semaphore for synchronize
 	
-	/* Arguments provided by the caller */
-	struct process_args *args;
-
 	const char **argv;	// Arguments
 	const char **env;	// Environments
 
 	/* Information used internally by the loader */
 	struct mmu_ctx *mmu;	// Address space for the process
+	void *data;		// Data pointer for the ELF loader
+	ptr_t args;		// Address for argument block mapping
+	ptr_t ustack;		// Address for stack mapping
 
 	/* Information to return to the caller */
 	int status;		// Status code to return from the call
@@ -316,7 +316,6 @@ int process_exit(int status)
 		       CURR_PROC->id, n));
 	
 	CURR_PROC->status = status;
-
 	thread_exit();
 
 	return 0;
@@ -324,13 +323,16 @@ int process_exit(int status)
 
 static int create_aspace(struct process_creation *info)
 {
-	int rc = -1;
+	int rc = -1, i;
+	char *ptr;
+	size_t size;
 	uint32_t virt = 0;
-	void *entry = NULL;
+	void *data = NULL;
 	struct vfs_node *n;
 	struct page *page;
 	struct mmu_ctx *mmu = NULL;
 
+	/* Initialize the semaphore for synchronize with new entry thread */
 	semaphore_init(&info->sem, "p-create-sem", 0);
 	
 	/* Create the address space for the process */
@@ -351,47 +353,54 @@ static int create_aspace(struct process_creation *info)
 	}
 
 	/* Load the ELF file into this process */
-	rc = elf_load_binary(n, info->mmu, &entry);
+	rc = elf_load_binary(n, mmu, &data);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("elf_load_binary failed, err(%d).\n", rc));
 		goto out;
 	}
 
+	/* Calculate the size of arguments */
+	for (i = 0, size = 0; info->argv[i] != NULL; i++) {
+		size += strlen(info->argv[i]) + 1;
+	}
+	size += (sizeof(char *) * i) + 1;
+	
+	/* Map some pages for the user mode stack from the new mmu context */
+	for (virt = USTACK_BOTTOM; virt <= (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
+		page = mmu_get_page(mmu, virt, TRUE, 0);
+		if (!page) {
+			DEBUG(DL_ERR, ("mmu_get_page failed, virt(0x%x)\n", virt));
+			rc = -1;
+			goto out;
+		}
+		page_alloc(page, FALSE, TRUE);
+	}
+
 	info->mmu = mmu;
+	info->args = NULL;
+	info->ustack = USTACK_BOTTOM + USTACK_SIZE;
 
  out:
-
+	if (rc != 0) {
+		if (mmu) {
+			mmu_destroy_ctx(mmu);
+		}
+	}
 	return rc;
 }
 
 static struct process_args *alloc_process_args(const char *argv[])
 {
 	int i;
-	char *ptr;
-	size_t size;
 	struct process_args *args;
-
-	for (i = 0, size = 0; argv[i] != NULL; i++) {
-		size += strlen(argv[i]) + 1;
-	}
 	
-	args->argc = i;
-	size += (sizeof(char *) * i) + 1;
-	
-	args->argv = kmalloc(size, 0);
-	if (!args->argv) {
-		kfree(args);
-		args = NULL;
-		goto out;
-	}
+	/* for (i = 0, ptr = (char *)&args->argv[args->argc]; i < args->argc; i++) { */
+	/* 	strcpy(ptr, argv[i]); */
+	/* 	args->argv[i] = ptr; */
+	/* 	ptr += (strlen(ptr) + 1); */
+	/* } */
 
-	for (i = 0, ptr = (char *)&args->argv[args->argc]; i < args->argc; i++) {
-		strcpy(ptr, argv[i]);
-		args->argv[i] = ptr;
-		ptr += (strlen(ptr) + 1);
-	}
-
-	args->size = size + sizeof(struct process_args);
+	/* args->size = size + sizeof(struct process_args); */
 
  out:
 	return args;
@@ -426,8 +435,11 @@ static void process_entry_thread(void *ctx)
 	ASSERT(CURR_ASPACE == info->mmu);
 
 	/* We use a fixed user stack address for now */
-	ustack = USTACK_BOTTOM + USTACK_SIZE;
+	ustack = info->ustack;
 	args = (ptr_t)info->args;
+
+	/* Get the ELF loader to clear BSS and get the entry pointer */
+	entry = elf_finish_binary(info->data);
 
 	semaphore_up(&info->sem, 1);
 	
@@ -451,7 +463,7 @@ int process_create(const char *args[], struct process *parent, int flags,
 
 	info.argv = args;
 
-	/* Copy the process argument from user mode to kernel for later use */
+	/* Create MMU context and map pages need for the new process  */
 	rc = create_aspace(&info);
 	if (rc != 0) {
 		DEBUG(DL_INF, ("create_aspace failed, err(%d).\n", rc));

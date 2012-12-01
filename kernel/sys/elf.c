@@ -4,6 +4,7 @@
 #include "matrix/debug.h"
 #include "mm/page.h"
 #include "mm/mmu.h"
+#include "mm/malloc.h"
 #include "proc/process.h"
 #include "proc/thread.h"
 #include "elf.h"
@@ -14,6 +15,15 @@
 
 typedef Elf32_Ehdr elf_ehdr_t;
 typedef Elf32_Shdr elf_shdr_t;
+
+struct elf_binary {
+	elf_ehdr_t *ehdr;
+	struct mmu_ctx *mmu;
+	struct vfs_node *n;
+	ptr_t load_base;
+	size_t load_size;
+};
+typedef struct elf_binary elf_binary_t;
 
 boolean_t elf_ehdr_check(elf_ehdr_t *ehdr)
 {
@@ -34,54 +44,23 @@ boolean_t elf_ehdr_check(elf_ehdr_t *ehdr)
 	return TRUE;
 }
 
-int elf_load_sections(struct mmu_ctx *mmu, elf_ehdr_t *ehdr)
+ptr_t elf_finish_binary(void *data)
 {
-	int rc = -1;
-	struct page *page;
-	uint32_t virt, size, i = 0, entry;
+	int i = 0;
+	ptr_t entry;
+	elf_binary_t *bin;
+	elf_ehdr_t *ehdr;
 	elf_shdr_t *shdr;
+	uint32_t virt;
 
-	DEBUG(DL_DBG, ("e_shnum(%d), e_shentsize(%d), e_shoff(%d)\n",
-		       ehdr->e_shnum, ehdr->e_shentsize, ehdr->e_shoff));
+	bin = (elf_binary_t *)data;
 
-	entry = ehdr->e_entry;
-	size = 0;
-	
-	/* Load all the loadable sections */
+	ehdr = bin->ehdr;
+
 	for (virt = 0; virt < (ehdr->e_shentsize * ehdr->e_shnum); virt += ehdr->e_shentsize, i++) {
-
-		/* Read a section header */
 		shdr = (elf_shdr_t *)(((uint8_t *)ehdr) + (ehdr->e_shoff + virt));
-		DEBUG(DL_DBG, ("i(%d), sh_addr(0x%x), sh_size(0x%x), sh_type(%d)\n",
-			       i, shdr->sh_addr, shdr->sh_size, shdr->sh_type));
-		
+
 		if (shdr->sh_addr) {
-			
-			/* If this is a loadable section, load it */
-			if (shdr->sh_addr < entry) {
-				/* If this is the lowest entry point, store it */
-				entry = shdr->sh_addr;
-			}
-
-			/* Update the section size we may needed */
-			if ((shdr->sh_addr + shdr->sh_size - entry) > size) {
-				/* We also store the total size */
-				size = shdr->sh_addr + shdr->sh_size - entry;
-			}
-
-			/* Map memory space for this section, this is where codes stored */
-			for (virt = 0; virt < (shdr->sh_size + 0x2000); virt += PAGE_SIZE) {
-				page = mmu_get_page(mmu, shdr->sh_addr + virt, TRUE, 0);
-				if (!page) {
-					DEBUG(DL_ERR, ("mmu_get_page failed.\n"));
-					goto out;
-				}
-			
-				page_alloc(page, FALSE, TRUE);
-			}
-
-			DEBUG(DL_DBG, ("i(%d), memory space mapped.\n", i));
-			
 			switch (shdr->sh_type) {
 			case ELF_SHT_NOBITS:
 				/* Zero the .bss section */
@@ -98,70 +77,118 @@ int elf_load_sections(struct mmu_ctx *mmu, elf_ehdr_t *ehdr)
 		}
 	}
 
-	rc = 0;
+	entry = ehdr->e_entry;
+	DEBUG(DL_DBG, ("entry(%p).\n", entry));
 	
-out:
-	return rc;
+	kfree(bin->ehdr);
+	kfree(bin);
+
+	return entry;
 }
 
-int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **entry)
+int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **datap)
 {
-	int rc = -1;
-	elf_ehdr_t *ehdr;
-	uint32_t virt, temp;
+	int rc = -1, i;
+	size_t size;
+	elf_binary_t *bin;
+	ptr_t virt, base;
 	struct page *page;
-	boolean_t is_elf;
+	elf_shdr_t *shdr;
+	elf_ehdr_t *ehdr;
 
-	ehdr = (elf_ehdr_t *)kmalloc(n->length);
-	if (!ehdr) {
+	/* Allocate buffer to store the file content */
+	bin = kmalloc(sizeof(elf_binary_t), 0);
+	if (!bin) {
+		DEBUG(DL_INF, ("kmalloc buffer for binary failed.\n"));
+		rc = -1;
+		goto out;
+	}
+	
+	bin->mmu = mmu;
+	bin->n = n;
+
+	bin->ehdr = kmalloc(n->length, 0);
+	if (!bin->ehdr) {
 		DEBUG(DL_INF, ("kmalloc buffer for file failed.\n"));
 		rc = -1;
 		goto out;
 	}
-
+	
 	/* Read in the executive content */
-	rc = vfs_read(n, 0, n->length, (uint8_t *)ehdr);
+	rc = vfs_read(n, 0, n->length, (uint8_t *)bin->ehdr);
 	if (rc == -1 || rc < sizeof(elf_ehdr_t)) {
-		DEBUG(DL_INF, ("read file failed.\n"));
+		DEBUG(DL_INF, ("read file failed, err(%d).\n", rc));
 		rc = -1;
 		goto out;
 	}
 
 	/* Check whether it is valid ELF */
-	is_elf = elf_ehdr_check(ehdr);
-	if (!is_elf) {
+	if (!elf_ehdr_check(bin->ehdr)) {
 		DEBUG(DL_INF, ("invalid ELF file.\n"));
 		rc = -1;
 		goto out;
 	}
 
+	ehdr = bin->ehdr;
+	base = ehdr->e_entry;
+	
 	/* Load the loadable segments from the executive to the address which was
-	 * specified in the ELF and for Matrix. default is 0x40000000 which was
-	 * specified in the link script.
+	 * specified in the ELF. For Matrix default is 0x20000000 which was specified
+	 * in the link script.
 	 */
-	rc = elf_load_sections(mmu, ehdr);
-	if (rc != 0) {
-		DEBUG(DL_WRN, ("load sections failed.\n"));
-		goto out;
-	}
+	for (virt = 0; virt < (ehdr->e_shentsize * ehdr->e_shnum); virt += ehdr->e_shentsize, i++) {
 
-	/* Save the entry point to the code segment */
-	*entry = (void *)ehdr->e_entry;
-	DEBUG(DL_DBG, ("entry(%p)\n", *entry));
+		/* Read a section header */
+		shdr = (elf_shdr_t *)(((uint8_t *)ehdr) + (ehdr->e_shoff + virt));
+		DEBUG(DL_DBG, ("i(%d), sh_addr(0x%x), sh_size(0x%x), sh_type(%d)\n",
+			       i, shdr->sh_addr, shdr->sh_size, shdr->sh_type));
+		
+		if (shdr->sh_addr) {
+			
+			/* If this is a loadable section, load it */
+			if (shdr->sh_addr < base) {
+				/* If this is the lowest entry point, store it */
+				base = shdr->sh_addr;
+			}
 
-	/* Map some pages for the user mode stack from current process' mmu context */
-	for (virt = USTACK_BOTTOM; virt <= (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
-		page = mmu_get_page(mmu, virt, TRUE, 0);
-		if (!page) {
-			DEBUG(DL_ERR, ("mmu_get_page failed, virt(0x%x)\n", virt));
-			rc = -1;
-			goto out;
+			/* Update the section size we may needed */
+			if ((shdr->sh_addr + shdr->sh_size - base) > size) {
+				/* We also store the total size */
+				size = shdr->sh_addr + shdr->sh_size - base;
+			}
+
+			/* Map address space for this section, this is where codes stored */
+			for (virt = 0; virt < (shdr->sh_size + 0x2000); virt += PAGE_SIZE) {
+				page = mmu_get_page(mmu, shdr->sh_addr + virt, TRUE, 0);
+				if (!page) {
+					DEBUG(DL_ERR, ("mmu_get_page failed.\n"));
+					goto out;
+				}
+			
+				page_alloc(page, FALSE, TRUE);
+			}
+
+			DEBUG(DL_DBG, ("i(%d), address space mapped.\n", i));
 		}
-		page_alloc(page, FALSE, TRUE);
 	}
+
+	bin->load_base = base;
+	
+	/* Save the entry point to the code segment */
+	*datap = bin;
+	DEBUG(DL_DBG, ("base(%p), datap (%p)\n", base, *datap));
 
 	rc = 0;
 
 out:
+	if (rc != 0) {
+		if (bin) {
+			if (bin->ehdr) {
+				kfree(bin->ehdr);
+			}
+			kfree(bin);
+		}
+	}
+	
 	return rc;
 }
