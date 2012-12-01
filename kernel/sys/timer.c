@@ -6,6 +6,7 @@
 #include "hal/cpu.h"
 #include "pit.h"
 #include "timer.h"
+#include "proc/thread.h"
 #include "proc/sched.h"
 
 extern void pit_delay(uint32_t usec);

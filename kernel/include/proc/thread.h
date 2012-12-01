@@ -63,6 +63,7 @@ struct thread {
 	useconds_t quantum;		// Current quantum
 
 	/* Sleeping information */
+	struct spinlock *wait_lock;	// Lock to acquire when perform waiting
 	struct list wait_link;		// Link to a waiting list
 	struct timer sleep_timer;	// Sleep timeout timer
 	int sleep_status;		// Sleep status (timed out/interrupted)

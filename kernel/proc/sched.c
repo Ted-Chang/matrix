@@ -51,6 +51,7 @@ static struct list _dead_threads = {
 	.prev = &_dead_threads,
 	.next = &_dead_threads
 };
+static struct spinlock _dead_threads_lock;
 
 /* Allocate a CPU for a thread to run on */
 static struct cpu *sched_alloc_cpu(struct thread *t)
@@ -211,6 +212,9 @@ void sched_reschedule(boolean_t state)
 	/* Get current schedule CPU */
 	c = CURR_CPU->sched;
 
+	/* Thread cannot be in ready state if we are running it now */
+	ASSERT(CURR_THREAD->state != THREAD_READY);
+
 	/* Adjust the priority of the thread based on whether it used up its quantum */
 	if (CURR_THREAD != c->idle_thread) {
 		sched_adjust_priority(c, CURR_THREAD);
@@ -294,8 +298,10 @@ void sched_post_switch(boolean_t state)
 		 * Instead we queue the thread to the reaper's queue.
 		 */
 		if (CURR_CPU->sched->prev_thread->state == THREAD_DEAD) {
+			spinlock_acquire(&_dead_threads_lock);
 			list_add_tail(&_dead_threads,
 				      &CURR_CPU->sched->prev_thread->runq_link);
+			spinlock_release(&_dead_threads_lock);
 		}
 	}
 
@@ -309,6 +315,8 @@ static void sched_reaper_thread(void *ctx)
 		/* Reaper the dead threads */
 		struct list *p, *l;
 		struct thread *t;
+
+		spinlock_acquire(&_dead_threads_lock);
 			
 		LIST_FOR_EACH_SAFE(l, p, &_dead_threads) {
 			t = LIST_ENTRY(l, struct thread, runq_link);
@@ -317,6 +325,8 @@ static void sched_reaper_thread(void *ctx)
 				       t->id));
 			thread_release(t);
 		}
+
+		spinlock_release(&_dead_threads_lock);
 	}
 }
 
@@ -328,8 +338,6 @@ static void sched_idle_thread(void *ctx)
 	irq_disable();
 
 	while (TRUE) {
-		//kprintf("sched_idle_thread: idle.\n");
-		
 		sched_reschedule(FALSE);
 		cpu_idle();
 	}
@@ -378,6 +386,8 @@ void init_sched()
 {
 	int rc = -1;
 
+	spinlock_init(&_dead_threads_lock, "dead-t-lock");
+
 	/* Create kernel mode reaper thread for the whole system */
 	rc = thread_create("reaper", NULL, 0, sched_reaper_thread, NULL, NULL);
 	ASSERT(rc == 0);
@@ -387,7 +397,7 @@ void init_sched()
 
 void sched_enter()
 {
-	/* Disable irq first as sched_insert_proc and process_switch requires */
+	/* Disable irq first */
 	irq_disable();
 
 	CURR_CPU->timer_enabled = TRUE;	// TODO: Find a better place to do this

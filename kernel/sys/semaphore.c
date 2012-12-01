@@ -9,7 +9,7 @@ void semaphore_down(struct semaphore *s)
 	spinlock_acquire(&s->lock);
 
 	if (s->count) {
-		--s->count;
+		--(s->count);
 		spinlock_release(&s->lock);
 		return;
 	}

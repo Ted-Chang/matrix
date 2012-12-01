@@ -212,6 +212,7 @@ static void thread_wake_internal(struct thread *t)
 	/* Remove the thread from the list and wake it up */
 	list_del(&t->wait_link);
 	CLEAR_FLAG(t->flags, THREAD_INTERRUPTIBLE_F);
+	t->wait_lock = NULL;
 
 	t->state = THREAD_READY;
 	sched_insert_thread(t);
@@ -220,6 +221,7 @@ static void thread_wake_internal(struct thread *t)
 static void thread_timeout(void *ctx)
 {
 	struct thread *t = ctx;
+	struct spinlock *lock;
 
 	spinlock_acquire(&t->lock);
 
@@ -279,6 +281,8 @@ int thread_create(const char *name, struct process *owner, int flags,
 	t->ustack_size = 0;
 	t->entry = func;
 	t->args = args;
+	t->quantum = 0;
+	t->wait_lock = NULL;
 
 	/* Initialize signal handling state */
 	t->pending_signals = 0;
@@ -321,17 +325,10 @@ int thread_sleep(struct spinlock *lock, useconds_t timeout, const char *name, in
 		goto cancel;
 	}
 
-	/* If interruptible and interrupted flag is set we also return error
-	 * immediately
-	 */
-	if (FLAG_ON(CURR_THREAD->flags, THREAD_INTERRUPTED_F)) {
-		CLEAR_FLAG(CURR_THREAD->flags, THREAD_INTERRUPTED_F);
-		rc = -1;
-		goto cancel;
-	}
-
 	/* We are definitely going to sleep. Get the interrupt state to restore */
 	state = lock ? lock->state : irq_disable();
+
+	CURR_THREAD->sleep_status = 0;
 
 	/* Start the timer if required */
 	if (timeout > 0) {
@@ -368,10 +365,15 @@ void thread_wake(struct thread *t)
 
 void thread_run(struct thread *t)
 {
+	spinlock_acquire(&t->lock);
+	
 	ASSERT(t->state == THREAD_CREATED);
 
+	atomic_inc(&t->ref_count);
 	t->state = THREAD_READY;
 	sched_insert_thread(t);
+
+	spinlock_release(&t->lock);
 }
 
 void thread_kill(struct thread *t)

@@ -380,6 +380,7 @@ static int create_aspace(struct process_creation *info)
 	info->args = NULL;
 	info->ustack = USTACK_BOTTOM + USTACK_SIZE;
 	info->data = data;
+	info->status = rc;
 
  out:
 	if (rc != 0) {
@@ -387,6 +388,7 @@ static int create_aspace(struct process_creation *info)
 			mmu_destroy_ctx(mmu);
 		}
 	}
+	
 	return rc;
 }
 
@@ -491,7 +493,7 @@ int process_create(const char *args[], struct process *parent, int flags,
 
 	/* Wait for the process to finish loading */
 	semaphore_down(&info.sem);
-	DEBUG(DL_DBG, ("main(%p) thread loaded.\n", t));
+	DEBUG(DL_DBG, ("main(%p) thread loaded, status(%d).\n", t, info.status));
 	if (procp) {
 		*procp = p;
 	}
