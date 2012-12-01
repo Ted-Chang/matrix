@@ -379,6 +379,7 @@ static int create_aspace(struct process_creation *info)
 	info->mmu = mmu;
 	info->args = NULL;
 	info->ustack = USTACK_BOTTOM + USTACK_SIZE;
+	info->data = data;
 
  out:
 	if (rc != 0) {
@@ -490,12 +491,13 @@ int process_create(const char *args[], struct process *parent, int flags,
 
 	/* Wait for the process to finish loading */
 	semaphore_down(&info.sem);
+	DEBUG(DL_DBG, ("main(%p) thread loaded.\n", t));
 	if (procp) {
 		*procp = p;
 	}
 	rc = info.status;	// We'are OK
 
-out:
+ out:
 	if (rc != 0) {
 		if (p) {
 			process_destroy(p);

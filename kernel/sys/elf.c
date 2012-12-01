@@ -65,6 +65,7 @@ ptr_t elf_finish_binary(void *data)
 			case ELF_SHT_NOBITS:
 				/* Zero the .bss section */
 				memset((void *)(shdr->sh_addr), 0, shdr->sh_size);
+				DEBUG(DL_DBG, (".bss section zeroed.\n"));
 				break;	// Break out the switch
 			case ELF_SHT_PROGBITS:
 			case ELF_SHT_STRTAB:
@@ -72,6 +73,7 @@ ptr_t elf_finish_binary(void *data)
 				/* Copy the section into memory */
 				memcpy((void *)(shdr->sh_addr), (uint8_t *)ehdr + shdr->sh_offset,
 				       shdr->sh_size);
+				DEBUG(DL_DBG, ("section type %d copied.\n", shdr->sh_type));
 				break;	// Break out the switch
 			}
 		}
@@ -96,7 +98,7 @@ int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **datap)
 	elf_shdr_t *shdr;
 	elf_ehdr_t *ehdr;
 
-	/* Allocate buffer to store the file content */
+	/* Allocate buffer to store the binary information */
 	bin = kmalloc(sizeof(elf_binary_t), 0);
 	if (!bin) {
 		DEBUG(DL_INF, ("kmalloc buffer for binary failed.\n"));
@@ -107,6 +109,7 @@ int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **datap)
 	bin->mmu = mmu;
 	bin->n = n;
 
+	/* Allocate buffer to store the file content */
 	bin->ehdr = kmalloc(n->length, 0);
 	if (!bin->ehdr) {
 		DEBUG(DL_INF, ("kmalloc buffer for file failed.\n"));
@@ -136,6 +139,7 @@ int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **datap)
 	 * specified in the ELF. For Matrix default is 0x20000000 which was specified
 	 * in the link script.
 	 */
+	i = 0;
 	for (virt = 0; virt < (ehdr->e_shentsize * ehdr->e_shnum); virt += ehdr->e_shentsize, i++) {
 
 		/* Read a section header */
