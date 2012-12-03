@@ -250,8 +250,6 @@ int thread_create(const char *name, struct process *owner, int flags,
 		goto out;
 	}
 
-	thread_ctor(t);
-
 	/* Allocate an ID for the thread */
 	t->id = id_alloc();
 
@@ -369,7 +367,6 @@ void thread_run(struct thread *t)
 	
 	ASSERT(t->state == THREAD_CREATED);
 
-	atomic_inc(&t->ref_count);
 	t->state = THREAD_READY;
 	sched_insert_thread(t);
 

@@ -312,7 +312,7 @@ int process_exit(int status)
 		n++;
 	}
 
-	DEBUG(DL_DBG, ("process(%s:%d), n(%d).\n", CURR_PROC->name,
+	DEBUG(DL_DBG, ("process(%s:%d), thread number(%d).\n", CURR_PROC->name,
 		       CURR_PROC->id, n));
 	
 	CURR_PROC->status = status;
@@ -324,7 +324,6 @@ int process_exit(int status)
 static int create_aspace(struct process_creation *info)
 {
 	int rc = -1, i;
-	char *ptr;
 	size_t size;
 	uint32_t virt = 0;
 	void *data = NULL;
@@ -405,7 +404,6 @@ static struct process_args *alloc_process_args(const char *argv[])
 
 	/* args->size = size + sizeof(struct process_args); */
 
- out:
 	return args;
 }
 

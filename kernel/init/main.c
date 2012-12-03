@@ -131,44 +131,6 @@ int kmain(u_long addr, uint32_t initial_stack)
 	return rc;
 }
 
-#ifdef _UNIT_TEST
-static slab_cache_t _slab_test_cache;
-static void test_timer_func(void *ctx)
-{
-	int i;
-	struct timer *tmr;
-	unsigned long long lld = 0x100000000;
-	unsigned long num = 0xFF;
-	char *str = "Hello, world!";
-#define NR_SLAB_TEST_CASES	3
-	u_char *data[NR_SLAB_TEST_CASES];
-
-	tmr = (struct timer *)ctx;
-	
-	kd_printf("test: lld(%lld), dec(%d), hex(%x), ptr(%p), str(%s).\n",
-		  lld, num, num, tmr, str);
-
-	memset(data, 0, sizeof(data));
-	
-	for (i = 0; i < NR_SLAB_TEST_CASES; i++) {
-		data[i] = slab_cache_alloc(&_slab_test_cache);
-		if (!data[i]) {
-			DEBUG(DL_INF, ("slab_cache_alloc data1 failed.\n"));
-		} else {
-			memset(data[i], 0x00, 100);
-		}
-	}
-
-	for (i = 0; i < NR_SLAB_TEST_CASES; i++) {
-		if (data[i]) {
-			slab_cache_free(&_slab_test_cache, data[i]);
-		}
-	}
-
-	set_timer(tmr, 1000000, test_timer_func);
-}
-#endif	/* _UNIT_TEST */
-
 void load_modules()
 {
 	init_keyboard();
@@ -185,9 +147,6 @@ void sys_init_thread(void *ctx)
 	struct cpu *c;
 	uint32_t initrd_location;
 	uint32_t initrd_end;
-#ifdef _UNIT_TEST
-	struct timer *tmr;
-#endif	/* _UNIT_TEST */
 	const char *init_argv[] = {
 		"/init",
 		"-d",
@@ -218,17 +177,6 @@ void sys_init_thread(void *ctx)
 	if (rc != 0) {
 		PANIC("sys_init_proc: could not start init process.\n");
 	}
-
-#ifdef _UNIT_TEST
-	slab_cache_init(&_slab_test_cache, "test-cache", 100, NULL, NULL, 0);
-	tmr = kmalloc(sizeof(struct timer), 0);
-	if (!tmr) {
-		DEBUG(DL_INF, ("kmalloc timer failed.\n"));
-	} else {
-		init_timer(tmr, "test-tmr", tmr);
-		set_timer(tmr, 1000000, test_timer_func);
-	}
-#endif	/* _UNIT_TEST */
 }
 
 void dump_mbi(struct multiboot_info *mbi)
