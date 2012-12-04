@@ -298,8 +298,10 @@ void sched_post_switch(boolean_t state)
 		 * Instead we queue the thread to the reaper's queue.
 		 */
 		if (CURR_CPU->sched->prev_thread->state == THREAD_DEAD) {
+			spinlock_acquire(&_dead_threads_lock);
 			list_add_tail(&_dead_threads,
 				      &CURR_CPU->sched->prev_thread->runq_link);
+			spinlock_release(&_dead_threads_lock);
 		}
 	}
 
@@ -314,6 +316,7 @@ static void sched_reaper_thread(void *ctx)
 		struct list *p, *l;
 		struct thread *t;
 
+		//spinlock_acquire(&_dead_threads_lock);
 		LIST_FOR_EACH_SAFE(l, p, &_dead_threads) {
 			t = LIST_ENTRY(l, struct thread, runq_link);
 			list_del(&t->runq_link);

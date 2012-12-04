@@ -77,6 +77,7 @@ DECL_SYSCALL0(getpid);
 DECL_SYSCALL1(sleep, uint32_t);
 DECL_SYSCALL4(create_process, const char *,const char **, int, int);
 DECL_SYSCALL1(wait, int)
+DECL_SYSCALL0(unit_test);
 /* System call declaration end */
 
 #endif	/* __SYSCALL_H__ */

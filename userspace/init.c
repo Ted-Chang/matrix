@@ -6,6 +6,7 @@
 
 static void announce();
 static void start_crond();
+static void start_unit_test();
 
 int main(int argc, char **argv)
 {
@@ -33,6 +34,9 @@ int main(int argc, char **argv)
 
 	/* Start the cron daemon */
 	start_crond();
+	
+	/* Start the unit_test program */
+	start_unit_test();
 	
 	while (TRUE) {
 		printf("init: sleeping...\n");
@@ -64,7 +68,26 @@ void start_crond()
 	}
 	printf("crond process terminated.\n");
 
-out:
+ out:
+	return;
+}
+
+void start_unit_test()
+{
+	int rc;
+	char *unit_test[] = {
+		"/unit_test",
+		NULL
+	};
+
+	rc = create_process(unit_test[0], unit_test, 0, 16);
+	if (rc == -1) {
+		printf("create_process failed, err(%d).\n", rc);
+		goto out;
+	}
+	printf("unit_test started, process id(%d).\n", rc);
+
+ out:
 	return;
 }
 

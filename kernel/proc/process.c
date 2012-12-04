@@ -360,9 +360,10 @@ static int create_aspace(struct process_creation *info)
 
 	/* Calculate the size of arguments */
 	for (i = 0, size = 0; info->argv[i] != NULL; i++) {
-		size += strlen(info->argv[i]) + 1;
+		size += (strlen(info->argv[i]) + 1);
 	}
-	size += (sizeof(char *) * i) + 1;
+	size += ((sizeof(char *) * i) + 1 + sizeof(struct process_args));
+	size = ROUND_UP(size, PAGE_SIZE);
 	
 	/* Map some pages for the user mode stack from the new mmu context */
 	for (virt = USTACK_BOTTOM; virt <= (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
@@ -389,41 +390,6 @@ static int create_aspace(struct process_creation *info)
 	}
 	
 	return rc;
-}
-
-static struct process_args *alloc_process_args(const char *argv[])
-{
-	int i;
-	struct process_args *args;
-	
-	/* for (i = 0, ptr = (char *)&args->argv[args->argc]; i < args->argc; i++) { */
-	/* 	strcpy(ptr, argv[i]); */
-	/* 	args->argv[i] = ptr; */
-	/* 	ptr += (strlen(ptr) + 1); */
-	/* } */
-
-	/* args->size = size + sizeof(struct process_args); */
-
-	return args;
-}
-
-static void copy_process_args_to(void *dst, struct process_args *src)
-{
-	int i;
-	char *ptr;
-	struct process_args *args;
-	
-	args = (struct process_args *)dst;
-	args->size = src->size;
-	args->argc = src->argc;
-	args->argv = (char **)((char *)dst + sizeof(struct process_args));
-	args->env = NULL;
-
-	for (i = 0, ptr = (char *)&args->argv[args->argc]; i < args->argc; i++) {
-		strcpy(ptr, src->argv[i]);
-		args->argv[i] = ptr;
-		ptr += (strlen(ptr) + 1);
-	}
 }
 
 static void process_entry_thread(void *ctx)

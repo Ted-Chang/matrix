@@ -398,7 +398,16 @@ int waitpid(int pid)
 
 	rc = proc->status;
 
-out:
+ out:
+	return rc;
+}
+
+int unit_test()
+{
+	int rc = 0;
+
+	DEBUG(DL_DBG, ("do unit test.\n"));
+
 	return rc;
 }
 
@@ -409,7 +418,7 @@ out:
  *   [3] define macro in /loader/syscalls.c
  *   [4] define macro in /include/syscall.h
  */
-uint32_t _nr_syscalls = 24;
+uint32_t _nr_syscalls = 25;
 static void *_syscalls[] = {
 	putstr,
 	open,
@@ -434,6 +443,7 @@ static void *_syscalls[] = {
 	sleep,
 	create_process,
 	waitpid,
+	unit_test,
 	NULL
 };
 
