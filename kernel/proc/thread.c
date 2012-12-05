@@ -102,10 +102,6 @@ void arch_thread_enter_uspace(ptr_t entry, ptr_t ustack, ptr_t ctx)
 	 */
 	set_kernel_stack(CURR_THREAD->kstack);
 
-	/* Push the arguments pointer to the stack */
-	ustack -= sizeof(ptr_t);
-	*((ptr_t *)ustack) = ctx;
-	
 	/* Setup a stack structure for switching to user mode.
 	 * The code firstly disables interrupts, as we're working on a critical
 	 * section of code. It then sets the ds, es, fs and gs segment selectors

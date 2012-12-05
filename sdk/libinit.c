@@ -7,6 +7,6 @@ void libc_main(struct process_args *args)
 {
 	int rc = -1;
 
-	rc = main(args->argc, args->argv);
+	rc = main(0, NULL);
 	exit(rc);
 }
