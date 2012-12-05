@@ -369,7 +369,7 @@ static int create_aspace(struct process_creation *info)
 	for (virt = USTACK_BOTTOM; virt <= (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
 		page = mmu_get_page(mmu, virt, TRUE, 0);
 		if (!page) {
-			DEBUG(DL_ERR, ("mmu_get_page failed, virt(0x%x)\n", virt));
+			DEBUG(DL_ERR, ("mmu_get_page for stack failed, virt(0x%x)\n", virt));
 			rc = -1;
 			goto out;
 		}
@@ -429,6 +429,7 @@ int process_create(const char *args[], struct process *parent, int flags,
 	}
 
 	info.argv = args;
+	info.env = NULL;
 
 	/* Create MMU context and map pages need for the new process  */
 	rc = create_aspace(&info);
@@ -457,7 +458,6 @@ int process_create(const char *args[], struct process *parent, int flags,
 
 	/* Wait for the process to finish loading */
 	semaphore_down(&info.sem);
-	DEBUG(DL_DBG, ("main(%p) thread loaded, status(%d).\n", t, info.status));
 	if (procp) {
 		*procp = p;
 	}

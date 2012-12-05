@@ -195,9 +195,12 @@ void sched_insert_thread(struct thread *t)
 	t->cpu = sched_alloc_cpu(t);
 	
 	sched = t->cpu->sched;
+	spinlock_acquire(&sched->lock);
 	
 	sched_enqueue(sched->active, t);
 	sched->total++;
+
+	spinlock_release(&sched->lock);
 }
 
 /**
@@ -211,6 +214,8 @@ void sched_reschedule(boolean_t state)
 
 	/* Get current schedule CPU */
 	c = CURR_CPU->sched;
+
+	spinlock_acquire_noirq(&c->lock);
 
 	/* Thread cannot be in ready state if we are running it now */
 	ASSERT(CURR_THREAD->state != THREAD_READY);
@@ -255,6 +260,9 @@ void sched_reschedule(boolean_t state)
 	c->prev_thread = CURR_THREAD;
 	next->state = THREAD_RUNNING;
 	CURR_THREAD = next;
+
+	/* Finished with the scheduler queues, release the lock */
+	spinlock_release_noirq(&c->lock);
 
 	/* Set off the timer if necessary */
 	if (CURR_THREAD->quantum > 0) {
@@ -347,6 +355,8 @@ void init_sched_percpu()
 	/* Initialize the scheduler for the current CPU */
 	CURR_CPU->sched = kmalloc(sizeof(struct sched_cpu), 0);
 	ASSERT(CURR_CPU->sched != NULL);
+
+	spinlock_init(&CURR_CPU->sched->lock, "sched-lock");
 	
 	CURR_CPU->sched->total = 0;
 	CURR_CPU->sched->active = &CURR_CPU->sched->queues[0];

@@ -8,6 +8,7 @@
 #include "hal/hal.h"
 #include "hal/isr.h"
 #include "mm/malloc.h"
+#include "mm/slab.h"
 #include "util.h"
 #include "dirent.h"
 #include "sys/stat.h"
@@ -402,12 +403,62 @@ int waitpid(int pid)
 	return rc;
 }
 
+void unit_test_thread(void *ctx)
+{
+	int j;
+	uint64_t i;
+	slab_cache_t ut_cache;
+	void *obj[4];
+
+	i = 0;
+	slab_cache_init(&ut_cache, "ut-cache", 256, NULL, NULL, 0);
+	while (TRUE) {
+		kd_printf("unit-test round %lld.\n", i);
+		
+		for (j = 0; j < 4; j++) {
+			obj[j] = slab_cache_alloc(&ut_cache);
+			if (!obj[j]) {
+				DEBUG(DL_INF, ("slab_cache_alloc failed.\n"));
+				goto out;
+			} else {
+				memset(obj[j], 0, 256);
+			}
+		}
+
+		for (j = 0; j < 4; j++) {
+			if (obj[j]) {
+				slab_cache_free(&ut_cache, obj[j]);
+				obj[j] = NULL;
+			}
+		}
+		
+		i++;
+	}
+
+ out:
+	for (j = 0; j < 4; j++) {
+		if (obj[j]) {
+			slab_cache_free(&ut_cache, obj[j]);
+			obj[j] = NULL;
+		}
+	}
+	slab_cache_delete(&ut_cache);
+	
+	return;
+}
+
 int unit_test()
 {
 	int rc = 0;
 
-	DEBUG(DL_DBG, ("do unit test.\n"));
+	/* Create a kernel mode unit test thread */
+	rc = thread_create("unit-test", NULL, 0, unit_test_thread, NULL, NULL);
+	if (rc != 0) {
+		DEBUG(DL_WRN, ("thread_create unit test thread failed, err(%d).\n", rc));
+		goto out;
+	}
 
+ out:
 	return rc;
 }
 
