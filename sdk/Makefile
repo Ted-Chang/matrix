@@ -24,10 +24,10 @@ TARGETOBJ := \
 all:	$(TARGETOBJ)
 
 $(OBJ)/%.o: %.c
-	$(CC) $(CFLAGS) -m32 -Iinclude -c -o $@ $<
+	$(CC) $(CFLAGS) -m32 -Iinc -c -o $@ $<
 
 $(OBJ)/%.o: libc/%.c
-	$(CC) $(CFLAGS) -DBITS_PER_LONG=32 -m32 -Iinclude -c -o $@ $<
+	$(CC) $(CFLAGS) -DBITS_PER_LONG=32 -m32 -Iinc -c -o $@ $<
 
 $(OBJ)/crtlib.o:
 	nasm $(ASFLAGS) -o $(OBJ)/crtlib.o crtlib.s

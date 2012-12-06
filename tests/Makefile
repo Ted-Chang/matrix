@@ -18,7 +18,7 @@ TARGETOBJ := \
 all: $(TARGETOBJ)
 
 $(OBJ)/%.o: %.c
-	$(CC) $(CFLAGS) -m32 -D_X86_ -g -I../sdk/include -I../kernel/include -c -o $@ $<
+	$(CC) $(CFLAGS) -m32 -D_X86_ -g -I../sdk/inc -I../kernel/inc -c -o $@ $<
 
 clean:
 	$(RM) $(TARGETOBJ)
