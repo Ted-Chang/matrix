@@ -24,7 +24,8 @@
 
 struct process_creation {
 	struct semaphore sem;	// Semaphore for synchronize
-	
+
+	int argc;		// Argument count
 	const char **argv;	// Arguments
 	const char **env;	// Environments
 
@@ -361,10 +362,12 @@ static int create_aspace(struct process_creation *info)
 	/* Calculate the size of arguments */
 	for (i = 0, size = 0; info->argv[i] != NULL; i++) {
 		size += (strlen(info->argv[i]) + 1);
+		DEBUG(DL_DBG, (" argv[%d] - \"%s\"\n", i, info->argv[i]));
 	}
 	size += ((sizeof(char *) * i) + 1 + sizeof(struct process_args));
 	size = ROUND_UP(size, PAGE_SIZE);
-	
+	info->argc = i;
+
 	/* Map some pages for the user mode stack from the new mmu context */
 	for (virt = USTACK_BOTTOM; virt <= (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
 		page = mmu_get_page(mmu, virt, TRUE, 0);
@@ -376,8 +379,21 @@ static int create_aspace(struct process_creation *info)
 		page_alloc(page, FALSE, TRUE);
 	}
 
+	/* Map some pages for the arguments block after the stack, leave one page
+	 * non-allocated to probe stack underflow
+	 */
+	info->args = virt + PAGE_SIZE;
+	for (virt = info->args; virt <= info->args + size; virt += PAGE_SIZE) {
+		page = mmu_get_page(mmu, virt, TRUE, 0);
+		if (!page) {
+			DEBUG(DL_WRN, ("mmu_get_page for arguments failed, virt(0x%x)\n", virt));
+			rc = -1;
+			goto out;
+		}
+		page_alloc(page, FALSE, TRUE);
+	}
+	
 	info->mmu = mmu;
-	info->args = NULL;
 	info->ustack = USTACK_BOTTOM + USTACK_SIZE;
 	info->data = data;
 	info->status = rc;
@@ -390,6 +406,24 @@ static int create_aspace(struct process_creation *info)
 	}
 	
 	return rc;
+}
+
+static void copy_process_arguments(const char *src[], size_t count, ptr_t dst)
+{
+	size_t i;
+	char *ptr;
+	struct process_args *args;
+
+	args = (struct process_args *)dst;
+	args->argc = count;
+	args->argv = (char **)dst + sizeof(struct process_args);
+	ptr = (char *)&args->argv[count];
+
+	for (i = 0; i < count; i++) {
+		strcpy(ptr, src[i]);
+		args->argv[i] = ptr;
+		ptr += (strlen(ptr) + 1);
+	}
 }
 
 static void process_entry_thread(void *ctx)
@@ -405,16 +439,21 @@ static void process_entry_thread(void *ctx)
 	ustack = info->ustack;
 	args = (ptr_t)info->args;
 
+	/* Copy the arguments */
+	copy_process_arguments(info->argv, info->argc, args);
+
 	/* Get the ELF loader to clear BSS and get the entry pointer */
 	entry = elf_finish_binary(info->data);
 
+	DEBUG(DL_DBG, ("ustack(%p), args(%p).\n", ustack, args));
+	
 	semaphore_up(&info->sem, 1);
 	
 	/* Switch to user space */
 	arch_thread_enter_uspace(entry, ustack, args);
 }
 
-int process_create(const char *args[], struct process *parent, int flags,
+int process_create(const char **args, struct process *parent, int flags,
 		   int priority, struct process **procp)
 {
 	int rc = -1;

@@ -73,7 +73,7 @@ extern void process_attach(struct process *p, struct thread *t);
 extern void process_detach(struct thread *t);
 
 extern int process_exit(int status);
-extern int process_create(const char *args[], struct process *parent, int flags,
+extern int process_create(const char **args, struct process *parent, int flags,
 			  int priority, struct process **procp);
 extern int process_destroy(struct process *proc);
 extern int process_clone(void (*entry)(void *), void *esp, void *args,

@@ -7,8 +7,6 @@ int main(int argc, char **argv)
 {
 	int rc = 0;
 
-	printf("crond process started.\n");
-
 	do {
 		int fd;
 

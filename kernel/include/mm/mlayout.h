@@ -8,6 +8,6 @@
 /* Our kernel stack size is 8192 bytes */
 #define KSTACK_SIZE		0x2000
 /* Our user stack size is 65536 bytes */
-#define USTACK_SIZE		0x10000
+#define USTACK_SIZE		0x4000
 
 #endif	/* __MLAYOUT_H__ */

@@ -51,6 +51,7 @@ void start_crond()
 	int rc, status;
 	char *crond[] = {
 		"/crond",
+		"-d",
 		NULL
 	};
 
@@ -77,6 +78,8 @@ void start_unit_test()
 	int rc;
 	char *unit_test[] = {
 		"/unit_test",
+		"-n",
+		"100",
 		NULL
 	};
 

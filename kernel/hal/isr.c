@@ -61,7 +61,6 @@ void isr_handler(struct registers regs)
 void irq_handler(struct registers regs)
 {
 	struct irq_hook *hook;
-	boolean_t processed = FALSE;
 	
 	/* Notify the PIC that we have done so we can accept >= priority IRQs now */
 	irq_done(regs.int_no);
@@ -73,7 +72,6 @@ void irq_handler(struct registers regs)
 			handler(&regs);
 		}
 		hook = hook->next;
-		processed = TRUE;
 	}
 }
 

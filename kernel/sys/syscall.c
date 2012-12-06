@@ -335,9 +335,45 @@ int sleep(uint32_t ms)
 	return 0;
 }
 
+static char **alloc_args(const char *argv[])
+{
+	char **ret = NULL;
+	size_t i, size, count;
+	char *ptr;
+
+	for (i = 0, size = 0; argv[i] != NULL; i++) {
+		size += strlen(argv[i]) + 1;
+	}
+
+	/* All the strings plus pointers to them and a NULL pointer */
+	count = i;
+	size += (sizeof(char *) * (count + 1));
+
+	ret = kmalloc(size, 0);
+	if (!ret) {
+		goto out;
+	}
+
+	for (i = 0, ptr = (char *)&ret[count + 1]; i < count; i++) {
+		strcpy(ptr, argv[i]);
+		ret[i] = ptr;
+		ptr += strlen(ptr) + 1;
+	}
+	ret[i] = NULL;
+
+ out:
+	return ret;
+}
+
+static void free_args(char **args)
+{
+	kfree(args);
+}
+
 int create_process(const char *path, const char *args[], int flags, int priority)
 {
 	int rc = -1;
+	char **arguments = NULL;
 	struct process *p;
 
 	if (!path) {
@@ -345,10 +381,17 @@ int create_process(const char *path, const char *args[], int flags, int priority
 		goto out;
 	}
 
+	/* Copy the arguments to kernel memory */
+	arguments = alloc_args(args);
+	if (!args) {
+		DEBUG(DL_INF, ("allocate args failed.\n"));
+		goto out;
+	}
+
 	p = NULL;
 	
 	/* By default we all use kernel process as the parent process */
-	rc = process_create(args, _kernel_proc, 0, 16, &p);
+	rc = process_create((const char **)arguments, _kernel_proc, 0, 16, &p);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("process_create failed, err(%d).\n", rc));
 		goto out;
@@ -356,7 +399,11 @@ int create_process(const char *path, const char *args[], int flags, int priority
 
 	rc = p->id;
 
-out:
+ out:
+	if (arguments) {
+		free_args(arguments);
+	}
+	
 	return rc;
 }
 
