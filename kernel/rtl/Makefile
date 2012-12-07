@@ -1,4 +1,4 @@
-# Makefile for libk module
+# Makefile for rtl module
 
 include ../Makefile.inc
 

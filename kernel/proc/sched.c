@@ -13,6 +13,7 @@
 #include "timer.h"
 #include "proc/process.h"
 #include "proc/sched.h"
+#include "semaphore.h"
 
 /* Number of priority levels */
 #define NR_PRIORITIES	32
@@ -52,6 +53,7 @@ static struct list _dead_threads = {
 	.next = &_dead_threads
 };
 static struct spinlock _dead_threads_lock;
+static struct semaphore _dead_threads_sem;
 
 /* Allocate a CPU for a thread to run on */
 static struct cpu *sched_alloc_cpu(struct thread *t)
@@ -310,6 +312,7 @@ void sched_post_switch(boolean_t state)
 			list_add_tail(&_dead_threads,
 				      &CURR_CPU->sched->prev_thread->runq_link);
 			spinlock_release(&_dead_threads_lock);
+			semaphore_up(&_dead_threads_sem, 1);
 		}
 	}
 
@@ -320,17 +323,23 @@ static void sched_reaper_thread(void *ctx)
 {
 	/* If this is the first time reaper run, you should enable IRQ first */
 	while (TRUE) {
-		/* Reaper the dead threads */
+		/* Reap the dead threads */
 		struct list *p, *l;
 		struct thread *t;
 
-		//spinlock_acquire(&_dead_threads_lock);
+		/* Wait for dead threads to be added to the list */
+		semaphore_down(&_dead_threads_sem);
+
+		spinlock_acquire(&_dead_threads_lock);
+		
 		LIST_FOR_EACH_SAFE(l, p, &_dead_threads) {
 			t = LIST_ENTRY(l, struct thread, runq_link);
 			list_del(&t->runq_link);
 			DEBUG(DL_INF, ("release thread(%s:%d).\n", t->name, t->id));
 			thread_release(t);
 		}
+
+		spinlock_release(&_dead_threads_lock);
 	}
 }
 
@@ -391,6 +400,8 @@ void init_sched_percpu()
 void init_sched()
 {
 	int rc = -1;
+
+	semaphore_init(&_dead_threads_sem, "dead-t-sem", 0);
 
 	spinlock_init(&_dead_threads_lock, "dead-t-lock");
 
