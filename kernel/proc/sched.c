@@ -321,25 +321,28 @@ void sched_post_switch(boolean_t state)
 
 static void sched_reaper_thread(void *ctx)
 {
+	/* Reap the dead threads */
+	struct list *p, *l;
+	struct thread *t;
+
 	/* If this is the first time reaper run, you should enable IRQ first */
 	while (TRUE) {
-		/* Reap the dead threads */
-		struct list *p, *l;
-		struct thread *t;
-
 		/* Wait for dead threads to be added to the list */
 		semaphore_down(&_dead_threads_sem);
 
 		spinlock_acquire(&_dead_threads_lock);
+
+		ASSERT(!LIST_EMPTY(&_dead_threads));
 		
-		LIST_FOR_EACH_SAFE(l, p, &_dead_threads) {
-			t = LIST_ENTRY(l, struct thread, runq_link);
-			list_del(&t->runq_link);
-			DEBUG(DL_INF, ("release thread(%s:%d).\n", t->name, t->id));
-			thread_release(t);
-		}
+		l = _dead_threads.next;
+		t = LIST_ENTRY(l, struct thread, runq_link);
+		list_del(&t->runq_link);
 
 		spinlock_release(&_dead_threads_lock);
+		
+		DEBUG(DL_INF, ("release thread(%s:%d).\n", t->name, t->id));
+		thread_release(t);
+
 	}
 }
 
