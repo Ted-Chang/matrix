@@ -14,14 +14,14 @@ TARGETOBJ := \
 	$(OBJ)/semaphore.o \
 	$(OBJ)/elf.o \
 	$(OBJ)/object.o \
-	$(OBJ)/avltree.o \
+	$(OBJ)/terminal.o \
 
 .PHONY: clean help
 
 all: $(TARGETOBJ)
 
 $(OBJ)/%.o: %.c
-	$(CC) -D__KERNEL__ -D_X86_ -DBITS_PER_LONG=32 -m32 -I../inc -I../../sdk/inc $(CFLAGS_global) -c -o $@ $<
+	$(CC) -DCONFIG_SERIAL_PORT=1 -D__KERNEL__ -D_X86_ -DBITS_PER_LONG=32 -m32 -I../inc -I../../sdk/inc $(CFLAGS_global) -c -o $@ $<
 
 clean:
 	$(RM) $(TARGETOBJ)

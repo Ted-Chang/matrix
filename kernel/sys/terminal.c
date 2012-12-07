@@ -140,10 +140,24 @@ void unregister_terminal_input_ops(struct terminal_input_ops *ops)
 	spinlock_release(&_terminal_lock);
 }
 
-/* Setup the debug terminal */
-void platform_preinit_terminal()
+static int kd_cmd_help(int argc, char **argv, kd_filter_t *filter)
 {
-	uint8_t status = inportb(SERIAL_PORT + 6);
+	return 0;
+}
+
+static int kd_cmd_log(int argc, char **argv, kd_filter_t *filter)
+{
+	return 0;
+}
+
+/* Initialize the debug terminal */
+void preinit_terminal()
+{
+	uint8_t status;
+	
+	spinlock_init(&_terminal_lock, "term-lock");
+	
+	status = inportb(SERIAL_PORT + 6);
 
 	if ((status & ((1 << 4) | (1 << 5))) && status != 0xFF) {
 		outportb(SERIAL_PORT + 1, 0x00);	// Disable all interrupts
@@ -162,30 +176,6 @@ void platform_preinit_terminal()
 		_debug_terminal_ops = &_serial_terminal_output_ops;
 		register_terminal_input_ops(&_serial_terminal_input_ops);
 	}
-}
-
-/* Setup the terminal */
-void platform_init_terminal()
-{
-	;
-}
-
-static int kd_cmd_help(int argc, char **argv, kd_filter_t *filter)
-{
-	return 0;
-}
-
-static int kd_cmd_log(int argc, char **argv, kd_filter_t *filter)
-{
-	return 0;
-}
-
-/* Initialize the debug terminal */
-void preinit_terminal()
-{
-	spinlock_init(&_terminal_lock, "term-lock");
-	
-	platform_preinit_terminal();
 
 	/* Register the KD command */
 	kd_register_cmd("help", "Display usage information of KD.", kd_cmd_help);
@@ -195,5 +185,5 @@ void preinit_terminal()
 /* Initialize the terminal */
 void init_terminal()
 {
-	platform_init_terminal();
+	;
 }
