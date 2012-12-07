@@ -326,7 +326,7 @@ static int create_aspace(struct process_creation *info)
 {
 	int rc = -1, i;
 	size_t size;
-	uint32_t virt = 0;
+	ptr_t virt = 0;
 	void *data = NULL;
 	struct vfs_node *n;
 	struct page *page;
@@ -369,7 +369,7 @@ static int create_aspace(struct process_creation *info)
 	info->argc = i;
 
 	/* Map some pages for the user mode stack from the new mmu context */
-	for (virt = USTACK_BOTTOM; virt <= (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
+	for (virt = USTACK_BOTTOM; virt < (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
 		page = mmu_get_page(mmu, virt, TRUE, 0);
 		if (!page) {
 			DEBUG(DL_ERR, ("mmu_get_page for stack failed, virt(0x%x)\n", virt));
@@ -394,7 +394,7 @@ static int create_aspace(struct process_creation *info)
 	}
 	
 	info->mmu = mmu;
-	info->ustack = USTACK_BOTTOM + USTACK_SIZE;
+	info->ustack = USTACK_BOTTOM + USTACK_SIZE - 1;
 	info->data = data;
 	info->status = rc;
 

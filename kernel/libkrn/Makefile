@@ -6,6 +6,7 @@ OBJ := ../../bin/obji386
 
 TARGETOBJ := \
 	$(OBJ)/avltree.o \
+	$(OBJ)/notifier.o \
 
 .PHONY: clean help
 

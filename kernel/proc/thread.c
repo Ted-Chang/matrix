@@ -102,6 +102,9 @@ void arch_thread_enter_uspace(ptr_t entry, ptr_t ustack, ptr_t ctx)
 	 */
 	set_kernel_stack(CURR_THREAD->kstack);
 
+	CURR_THREAD->ustack = ustack;
+	CURR_THREAD->ustack_size = USTACK_SIZE;
+
 	/* Push the arguments pointer to the stack */
 	ustack -= sizeof(ptr_t);
 	*((ptr_t *)ustack) = ctx;
@@ -427,10 +430,18 @@ void thread_release(struct thread *t)
 
 void thread_exit()
 {
+	ptr_t virt;
 	boolean_t state;
+	struct page *page;
 
 	if (CURR_THREAD->ustack_size) {
-		/* TODO: Unmap the user mode stack */
+		for (virt = CURR_THREAD->ustack - USTACK_SIZE + 1;
+		     virt < CURR_THREAD->ustack;
+		     virt += PAGE_SIZE) {
+			page = mmu_get_page(CURR_PROC->mmu_ctx, virt, FALSE, 0);
+			ASSERT(page != NULL);
+			page_free(page);
+		}
 	}
 
 	notifier_run(&CURR_THREAD->death_notifier);

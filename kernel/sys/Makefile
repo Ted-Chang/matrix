@@ -9,7 +9,6 @@ TARGETOBJ := \
 	$(OBJ)/syscall.o \
 	$(OBJ)/util.o \
 	$(OBJ)/fd.o \
-	$(OBJ)/notifier.o \
 	$(OBJ)/mutex.o \
 	$(OBJ)/semaphore.o \
 	$(OBJ)/elf.o \
