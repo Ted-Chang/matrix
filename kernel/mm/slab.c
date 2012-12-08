@@ -179,7 +179,7 @@ void slab_cache_delete(slab_cache_t *cache)
 		
 		slab = LIST_ENTRY(l, slab_t, link);
 		ASSERT(slab->parent == cache);
-		slab_destroy(cache, slab->base);
+		slab_destroy(cache, slab);
 	}
 
 	spinlock_acquire(&_slab_caches_lock);

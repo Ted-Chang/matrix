@@ -8,6 +8,6 @@ popd
 pushd sdk
 make clean && make
 popd
-pushd userspace
+pushd apps
 make clean && make
 popd

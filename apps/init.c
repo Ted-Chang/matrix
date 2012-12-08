@@ -79,7 +79,7 @@ void start_unit_test()
 	char *unit_test[] = {
 		"/unit_test",
 		"-n",
-		"100",
+		"1000",
 		NULL
 	};
 

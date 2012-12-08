@@ -32,7 +32,7 @@ DEFN_SYSCALL0(getpid, 19)
 DEFN_SYSCALL1(sleep, 20, uint32_t)
 DEFN_SYSCALL4(create_process, 21, const char *, const char **, int, int)
 DEFN_SYSCALL1(waitpid, 22, int)
-DEFN_SYSCALL0(unit_test, 23)
+DEFN_SYSCALL1(unit_test, 23, uint32_t)
 
 
 int open(const char *file, int flags, int mode)
@@ -150,7 +150,7 @@ pid_t waitpid(pid_t pid, int *status, int options)
 	return mtx_waitpid(pid);
 }
 
-int unit_test()
+int unit_test(uint32_t round)
 {
-	return mtx_unit_test();
+	return mtx_unit_test(round);
 }

@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 	}
 	
 	do {
-		rc = unit_test();
+		rc = unit_test(nr_round);
 		if (rc != 0) {
 			printf("unit_test failed.\n");
 		} else {
