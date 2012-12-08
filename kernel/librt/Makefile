@@ -1,4 +1,4 @@
-# Makefile for rtl module
+# Makefile for librt module
 
 include ../Makefile.inc
 

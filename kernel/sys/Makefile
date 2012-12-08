@@ -1,4 +1,4 @@
-# Makefile for raw module
+# Makefile for sys module
 
 include ../Makefile.inc
 
