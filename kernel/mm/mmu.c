@@ -12,6 +12,8 @@
 #include "mm/mmu.h"
 #include "mm/kmem.h"
 #include "matrix/debug.h"
+#include "proc/process.h"
+#include "proc/thread.h"
 
 /* Determine if an MMU context is the kernel context */
 #define IS_KERNEL_CTX(ctx)	(ctx == &_kernel_mmu_ctx)
@@ -246,6 +248,10 @@ void page_fault(struct registers *regs)
 	rw = regs->err_code & 0x2;
 	us = regs->err_code & 0x4;
 	reserved = regs->err_code & 0x8;
+
+	/* Print current thread */
+	kprintf("process(%s:%d) thread(%s:%d)\n", CURR_PROC->name,
+		CURR_PROC->id, CURR_THREAD->name, CURR_THREAD->id);
 
 	/* Print an error message */
 	kprintf("Page fault(%s%s%s%s) at 0x%x - EIP: 0x%x\n", 

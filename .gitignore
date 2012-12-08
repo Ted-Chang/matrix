@@ -1,5 +1,5 @@
 bin/obji386/*
 bin/lib/*
 bin/*.map
-userspace/obji386/*
+apps/obji386/*
 !.gitignore

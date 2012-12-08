@@ -39,8 +39,7 @@ int main(int argc, char **argv)
 	start_unit_test();
 	
 	while (TRUE) {
-		printf("init: sleeping...\n");
-		sleep(1000);
+		;
 	}
 
 	return rc;

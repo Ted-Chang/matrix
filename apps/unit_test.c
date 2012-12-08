@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 		if (rc != 0) {
 			printf("unit_test failed.\n");
 		} else {
-			printf("unit_test finished.\n");
+			printf("unit_test finished with round %d.\n", nr_round);
 		}
 		
 	} while (FALSE);
