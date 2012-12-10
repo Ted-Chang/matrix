@@ -33,7 +33,7 @@ $(TARGETDIR)/unit_test: $(OBJ)/unit_test.o
 	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/unit_test.map -o $(TARGETDIR)/unit_test $(OBJ)/unit_test.o
 
 $(OBJ)/%.o: %.c
-	$(CC) $(CFLAGS) -m32 -g -I../sdk/inc -c -o $@ $<
+	$(CC) $(CFLAGS) -m32 -g -I../sdk/include -c -o $@ $<
 
 clean:
 	$(RM) -f $(TARGETS)
