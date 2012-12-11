@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include "hal/hal.h"
 #include "hal/isr.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "util.h"
 #include "keyboard.h"
 

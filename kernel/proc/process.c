@@ -7,7 +7,7 @@
 #include <string.h>
 #include "matrix/matrix.h"
 #include "matrix/const.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "matrix/process.h"
 #include "hal/hal.h"
 #include "hal/cpu.h"

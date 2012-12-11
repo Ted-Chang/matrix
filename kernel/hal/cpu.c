@@ -3,7 +3,7 @@
 #include "hal/cpu.h"
 #include "hal/hal.h"
 #include "pit.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "mm/mlayout.h"
 #include "mm/page.h"
 #include "div64.h"

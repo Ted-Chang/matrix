@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "fs.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "mm/malloc.h"
 
 struct vfs_node *_root_node = 0;

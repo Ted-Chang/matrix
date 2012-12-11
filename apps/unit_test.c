@@ -4,6 +4,7 @@
 #include <errno.h>
 
 static void usage();
+static void echo_test();
 
 int main(int argc, char **argv)
 {
@@ -36,9 +37,30 @@ int main(int argc, char **argv)
 		
 	} while (FALSE);
 
+	echo_test();
+
  out:
 
 	return rc;
+}
+
+void echo_test()
+{
+	int rc;
+	char *echo[] = {
+		"/echo",
+		"Message from echo.",
+		NULL
+	};
+
+	rc = create_process(echo[0], echo, 0, 16);
+	if (rc == -1) {
+		printf("create_process failed, err(%d).\n", rc);
+		goto out;
+	}
+
+ out:
+	return;
 }
 
 void usage()

@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
-#include "matrix/debug.h"
+#include "debug.h"
 #include "matrix/const.h"
 #include "hal/hal.h"
 #include "hal/cpu.h"
@@ -342,7 +342,6 @@ static void sched_reaper_thread(void *ctx)
 		
 		DEBUG(DL_INF, ("release thread(%s:%d).\n", t->name, t->id));
 		thread_release(t);
-
 	}
 }
 

@@ -8,7 +8,7 @@
 #include <stdarg.h>
 #include "sys/time.h"
 #include "matrix/matrix.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "multiboot.h"
 #include "hal/hal.h"
 #include "hal/isr.h"

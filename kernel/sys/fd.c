@@ -4,7 +4,7 @@
 #include "fd.h"
 #include "fs.h"
 #include "proc/process.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "mm/malloc.h"
 
 struct vfs_node *fd_2_vfs_node(struct process *p, int fd)

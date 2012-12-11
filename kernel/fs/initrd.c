@@ -3,7 +3,7 @@
 #include "mm/malloc.h"
 #include "dirent.h"
 #include "initrd.h"
-#include "matrix/debug.h"
+#include "debug.h"
 
 struct initrd_header *initrd_hdr;
 struct initrd_file_header *file_hdrs;

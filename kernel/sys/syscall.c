@@ -15,7 +15,7 @@
 #include "proc/process.h"
 #include "matrix/matrix.h"
 #include "div64.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "fd.h"
 #include "timer.h"
 #include "semaphore.h"

@@ -1,7 +1,7 @@
 #include <types.h>
 #include <stddef.h>
 #include "matrix/matrix.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "dbgheap.h"
 
 /* Fixed heap tag structure */

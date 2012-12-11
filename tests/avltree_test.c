@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "matrix/matrix.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "mm/malloc.h"
 #include "avltree.h"
 

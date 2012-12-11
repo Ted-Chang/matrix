@@ -5,7 +5,7 @@
 #include "hal/isr.h"
 #include "floppy.h"
 #include "util.h"
-#include "matrix/debug.h"
+#include "debug.h"
 
 
 #define FDC_PRI		0x3F0		// Base port of the primary controller

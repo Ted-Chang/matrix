@@ -11,7 +11,7 @@
 #include "mm/mlayout.h"
 #include "mm/mmu.h"
 #include "mm/kmem.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "proc/process.h"
 #include "proc/thread.h"
 

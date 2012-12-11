@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <stdio.h>
-#include "matrix/debug.h"
+#include "debug.h"
 #include "hal/hal.h"	// outportb
 
 #ifndef DBG_BUFF_SIZE

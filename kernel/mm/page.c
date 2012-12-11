@@ -4,7 +4,7 @@
 #include "mm/page.h"
 #include "mm/kmem.h"
 #include "multiboot.h"
-#include "matrix/debug.h"
+#include "debug.h"
 
 #define INDEX_FROM_BIT(a)	((a)/(8*4))
 #define OFFSET_FROM_BIT(a)	((a)%(8*4))

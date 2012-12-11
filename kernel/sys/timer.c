@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "sys/time.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "hal/cpu.h"
 #include "pit.h"
 #include "timer.h"

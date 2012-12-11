@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "matrix/matrix.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "hal/hal.h"
 #include "mm/mm.h"
 #include "mm/kmem.h"

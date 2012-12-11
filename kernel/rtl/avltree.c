@@ -1,7 +1,7 @@
 #include <types.h>
 #include <stddef.h>
 #include "matrix/matrix.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "avltree.h"
 #include "mm/malloc.h"
 

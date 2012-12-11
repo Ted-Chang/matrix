@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "matrix/matrix.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "list.h"
 #include "atomic.h"
 #include "hal/cpu.h"

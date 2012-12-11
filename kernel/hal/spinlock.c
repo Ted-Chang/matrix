@@ -4,7 +4,7 @@
 #include "barrier.h"
 #include "hal/hal.h"
 #include "hal/spinlock.h"
-#include "matrix/debug.h"
+#include "debug.h"
 
 static INLINE void spinlock_lock_internal(struct spinlock *lock)
 {

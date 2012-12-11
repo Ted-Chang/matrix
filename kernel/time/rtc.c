@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include "sys/time.h"
 #include "hal/hal.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "pit.h"
 
 #define BCD2DEC(n)	(((n >> 4) & 0x0F) * 10 + (n & 0x0F))

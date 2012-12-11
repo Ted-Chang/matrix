@@ -8,7 +8,7 @@
 #include "hal/hal.h"
 #include "hal/spinlock.h"
 #include "util.h"
-#include "matrix/debug.h"
+#include "debug.h"
 
 struct irq_chain {
 	struct spinlock lock;

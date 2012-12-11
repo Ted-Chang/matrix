@@ -7,7 +7,7 @@
 #include "hal/hal.h"
 #include "hal/cpu.h"
 #include "string.h"	// memset
-#include "matrix/debug.h"
+#include "debug.h"
 
 struct idt _idt_entries[NR_IDT_ENTRIES];
 struct idt_ptr _idt_ptr;

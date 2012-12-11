@@ -1,7 +1,7 @@
 #include <types.h>
 #include <stddef.h>
 #include "hal/hal.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "proc/process.h"
 
 uint32_t _debug_level = DL_DBG;

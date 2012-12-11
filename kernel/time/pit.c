@@ -9,7 +9,7 @@
 #include "timer.h"
 #include "proc/process.h"
 #include "proc/sched.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "div64.h"
 #include "pit.h"
 

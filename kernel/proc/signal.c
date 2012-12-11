@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "matrix/matrix.h"
-#include "matrix/debug.h"
+#include "debug.h"
 #include "proc/signal.h"
 #include "proc/thread.h"
 #include "proc/process.h"
