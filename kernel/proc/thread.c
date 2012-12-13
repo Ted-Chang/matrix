@@ -421,8 +421,8 @@ void thread_release(struct thread *t)
 
 	notifier_clear(&t->death_notifier);
 
-	DEBUG(DL_DBG, ("process(%s:%d:%d), kstack(%p).\n", p->name,
-		       p->id, p->state, kstack));
+	DEBUG(DL_DBG, ("process(%s:%d:%d), thread(%s:%d), kstack(%p).\n", p->name,
+		       p->id, p->state, t->name, t->id, kstack));
 
 	/* Free this thread to the thread cache */
 	slab_cache_free(&_thread_cache, t);

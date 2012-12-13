@@ -298,20 +298,26 @@ void sched_reschedule(boolean_t state)
 
 void sched_post_switch(boolean_t state)
 {
+	struct thread *t;
+	
 	/* The prev_thread pointer is set to NULL during sched_init(). It will
 	 * only be NULL once.
 	 */
-	if (CURR_CPU->sched->prev_thread) {
+	t = CURR_CPU->sched->prev_thread;
+	if (t) {
 
 		/* Deal with thread terminations. We cannot delete the thread
 		 * directly as all alloctor functions are unsafe to call here.
 		 * Instead we queue the thread to the reaper's queue.
 		 */
-		if (CURR_CPU->sched->prev_thread->state == THREAD_DEAD) {
+		if (t->state == THREAD_DEAD) {
+			struct list *l;
+
 			spinlock_acquire(&_dead_threads_lock);
-			list_add_tail(&_dead_threads,
-				      &CURR_CPU->sched->prev_thread->runq_link);
+			list_add_tail(&t->runq_link, &_dead_threads);
 			spinlock_release(&_dead_threads_lock);
+			
+			DEBUG(DL_DBG, ("thread(%s:%d) -> dead threads list.\n", t->name, t->id));
 			semaphore_up(&_dead_threads_sem, 1);
 		}
 	}
@@ -335,10 +341,11 @@ static void sched_reaper_thread(void *ctx)
 		ASSERT(!LIST_EMPTY(&_dead_threads));
 		
 		l = _dead_threads.next;
-		t = LIST_ENTRY(l, struct thread, runq_link);
-		list_del(&t->runq_link);
+		list_del(l);
 
 		spinlock_release(&_dead_threads_lock);
+
+		t = LIST_ENTRY(l, struct thread, runq_link);
 		
 		DEBUG(DL_INF, ("release thread(%s:%d).\n", t->name, t->id));
 		thread_release(t);

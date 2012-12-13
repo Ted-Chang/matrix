@@ -3,9 +3,12 @@
 #include "matrix/matrix.h"
 #include "proc/thread.h"
 #include "semaphore.h"
+#include "debug.h"
 
 void semaphore_down(struct semaphore *s)
 {
+	DEBUG(DL_DBG, ("sem(%s) count(%d).\n", s->name, s->count));
+	
 	spinlock_acquire(&s->lock);
 
 	if (s->count) {
@@ -24,6 +27,8 @@ void semaphore_up(struct semaphore *s, size_t count)
 	struct list *l;
 	size_t i;
 
+	DEBUG(DL_DBG, ("sem(%s) count(%d).\n", s->name, s->count));
+	
 	spinlock_acquire(&s->lock);
 
 	for (i = 0; i < count; i++) {

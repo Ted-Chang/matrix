@@ -2,6 +2,7 @@
 #define __DEBUG_H__
 
 #include "util.h"
+#include "kd.h"
 
 /* Compiler macro to get function name */
 #ifndef __FUNC__
@@ -17,9 +18,16 @@
 
 #define DEBUG(level, params) do { \
 		if (_debug_level <= (level)) { \
-			kprintf("[%s] %s: ", dbglevel_string(level), __FUNC__);	\
-			kprintf params;						\
-		}								\
+			boolean_t state;						\
+			state = irq_disable();						\
+			if (_debug_level > DL_DBG) {					\
+				kprintf("[%s] %s: ", dbglevel_string(level), __FUNC__);	\
+				kprintf params;						\
+			}								\
+			kd_printf("[%s] %s: ", dbglevel_string(level), __FUNC__);	\
+			kd_printf params;						\
+			irq_restore(state);						\
+		}									\
 	} while (0)
 
 
