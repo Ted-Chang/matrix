@@ -71,6 +71,10 @@ void arch_thread_switch(struct thread *curr, struct thread *prev)
 	/* Switch the kernel stack in TSS to the process's kernel stack */
 	set_kernel_stack(curr->kstack);
 
+	DEBUG(DL_DBG, ("prev(%s:%x:%x:%x), curr(%s:%x:%x:%x)\n",
+		       prev->name, prev->arch.eip, prev->arch.esp, prev->arch.ebp,
+		       curr->name, curr->arch.eip, curr->arch.esp, curr->arch.ebp));
+
 	/* Here we:
 	 * [1] Disable interrupts so we don't get bothered.
 	 * [2] Temporarily puts the new EIP location in EBX.
@@ -329,6 +333,7 @@ int thread_sleep(struct spinlock *lock, useconds_t timeout, const char *name, in
 	/* We are definitely going to sleep. Get the interrupt state to restore */
 	state = lock ? lock->state : irq_disable();
 
+	spinlock_acquire_noirq(&CURR_THREAD->lock);
 	CURR_THREAD->sleep_status = 0;
 
 	/* Start the timer if required */
@@ -435,18 +440,19 @@ void thread_exit()
 	struct page *page;
 
 	if (CURR_THREAD->ustack_size) {
-		for (virt = CURR_THREAD->ustack - USTACK_SIZE + 1;
-		     virt < CURR_THREAD->ustack;
-		     virt += PAGE_SIZE) {
-			page = mmu_get_page(CURR_PROC->mmu_ctx, virt, FALSE, 0);
-			ASSERT(page != NULL);
-			page_free(page);
-		}
+		/* for (virt = CURR_THREAD->ustack - USTACK_SIZE + 1; */
+		/*      virt < CURR_THREAD->ustack; */
+		/*      virt += PAGE_SIZE) { */
+		/* 	page = mmu_get_page(CURR_PROC->mmu_ctx, virt, FALSE, 0); */
+		/* 	ASSERT(page != NULL); */
+		/* 	page_free(page); */
+		/* } */
 	}
 
 	notifier_run(&CURR_THREAD->death_notifier);
 
 	state = irq_disable();
+	spinlock_acquire_noirq(&CURR_THREAD->lock);
 	
 	CURR_THREAD->state = THREAD_DEAD;
 

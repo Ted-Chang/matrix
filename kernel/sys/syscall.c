@@ -411,7 +411,7 @@ int waitpid(int pid)
 {
 	int rc = -1;
 	struct process *proc;
-	struct semaphore *s;
+	struct semaphore s;
 	
 	if (pid < 1) {
 		DEBUG(DL_DBG, ("group wait not supported, pid(%d).\n", pid));
@@ -426,23 +426,17 @@ int waitpid(int pid)
 		goto out;
 	}
 
-	/* Allocate semaphore */
-	s = kmalloc(sizeof(struct semaphore), 0);
-	if (!s) {
-		DEBUG(DL_DBG, ("kmalloc semaphore failed.\n"));
-		goto out;
-	}
-	semaphore_init(s, "waitpid-sem", 0);
+	semaphore_init(&s, "waitpid-sem", 0);
 
 	/* Put the current process into the wait queue of proc */
-	rc = process_wait(proc, s);
+	rc = process_wait(proc, &s);
 	if (rc != 0) {
 		DEBUG(DL_INF, ("process_wait failed, proc(%p).\n", proc));
 		goto out;
 	}
 
 	/* Make current thread goto sleep */
-	semaphore_down(s);
+	semaphore_down(&s);
 
 	rc = proc->status;
 

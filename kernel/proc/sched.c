@@ -292,6 +292,7 @@ void sched_reschedule(boolean_t state)
 		/* Do all things need to do after swith */
 		sched_post_switch(state);
 	} else {
+		spinlock_release_noirq(&CURR_THREAD->lock);
 		irq_restore(state);
 	}
 }
@@ -306,6 +307,11 @@ void sched_post_switch(boolean_t state)
 	t = CURR_CPU->sched->prev_thread;
 	if (t) {
 
+		/* Release the previous thread. We have performed switch if
+		 * prev_thread is not NULL
+		 */
+		spinlock_release_noirq(&t->lock);
+		
 		/* Deal with thread terminations. We cannot delete the thread
 		 * directly as all alloctor functions are unsafe to call here.
 		 * Instead we queue the thread to the reaper's queue.
@@ -360,7 +366,9 @@ static void sched_idle_thread(void *ctx)
 	irq_disable();
 
 	while (TRUE) {
+		spinlock_acquire_noirq(&CURR_THREAD->lock);
 		sched_reschedule(FALSE);
+		
 		cpu_idle();
 	}
 }

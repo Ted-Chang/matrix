@@ -163,6 +163,7 @@ void timer_tick()
 	
 	prempt = tmrs_exptimers(&CURR_CPU->timers, now);
 	if (prempt) {
+		spinlock_acquire_noirq(&CURR_THREAD->lock);
 		sched_reschedule(FALSE);
 	}
 }

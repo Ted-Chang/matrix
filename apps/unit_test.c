@@ -39,6 +39,10 @@ int main(int argc, char **argv)
 
 	echo_test();
 
+	while (TRUE) {
+		;
+	}
+
  out:
 
 	return rc;

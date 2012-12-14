@@ -550,7 +550,7 @@ int process_wait(struct process *p, void *sync)
 		notifier_register(&p->death_notifier, process_wait_notifier, sync);
 		rc = 0;
 	} else {
-		DEBUG(DL_INF, ("process(%s:%d) dead.", p->name, p->id));
+		DEBUG(DL_INF, ("process(%s:%d) dead.\n", p->name, p->id));
 		rc = -1;
 	}
 
