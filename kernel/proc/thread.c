@@ -440,13 +440,9 @@ void thread_exit()
 	struct page *page;
 
 	if (CURR_THREAD->ustack_size) {
-		/* for (virt = CURR_THREAD->ustack - USTACK_SIZE + 1; */
-		/*      virt < CURR_THREAD->ustack; */
-		/*      virt += PAGE_SIZE) { */
-		/* 	page = mmu_get_page(CURR_PROC->mmu_ctx, virt, FALSE, 0); */
-		/* 	ASSERT(page != NULL); */
-		/* 	page_free(page); */
-		/* } */
+		DEBUG(DL_DBG, ("unmap address space, proc(%s), mmu(%p)",
+			       CURR_PROC->name, CURR_PROC->mmu_ctx));
+		mmu_release_ctx(CURR_PROC->mmu_ctx);
 	}
 
 	notifier_run(&CURR_THREAD->death_notifier);

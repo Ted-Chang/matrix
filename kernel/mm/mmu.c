@@ -89,6 +89,19 @@ static struct ptbl *clone_ptbl(struct ptbl *src, uint32_t *phys_addr)
 	return ptbl;
 }
 
+static void release_ptbl(struct ptbl *tbl)
+{
+	int i;
+
+	/* Free each of the page */
+	for (i = 0; i < 1024; i++) {
+		/* If the entry has a frame associated with it */
+		if (tbl->pte[i].frame) {
+			page_free(&tbl->pte[i]);
+		}
+	}
+}
+
 /**
  * Get a page from the specified mmu context
  * @ctx		- mmu context
@@ -297,6 +310,24 @@ void mmu_copy_ctx(struct mmu_ctx *dst, struct mmu_ctx *src)
 				       dst, src, i * 1024 * PAGE_SIZE));
 			dst_dir->ptbl[i] = clone_ptbl(src_dir->ptbl[i], &pde);
 			dst_dir->pde[i] = pde | 0x07;
+		}
+	}
+}
+
+void mmu_release_ctx(struct mmu_ctx *mmu)
+{
+	int i;
+	struct pdir *krn_dir, *src_dir;
+
+	src_dir = mmu->pdir;
+	krn_dir = _kernel_mmu_ctx.pdir;
+	for (i = 0; i < 1024; i++) {
+		if (!src_dir->ptbl[i]) {
+			continue;
+		}
+
+		if (krn_dir->ptbl[i] != src_dir->ptbl[i]) {
+			release_ptbl(src_dir->ptbl[i]);
 		}
 	}
 }

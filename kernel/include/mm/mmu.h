@@ -37,6 +37,7 @@ extern int mmu_unmap_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t shared,
 			  uint32_t *phys);
 extern void mmu_switch_ctx(struct mmu_ctx *ctx);
 extern void mmu_copy_ctx(struct mmu_ctx *dst, struct mmu_ctx *src);
+extern void mmu_release_ctx(struct mmu_ctx *mmu);
 extern void init_mmu();
 
 #endif	/* __MMU_H__ */

@@ -3,6 +3,7 @@
 #include "atomic.h"
 #include "barrier.h"
 #include "hal/hal.h"
+#include "hal/cpu.h"
 #include "hal/spinlock.h"
 #include "debug.h"
 
@@ -13,7 +14,21 @@ static INLINE void spinlock_lock_internal(struct spinlock *lock)
 		/* When running on a UP system we don't need to spin as there should
 		 * only be on thing at any time, so just die.
 		 */
-		PANIC("spinlock_lock_internal: lock value invalid.");
+		if (_nr_cpus > 1) {
+			while (TRUE) {
+				/* Wait for the lock to be released */
+				while (lock->value != 1) {
+					cpu_spin_hint();
+				}
+
+				/* Try to acquire it */
+				if (atomic_dec(&lock->value) == 1) {
+					break;
+				}
+			}
+		} else {
+			PANIC("spinlock_lock_internal: lock value invalid.");
+		}
 	}
 }
 
