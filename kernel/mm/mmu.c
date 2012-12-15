@@ -89,22 +89,6 @@ static struct ptbl *clone_ptbl(struct ptbl *src, uint32_t *phys_addr)
 	return ptbl;
 }
 
-static void release_ptbl(struct ptbl *tbl, uint32_t *nr_pages)
-{
-	int i;
-
-	*nr_pages = 0;
-	
-	/* Free each of the page */
-	for (i = 0; i < 1024; i++) {
-		/* If the entry has a frame associated with it */
-		if (tbl->pte[i].frame) {
-			(*nr_pages)++;
-			page_free(&tbl->pte[i]);
-		}
-	}
-}
-
 /**
  * Get a page from the specified mmu context
  * @ctx		- mmu context
@@ -115,6 +99,7 @@ static void release_ptbl(struct ptbl *tbl, uint32_t *nr_pages)
 struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t make,
 			  int mmflag)
 {
+	struct page *page;
 	uint32_t dir_idx, tbl_idx;
 	struct pdir *pdir;
 
@@ -125,7 +110,7 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t make,
 	dir_idx = (virt / PAGE_SIZE) / 1024;
 
 	if (pdir->ptbl[dir_idx]) {	// The page table already assigned
-		return &pdir->ptbl[dir_idx]->pte[tbl_idx];
+		page = &pdir->ptbl[dir_idx]->pte[tbl_idx];
 	} else if (make) {		// Make a new page table
 		uint32_t tmp;
 		
@@ -139,16 +124,17 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t make,
 		/* Set the content of the page table */
 		pdir->pde[dir_idx] = tmp | 0x7;	// PRESENT, RW, US.
 		
-		return &pdir->ptbl[dir_idx]->pte[tbl_idx];
+		page = &pdir->ptbl[dir_idx]->pte[tbl_idx];
 	} else {
 		DEBUG(DL_INF, ("no page for addr(0x%08x) in mmu ctx(0x%08x)\n",
 			       virt, ctx));
-		return NULL;
+		page = NULL;
 	}
+
+	return page;
 }
 
-int mmu_map_page(struct mmu_ctx *ctx, uint32_t virt, phys_addr_t phys,
-		 boolean_t write, boolean_t execute, int mmflag)
+int mmu_map_page(struct mmu_ctx *ctx, uint32_t virt, phys_addr_t phys, int flags, int mmflag)
 {
 	struct page *page;
 
@@ -166,9 +152,7 @@ int mmu_map_page(struct mmu_ctx *ctx, uint32_t virt, phys_addr_t phys,
 	/* Set the PTE */
 	page->present = 1;
 
-	if (write) {
-		page->rw = 1;
-	}
+	page->rw = FLAG_ON(flags, MAP_WRITE_F) ? 1 : 0;
 
 	if (!IS_KERNEL_CTX(ctx)) {
 		page->user = 1;
@@ -179,8 +163,61 @@ int mmu_map_page(struct mmu_ctx *ctx, uint32_t virt, phys_addr_t phys,
 	return 0;
 }
 
-int mmu_unmap_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t shared,
-		   phys_addr_t *phys)
+int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *addrp)
+{
+	int rc;
+	struct page *p;
+	ptr_t virt;
+	boolean_t kernel, write;
+
+	if (!size || (size % PAGE_SIZE)) {
+		DEBUG(DL_DBG, ("size (%x) invalid.\n", size));
+		rc = -1;
+		goto out;
+	} else if (!(flags & (MAP_READ_F | MAP_WRITE_F | MAP_EXEC_F))) {
+		DEBUG(DL_DBG, ("flags (%x) invalid.\n", flags));
+		rc = -1;
+		goto out;
+	}
+
+	if (flags & MAP_FIXED_F) {
+		if (start % PAGE_SIZE) {
+			DEBUG(DL_DBG, ("parameter start(%p) not aligned.\n", start));
+			rc = -1;
+			goto out;
+		}
+	} else /*if (!addrp)*/ {
+		/* We didn't support this yet. */
+		DEBUG(DL_DBG, ("non-fixed map not support yet.\n"));
+		rc = -1;
+		goto out;
+	}
+
+	kernel = IS_KERNEL_CTX(ctx);
+	write = FLAG_ON(flags, MAP_WRITE_F) ? TRUE : FALSE;
+
+	for (virt = start; virt < (start + size); virt += PAGE_SIZE) {
+		p = mmu_get_page(ctx, virt, TRUE, 0);
+		if (!p) {
+			DEBUG(DL_DBG, ("mmu_get_page failed, addr(%p).\n", virt));
+			rc = -1;
+			goto out;
+		}
+		page_alloc(p, kernel, write);
+	}
+	
+	rc = 0;
+
+ out:
+	if (rc != 0) {
+		/* Do clean up if needed */
+		;
+	}
+	
+	return rc;
+}
+
+int mmu_unmap_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t shared, phys_addr_t *phys)
 {
 	uint32_t pte, pde;
 	struct ptbl *ptbl;
@@ -207,6 +244,32 @@ int mmu_unmap_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t shared,
 	}
 
 	return 0;
+}
+
+int mmu_unmap(struct mmu_ctx *ctx, ptr_t start, size_t size)
+{
+	int rc;
+	ptr_t virt;
+	struct page *p;
+
+	if (!size || (start % PAGE_SIZE) || (size % PAGE_SIZE)) {
+		rc = -1;
+		goto out;
+	}
+
+	for (virt = start; virt < start + size; virt += PAGE_SIZE) {
+		p = mmu_get_page(ctx, virt, FALSE, 0);
+		if (!p) {
+			rc = -1;
+			goto out;
+		}
+		page_free(p);
+	}
+
+	rc = 0;
+
+ out:
+	return rc;
 }
 
 void mmu_switch_ctx(struct mmu_ctx *ctx)
@@ -278,7 +341,7 @@ void page_fault(struct registers *regs)
 	PANIC("Page fault");
 }
 
-void mmu_copy_ctx(struct mmu_ctx *dst, struct mmu_ctx *src)
+void mmu_clone_ctx(struct mmu_ctx *dst, struct mmu_ctx *src)
 {
 	int i;
 	struct pdir *dst_dir, *src_dir, *krn_dir;
@@ -310,29 +373,6 @@ void mmu_copy_ctx(struct mmu_ctx *dst, struct mmu_ctx *src)
 				       dst, src, i * 1024 * PAGE_SIZE));
 			dst_dir->ptbl[i] = clone_ptbl(src_dir->ptbl[i], &pde);
 			dst_dir->pde[i] = pde | 0x07;
-		}
-	}
-}
-
-void mmu_release_ctx(struct mmu_ctx *mmu)
-{
-	int i;
-	uint32_t nr_pages;
-	struct pdir *krn_dir, *src_dir;
-
-	src_dir = mmu->pdir;
-	krn_dir = _kernel_mmu_ctx.pdir;
-	nr_pages = 0;
-	
-	for (i = 0; i < 1024; i++) {
-		if (!src_dir->ptbl[i]) {
-			continue;
-		}
-
-		if (krn_dir->ptbl[i] != src_dir->ptbl[i]) {
-			release_ptbl(src_dir->ptbl[i], &nr_pages);
-			DEBUG(DL_DBG, ("ptbl(%d) nr_pages(%d) released.\n",
-				       i, nr_pages));
 		}
 	}
 }

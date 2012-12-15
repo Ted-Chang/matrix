@@ -26,18 +26,20 @@ extern struct mmu_ctx _kernel_mmu_ctx;
 /* Macro that expands to a pointer to the current address space */
 #define CURR_ASPACE	(CURR_CPU->aspace)
 
+/* Map flags for map */
+#define MAP_READ_F	(1<<0)
+#define MAP_WRITE_F	(1<<1)
+#define MAP_EXEC_F	(1<<2)
+#define MAP_FIXED_F	(1<<3)
+
 extern void page_fault(struct registers *regs);
 extern struct mmu_ctx *mmu_create_ctx();
-extern void mmu_destroy_ctx(struct mmu_ctx *ctx);
-extern struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t addr,
-				 boolean_t make, int mmflag);
-extern int mmu_map_page(struct mmu_ctx *ctx, uint32_t virt, uint32_t phys,
-			boolean_t write, boolean_t execute, int mmflag);
-extern int mmu_unmap_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t shared,
-			  uint32_t *phys);
+extern struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t addr, boolean_t make, int mmflag);
+extern int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *addrp);
+extern int mmu_unmap(struct mmu_ctx *ctx, ptr_t start, size_t size);
 extern void mmu_switch_ctx(struct mmu_ctx *ctx);
-extern void mmu_copy_ctx(struct mmu_ctx *dst, struct mmu_ctx *src);
-extern void mmu_release_ctx(struct mmu_ctx *mmu);
+extern void mmu_clone_ctx(struct mmu_ctx *dst, struct mmu_ctx *src);
+extern void mmu_destroy_ctx(struct mmu_ctx *ctx);
 extern void init_mmu();
 
 #endif	/* __MMU_H__ */

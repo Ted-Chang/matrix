@@ -18,6 +18,6 @@
 
 #define MAX(_x, _y)		((_x) > (_y) ? (_x) : (_y))
 
-#define ROUND_UP(_x, _y)	((_x) = ((_x) + (_y) - 1) & ~((_y) - 1))
+#define ROUND_UP(_x, _y)	(((_x) + (_y) - 1) & ~((_y) - 1))
 
 #endif	/* __MATRIX_H__ */

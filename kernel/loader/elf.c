@@ -148,6 +148,7 @@ int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **datap)
 			       i, shdr->sh_addr, shdr->sh_size, shdr->sh_type));
 		
 		if (shdr->sh_addr) {
+			size_t map_size;
 			
 			/* If this is a loadable section, load it */
 			if (shdr->sh_addr < base) {
@@ -162,14 +163,12 @@ int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **datap)
 			}
 
 			/* Map address space for this section, this is where codes stored */
-			for (virt = 0; virt < (shdr->sh_size + 0x2000); virt += PAGE_SIZE) {
-				page = mmu_get_page(mmu, shdr->sh_addr + virt, TRUE, 0);
-				if (!page) {
-					DEBUG(DL_ERR, ("mmu_get_page failed.\n"));
-					goto out;
-				}
-			
-				page_alloc(page, FALSE, TRUE);
+			map_size = ROUND_UP(shdr->sh_size, PAGE_SIZE);
+			rc = mmu_map(mmu, shdr->sh_addr, map_size,
+				     MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
+			if (rc != 0) {
+				DEBUG(DL_WRN, ("mmu_map failed, err(%d).\n", rc));
+				goto out;
 			}
 
 			DEBUG(DL_DBG, ("i(%d), address space mapped.\n", i));

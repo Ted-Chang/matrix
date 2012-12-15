@@ -488,6 +488,6 @@ void init_kmem()
 	 * directory clean.
 	 */
 	ctx = mmu_create_ctx();
-	mmu_copy_ctx(ctx, &_kernel_mmu_ctx);
+	mmu_clone_ctx(ctx, &_kernel_mmu_ctx);
 	mmu_switch_ctx(ctx);
 }

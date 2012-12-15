@@ -60,10 +60,12 @@ static pid_t id_alloc()
 /* Move stack to a new position */
 static void move_stack(uint32_t new_stack, uint32_t size)
 {
+	int rc;
 	uint32_t i, pd_addr;
 	uint32_t old_esp, old_ebp;
 	uint32_t new_esp, new_ebp;
 	uint32_t offset;
+	ptr_t start;
 
 	/* Allocate some space for the new stack */
 	for (i = new_stack; i >= (new_stack - size); i -= PAGE_SIZE) {
@@ -74,7 +76,11 @@ static void move_stack(uint32_t new_stack, uint32_t size)
 		/* Associate the pte with a physical page */
 		page_alloc(page, FALSE, TRUE);
 	}
-
+	/* start = new_stack - size; */
+	/* rc = mmu_map(&_kernel_mmu_ctx, start, size + PAGE_SIZE, */
+	/* 	     MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL); */
+	/* ASSERT(rc == 0); */
+	
 	/* Flush the TLB by reading and writing the page directory address again */
 	asm volatile("mov %%cr3, %0" : "=r"(pd_addr));
 	asm volatile("mov %0, %%cr3" :: "r"(pd_addr));
@@ -101,8 +107,8 @@ static void move_stack(uint32_t new_stack, uint32_t size)
 	 */
 	memcpy((void *)new_esp, (void *)old_esp, _initial_esp - old_esp);
 
-	/* Backtrace through the original stack, copying new values into
-	 * the new stack
+	/* Backtrace through the original stack, copying new values into the
+	 * new stack. This is just stack relocation.
 	 */
 	for (i = (uint32_t)new_stack; i > ((uint32_t)new_stack - size); i -= 4) {
 		uint32_t tmp = *(uint32_t *)i;
@@ -342,7 +348,7 @@ static int create_aspace(struct process_creation *info)
 		rc = -1;
 		goto out;
 	}
-	mmu_copy_ctx(mmu, &_kernel_mmu_ctx);
+	mmu_clone_ctx(mmu, &_kernel_mmu_ctx);
 
 	/* Lookup the file from the file system */
 	n = vfs_lookup(info->argv[0], VFS_FILE);
@@ -369,28 +375,20 @@ static int create_aspace(struct process_creation *info)
 	info->argc = i;
 
 	/* Map some pages for the user mode stack from the new mmu context */
-	for (virt = USTACK_BOTTOM; virt < (USTACK_BOTTOM + USTACK_SIZE); virt += PAGE_SIZE) {
-		page = mmu_get_page(mmu, virt, TRUE, 0);
-		if (!page) {
-			DEBUG(DL_ERR, ("mmu_get_page for stack failed, virt(0x%x)\n", virt));
-			rc = -1;
-			goto out;
-		}
-		page_alloc(page, FALSE, TRUE);
+	rc = mmu_map(mmu, USTACK_BOTTOM, USTACK_SIZE, MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("mmu_map for ustack failed, err(%d).\n", rc));
+		goto out;
 	}
 
 	/* Map some pages for the arguments block after the stack, leave one page
 	 * non-allocated to probe stack underflow
 	 */
 	info->args = virt + PAGE_SIZE;
-	for (virt = info->args; virt <= info->args + size; virt += PAGE_SIZE) {
-		page = mmu_get_page(mmu, virt, TRUE, 0);
-		if (!page) {
-			DEBUG(DL_WRN, ("mmu_get_page for arguments failed, virt(0x%x)\n", virt));
-			rc = -1;
-			goto out;
-		}
-		page_alloc(page, FALSE, TRUE);
+	rc = mmu_map(mmu, info->args, size, MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("mmu_map for arguments failed, err(%d).\n", rc));
+		goto out;
 	}
 	
 	info->mmu = mmu;
@@ -467,6 +465,8 @@ int process_create(const char **args, struct process *parent, int flags,
 		goto out;
 	}
 
+	memset(&info, 0, sizeof(struct process_creation));
+	
 	info.argv = args;
 	info.env = NULL;
 
@@ -571,7 +571,7 @@ int process_clone(void (*entry)(void *), void *esp, void *args, struct process *
 		DEBUG(DL_DBG, ("mmu_create_ctx failed.\n"));
 		goto out;
 	}
-	mmu_copy_ctx(mmu, CURR_PROC->mmu_ctx);
+	mmu_clone_ctx(mmu, CURR_PROC->mmu_ctx);
 
 	/* Clone the parent(current)'s file descriptor table */
 	fds = fd_table_clone(CURR_PROC->fds);
