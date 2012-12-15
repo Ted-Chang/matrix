@@ -440,9 +440,9 @@ void thread_exit()
 	struct page *page;
 
 	if (CURR_THREAD->ustack_size) {
-		DEBUG(DL_DBG, ("unmap address space, proc(%s), mmu(%p)",
+		DEBUG(DL_DBG, ("unmap address space, proc(%s), mmu(%p).\n",
 			       CURR_PROC->name, CURR_PROC->mmu_ctx));
-		mmu_release_ctx(CURR_PROC->mmu_ctx);
+		//mmu_release_ctx(CURR_PROC->mmu_ctx);
 	}
 
 	notifier_run(&CURR_THREAD->death_notifier);

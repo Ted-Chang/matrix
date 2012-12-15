@@ -89,14 +89,17 @@ static struct ptbl *clone_ptbl(struct ptbl *src, uint32_t *phys_addr)
 	return ptbl;
 }
 
-static void release_ptbl(struct ptbl *tbl)
+static void release_ptbl(struct ptbl *tbl, uint32_t *nr_pages)
 {
 	int i;
 
+	*nr_pages = 0;
+	
 	/* Free each of the page */
 	for (i = 0; i < 1024; i++) {
 		/* If the entry has a frame associated with it */
 		if (tbl->pte[i].frame) {
+			(*nr_pages)++;
 			page_free(&tbl->pte[i]);
 		}
 	}
@@ -223,9 +226,6 @@ void mmu_switch_ctx(struct mmu_ctx *ctx)
 
 		state = irq_disable();
 
-		//DEBUG(DL_DBG, ("mmu(%p->%p).\n",
-		//	       CURR_ASPACE, ctx));
-	
 		/* Update the current mmu context */
 		CURR_ASPACE = ctx;
 
@@ -317,17 +317,22 @@ void mmu_copy_ctx(struct mmu_ctx *dst, struct mmu_ctx *src)
 void mmu_release_ctx(struct mmu_ctx *mmu)
 {
 	int i;
+	uint32_t nr_pages;
 	struct pdir *krn_dir, *src_dir;
 
 	src_dir = mmu->pdir;
 	krn_dir = _kernel_mmu_ctx.pdir;
+	nr_pages = 0;
+	
 	for (i = 0; i < 1024; i++) {
 		if (!src_dir->ptbl[i]) {
 			continue;
 		}
 
 		if (krn_dir->ptbl[i] != src_dir->ptbl[i]) {
-			release_ptbl(src_dir->ptbl[i]);
+			release_ptbl(src_dir->ptbl[i], &nr_pages);
+			DEBUG(DL_DBG, ("ptbl(%d) nr_pages(%d) released.\n",
+				       i, nr_pages));
 		}
 	}
 }

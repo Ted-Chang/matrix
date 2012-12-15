@@ -163,7 +163,6 @@ static void process_release(struct process *p)
 static void process_cleanup(struct process *p)
 {
 	if (p->mmu_ctx) {
-		/* TODO: Unmap the pages we have mapped for this process */
 		mmu_destroy_ctx(p->mmu_ctx);
 		p->mmu_ctx = NULL;
 	}

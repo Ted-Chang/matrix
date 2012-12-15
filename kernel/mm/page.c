@@ -87,10 +87,12 @@ void page_free(struct page *p)
 	ASSERT(p != NULL);
 	
 	if (!(frame = p->frame)) {
+		DEBUG(DL_WRN, ("free page(%p) not allocated.\n", p));
 		return;
 	} else {
 		clear_frame(frame);
 		p->frame = 0x0;
+		p->present = 0;
 	}
 }
 
