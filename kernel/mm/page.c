@@ -51,6 +51,7 @@ static uint32_t first_frame()
 		}
 	}
 
+	PANIC("no frame left");
 	return 0;
 }
 
@@ -61,11 +62,13 @@ void page_alloc(struct page *p, boolean_t kernel, boolean_t write)
 	if (p->frame != 0) {
 		DEBUG(DL_WRN, ("page(0x%x), frame(0x%x), kernel(%d), write(%d)\n",
 			       p, p->frame, kernel, write));
+		PANIC("alloc page in use");
 		return;
 	} else {
 		/* Get the first free frame from our global frame set */
-		uint32_t idx = first_frame();
+		uint32_t idx;
 
+		idx = first_frame();
 		if (idx == (uint32_t)(-1)) {
 			PANIC("No free frames!\n");
 		}
@@ -78,6 +81,9 @@ void page_alloc(struct page *p, boolean_t kernel, boolean_t write)
 		p->user = kernel ? 0 : 1;
 		p->frame = idx;
 	}
+
+	DEBUG(DL_DBG, ("page(%p), frame(%x), user(%d), write(%d).\n",
+		       p, p->frame, p->user, p->rw));
 }
 
 void page_free(struct page *p)
@@ -86,12 +92,16 @@ void page_free(struct page *p)
 
 	ASSERT(p != NULL);
 	
+	DEBUG(DL_DBG, ("page(%p), frame(%x), user(%d), write(%d).\n",
+		       p, p->frame, p->user, p->rw));
+	
 	if (!(frame = p->frame)) {
 		DEBUG(DL_WRN, ("free page(%p) not allocated.\n", p));
+		PANIC("free page not allocated");
 		return;
 	} else {
 		clear_frame(frame);
-		p->frame = 0x0;
+		p->frame = 0;
 		p->present = 0;
 	}
 }

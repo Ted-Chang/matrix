@@ -106,9 +106,6 @@ void arch_thread_enter_uspace(ptr_t entry, ptr_t ustack, ptr_t ctx)
 	 */
 	set_kernel_stack(CURR_THREAD->kstack);
 
-	CURR_THREAD->ustack = ustack;
-	CURR_THREAD->ustack_size = USTACK_SIZE;
-
 	/* Push the arguments pointer to the stack */
 	ustack -= sizeof(ptr_t);
 	*((ptr_t *)ustack) = ctx;
@@ -228,7 +225,6 @@ static void thread_wake_internal(struct thread *t)
 static void thread_timeout(void *ctx)
 {
 	struct thread *t = ctx;
-	struct spinlock *lock;
 
 	spinlock_acquire(&t->lock);
 
@@ -435,16 +431,21 @@ void thread_release(struct thread *t)
 
 void thread_exit()
 {
+	int rc;
 	ptr_t virt;
 	boolean_t state;
 	struct page *page;
 
+	/* Unmap the user stack */
 	if (CURR_THREAD->ustack_size) {
 		DEBUG(DL_DBG, ("unmap ustack, proc(%s), mmu(%p).\n",
 			       CURR_PROC->name, CURR_PROC->mmu_ctx));
-		//mmu_release_ctx(CURR_PROC->mmu_ctx);
+		rc = mmu_unmap(CURR_PROC->mmu_ctx, CURR_THREAD->ustack,
+			       CURR_THREAD->ustack_size);
+		ASSERT(rc == 0);
 	}
 
+	/* Notify the waiter */
 	notifier_run(&CURR_THREAD->death_notifier);
 
 	state = irq_disable();
@@ -463,5 +464,4 @@ void init_thread()
 	slab_cache_init(&_thread_cache, "thread-cache", sizeof(struct thread), 
 			thread_ctor, thread_dtor, 0);
 }
-
 

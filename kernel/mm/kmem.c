@@ -25,9 +25,9 @@ struct footer {
 
 struct heap {
 	struct vector index;
-	uint32_t start_addr;	// start of our allocated space
-	uint32_t end_addr;	// end of our allocated space
-	uint32_t max_addr;	// maximum address the heap can expand to
+	ptr_t start_addr;	// start of our allocated space
+	ptr_t end_addr;		// end of our allocated space
+	ptr_t max_addr;		// maximum address the heap can expand to
 	uint8_t supervisor; 
 	uint8_t readonly;
 };
@@ -36,7 +36,7 @@ struct heap *_kheap = NULL;
 
 void *alloc(struct heap *heap, size_t size, boolean_t page_align);
 
-void *kmem_alloc_int(size_t size, boolean_t align, uint32_t *phys)
+void *kmem_alloc_int(size_t size, boolean_t align, phys_addr_t *phys)
 {
 	if (_kheap) {	// The heap manager was initialized
 		void *addr = alloc(_kheap, size, (uint8_t)align);
@@ -87,7 +87,7 @@ void *kmem_alloc(size_t size, int mmflag)
 	return ret;
 }
 
-void *kmem_alloc_p(size_t size, uint32_t *phys, int mmflag)
+void *kmem_alloc_p(size_t size, phys_addr_t *phys, int mmflag)
 {
 	void *ret;
 
@@ -102,26 +102,26 @@ void *kmem_alloc_p(size_t size, uint32_t *phys, int mmflag)
 
 static void expand(struct heap *heap, size_t new_size)
 {
-	uint32_t old_size, i;
+	struct page *p;
+	size_t old_size, i;
 	
 	/* Sanity check */
 	ASSERT(new_size > (heap->end_addr - heap->start_addr));
 
-	/* Get the nearest following page boundary */
-	if ((new_size & 0xFFFFF000) != 0) {
-		new_size &= 0xFFFFF000;
-		new_size += 0x1000;
-	}
-
+	/* Round up the new_size to PAGE_SIZE */
+	new_size = ROUND_UP(new_size, PAGE_SIZE);
+	
 	/* Make sure we're not overreaching ourselves */
 	ASSERT((heap->start_addr + new_size) < heap->max_addr);
 
 	old_size = heap->end_addr - heap->start_addr;
 	i = old_size;
 
+	DEBUG(DL_DBG, ("heap(%p), new_size(%x).\n", heap, new_size));
+
 	while (i < new_size) {
-		page_alloc(mmu_get_page(&_kernel_mmu_ctx, heap->start_addr + i, TRUE, 0),
-			    heap->supervisor ? 1 : 0, heap->readonly ? 0 : 1);
+		p = mmu_get_page(&_kernel_mmu_ctx, heap->start_addr + i, TRUE, 0);
+		page_alloc(p, heap->supervisor ? 1 : 0, heap->readonly ? 0 : 1);
 		i += PAGE_SIZE;
 	}
 	
@@ -130,7 +130,8 @@ static void expand(struct heap *heap, size_t new_size)
 
 static uint32_t contract(struct heap *heap, size_t new_size)
 {
-	uint32_t old_size, i;
+	struct page *p;
+	size_t old_size, i;
 
 	/* Sanity check */
 	ASSERT(new_size < (heap->end_addr - heap->start_addr));
@@ -148,8 +149,11 @@ static uint32_t contract(struct heap *heap, size_t new_size)
 	old_size = heap->end_addr - heap->start_addr;
 	i = old_size - PAGE_SIZE;
 
+	DEBUG(DL_DBG, ("heap(%p), new_size(%x).\n", heap, new_size));
+
 	while (new_size < i) {
-		page_free(mmu_get_page(&_kernel_mmu_ctx, heap->start_addr + i, FALSE, 0));
+		p = mmu_get_page(&_kernel_mmu_ctx, heap->start_addr + i, FALSE, 0);
+		page_free(p);
 		i -= PAGE_SIZE;
 	}
 
@@ -255,7 +259,7 @@ static uint32_t find_smallest_hole(struct heap *heap, size_t size, uint8_t page_
 
 void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 {
-	uint32_t new_size;
+	size_t new_size;
 	int32_t iterator;
 	struct header *orig_hole_hdr, *block_hdr;
 	struct footer *block_ftr;
@@ -267,9 +271,11 @@ void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 	/* Find the smallest hole that will fit */
 	iterator = find_smallest_hole(heap, new_size, page_align);
 	if (iterator == -1) {
-		uint32_t old_length = heap->end_addr - heap->start_addr;
-		uint32_t old_end_addr = heap->end_addr;
-		uint32_t new_length, idx, value;
+		size_t old_length = heap->end_addr - heap->start_addr;
+		size_t old_end_addr = heap->end_addr;
+		size_t new_length, idx, value;
+		struct header *header;
+		struct footer *footer;
 
 		/* We need to allocate more space */
 		expand(heap, old_length + new_size);
@@ -291,8 +297,6 @@ void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 
 		/* If we didn't find any headers we need to add one */
 		if (idx == -1) {
-			struct header *header;
-			struct footer *footer;
 			header = (struct header *)old_end_addr;
 			header->magic = HEAP_MAGIC;
 			header->size = new_length - old_length;
@@ -302,8 +306,6 @@ void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 			footer->hdr = header;
 			insert_vector(&heap->index, (void *)header);
 		} else {
-			struct header *header;
-			struct footer *footer;
 			/* The last header need adjusting */
 			header = lookup_vector(&heap->index, idx);
 			header->size += (new_length - old_length);
@@ -392,7 +394,7 @@ void *alloc(struct heap *heap, size_t size, boolean_t page_align)
 
 void free(struct heap *heap, void *p)
 {
-	char do_add;
+	boolean_t do_add, do_contract;
 	struct header *header, *test_hdr;
 	struct footer *footer, *test_ftr;
 	uint32_t iterator;
@@ -412,7 +414,7 @@ void free(struct heap *heap, void *p)
 	header->is_hole = 1;
 
 	/* Do we want to add this header into the 'free holes' index? */
-	do_add = 1;
+	do_add = TRUE;
 
 	test_ftr = (struct footer *)((uint32_t)header - sizeof(struct footer));
 	if ((test_ftr->magic == HEAP_MAGIC) &&
@@ -421,7 +423,7 @@ void free(struct heap *heap, void *p)
 		header = test_ftr->hdr;
 		footer->hdr = header;
 		header->size += cache_size;
-		do_add = 0;
+		do_add = FALSE;
 	}
 
 	test_hdr = (struct header *)((uint32_t)footer + sizeof(struct footer));
@@ -435,8 +437,9 @@ void free(struct heap *heap, void *p)
 		/* Find and remove this header from the index */
 		iterator = 0;
 		while ((iterator < heap->index.size) &&
-		       (lookup_vector(&heap->index, iterator) != (void *)test_hdr))
+		       (lookup_vector(&heap->index, iterator) != (void *)test_hdr)) {
 			iterator++;
+		}
 
 		/* Make sure we actually find the item */
 		ASSERT(iterator < heap->index.size);
@@ -444,10 +447,12 @@ void free(struct heap *heap, void *p)
 		remove_vector(&heap->index, iterator);
 	}
 
-	/* If the footer location is end address, we can contract */
-	if ((uint32_t)footer + sizeof(struct footer) == heap->end_addr) {
-		uint32_t old_length = heap->end_addr - heap->start_addr;
-		uint32_t new_length = contract(heap, (uint32_t)header - heap->start_addr);
+	/* If the footer location is end address, try to contract */
+	do_contract = heap->end_addr > (KERNEL_KMEM_START + KERNEL_KMEM_SIZE);
+	if (((uint32_t)footer + sizeof(struct footer) == heap->end_addr) &&
+	    do_contract) {
+		size_t old_length = heap->end_addr - heap->start_addr;
+		size_t new_length = contract(heap, (uint32_t)header - heap->start_addr);
 
 		if (header->size - (old_length - new_length) > 0) {
 			header->size -= (old_length - new_length);
@@ -459,10 +464,12 @@ void free(struct heap *heap, void *p)
 
 			iterator = 0;
 			while ((iterator < heap->index.size) &&
-			       (lookup_vector(&heap->index, iterator) != (void *)test_hdr))
+			       (lookup_vector(&heap->index, iterator) != (void *)test_hdr)) {
 				iterator++;
-			if (iterator < heap->index.size)
+			}
+			if (iterator < heap->index.size) {
 				remove_vector(&heap->index, iterator);
+			}
 		}
 	}
 

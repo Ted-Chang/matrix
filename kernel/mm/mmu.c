@@ -54,7 +54,7 @@ extern struct heap *_kheap;
 
 extern void copy_page_physical(uint32_t dst, uint32_t src);
 
-static struct ptbl *clone_ptbl(struct ptbl *src, uint32_t *phys_addr)
+static struct ptbl *clone_ptbl(struct ptbl *src, phys_addr_t *phys_addr)
 {
 	int i;
 	struct ptbl *ptbl;
@@ -96,13 +96,13 @@ static struct ptbl *clone_ptbl(struct ptbl *src, uint32_t *phys_addr)
  * @make	- make a new page table if we are out of page table
  * @mmflag	- memory manager flags
  */
-struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t make,
-			  int mmflag)
+struct page *mmu_get_page(struct mmu_ctx *ctx, ptr_t virt, boolean_t make, int mmflag)
 {
 	struct page *page;
 	uint32_t dir_idx, tbl_idx;
 	struct pdir *pdir;
 
+	/* Get the page directory from the context */
 	pdir = ctx->pdir;
 
 	/* Calculate the page table index and page directory index */
@@ -112,7 +112,7 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t make,
 	if (pdir->ptbl[dir_idx]) {	// The page table already assigned
 		page = &pdir->ptbl[dir_idx]->pte[tbl_idx];
 	} else if (make) {		// Make a new page table
-		uint32_t tmp;
+		phys_addr_t tmp;
 		
 		/* Allocate a new page table */
 		pdir->ptbl[dir_idx] =
@@ -132,35 +132,6 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t make,
 	}
 
 	return page;
-}
-
-int mmu_map_page(struct mmu_ctx *ctx, uint32_t virt, phys_addr_t phys, int flags, int mmflag)
-{
-	struct page *page;
-
-	/* Find the page table for the virtual address */
-	page = mmu_get_page(ctx, virt, TRUE, 0);
-	if (!page) {
-		return -1;
-	}
-
-	/* Check if the mapping already exists */
-	if (page->present) {
-		PANIC("Virtual address already mapped.");
-	}
-
-	/* Set the PTE */
-	page->present = 1;
-
-	page->rw = FLAG_ON(flags, MAP_WRITE_F) ? 1 : 0;
-
-	if (!IS_KERNEL_CTX(ctx)) {
-		page->user = 1;
-	}
-
-	page->frame = phys >> 12;
-
-	return 0;
 }
 
 int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *addrp)
@@ -193,6 +164,8 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *add
 		goto out;
 	}
 
+	DEBUG(DL_DBG, ("ctx(%p) start(%p), size(%x).\n", ctx, start, size));
+
 	kernel = IS_KERNEL_CTX(ctx);
 	write = FLAG_ON(flags, MAP_WRITE_F) ? TRUE : FALSE;
 
@@ -203,6 +176,7 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *add
 			rc = -1;
 			goto out;
 		}
+		DEBUG(DL_DBG, ("ctx(%p) page(%p) frame(%x).\n", ctx, p, p->frame));
 		page_alloc(p, kernel, write);
 	}
 	
@@ -215,35 +189,6 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *add
 	}
 	
 	return rc;
-}
-
-int mmu_unmap_page(struct mmu_ctx *ctx, uint32_t virt, boolean_t shared, phys_addr_t *phys)
-{
-	uint32_t pte, pde;
-	struct ptbl *ptbl;
-	uint32_t paddr;
-
-	/* Find the page table for the virtual address */
-	pde = (virt / PAGE_SIZE) / 1024;
-	ptbl = ctx->pdir->ptbl[pde];
-
-	/* If the mapping doesn't exist we did nothing */
-	pte = (virt / PAGE_SIZE) % 1024;
-	if (!ptbl->pte[pte].present) {
-		return -1;
-	}
-
-	/* Save the physical address */
-	paddr = ptbl->pte[pte].frame << 12;
-
-	/* Clear the entry and invalidate the TLB entry */
-	memset(&ptbl->pte[pte], 0, sizeof(struct page));
-
-	if (phys) {
-		*phys = paddr;
-	}
-
-	return 0;
 }
 
 int mmu_unmap(struct mmu_ctx *ctx, ptr_t start, size_t size)
@@ -263,6 +208,7 @@ int mmu_unmap(struct mmu_ctx *ctx, ptr_t start, size_t size)
 			rc = -1;
 			goto out;
 		}
+		DEBUG(DL_DBG, ("ctx(%p) page(%p) frame(%x).\n", ctx, p, p->frame));
 		page_free(p);
 	}
 
@@ -380,7 +326,7 @@ void mmu_clone_ctx(struct mmu_ctx *dst, struct mmu_ctx *src)
 struct mmu_ctx *mmu_create_ctx()
 {
 	struct mmu_ctx *ctx;
-	uint32_t pdbr;
+	phys_addr_t pdbr;
 
 	ctx = kmem_alloc(sizeof(struct mmu_ctx), 0);
 	if (!ctx) {
@@ -438,7 +384,7 @@ void init_mmu()
 	}
 
 	/* Allocate those pages we mapped earlier, our kernel heap start from
-	 * address 0xC0000000 and size is 0x1000000
+	 * address 0xC0000000 and size is 0x800000
 	 */
 	for (i = KERNEL_KMEM_START;
 	     i < (KERNEL_KMEM_START + KERNEL_KMEM_SIZE);

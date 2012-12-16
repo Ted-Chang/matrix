@@ -384,7 +384,7 @@ static int create_aspace(struct process_creation *info)
 	/* Map some pages for the arguments block after the stack, leave one page
 	 * non-allocated to probe stack underflow
 	 */
-	info->args = virt + PAGE_SIZE;
+	info->args = USTACK_BOTTOM + USTACK_SIZE + PAGE_SIZE;
 	rc = mmu_map(mmu, info->args, size, MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("mmu_map for arguments failed, err(%d).\n", rc));
@@ -392,7 +392,7 @@ static int create_aspace(struct process_creation *info)
 	}
 	
 	info->mmu = mmu;
-	info->ustack = USTACK_BOTTOM + USTACK_SIZE - 1;
+	info->ustack = USTACK_BOTTOM;
 	info->data = data;
 	info->status = rc;
 
@@ -434,7 +434,7 @@ static void process_entry_thread(void *ctx)
 	ASSERT(CURR_ASPACE == info->mmu);
 
 	/* We use a fixed user stack address for now */
-	ustack = info->ustack;
+	ustack = info->ustack + USTACK_SIZE - 1;
 	args = (ptr_t)info->args;
 
 	/* Copy the arguments */
@@ -443,12 +443,16 @@ static void process_entry_thread(void *ctx)
 	/* Get the ELF loader to clear BSS and get the entry pointer */
 	entry = elf_finish_binary(info->data);
 
+	CURR_THREAD->ustack = info->ustack;
+	CURR_THREAD->ustack_size = USTACK_SIZE;
+
 	DEBUG(DL_DBG, ("ustack(%p), args(%p).\n", ustack, args));
 	
 	semaphore_up(&info->sem, 1);
 	
 	/* Switch to user space */
 	arch_thread_enter_uspace(entry, ustack, args);
+	PANIC("Failed to enter user space");
 }
 
 int process_create(const char **args, struct process *parent, int flags,

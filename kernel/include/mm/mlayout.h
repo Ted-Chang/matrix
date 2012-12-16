@@ -3,7 +3,7 @@
 
 /* Memory layout definition */
 #define KERNEL_KMEM_START	0xC0000000
-#define KERNEL_KMEM_SIZE	0x800000
+#define KERNEL_KMEM_SIZE	0x400000
 
 /* Our kernel stack size is 8192 bytes */
 #define KSTACK_SIZE		0x2000

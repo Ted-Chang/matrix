@@ -18,7 +18,7 @@ struct mmu_ctx {
 	struct pdir *pdir;
 
 	/* Physical address of the page directory */
-	uint32_t pdbr;
+	phys_addr_t pdbr;
 };
 
 extern struct mmu_ctx _kernel_mmu_ctx;
@@ -34,7 +34,7 @@ extern struct mmu_ctx _kernel_mmu_ctx;
 
 extern void page_fault(struct registers *regs);
 extern struct mmu_ctx *mmu_create_ctx();
-extern struct page *mmu_get_page(struct mmu_ctx *ctx, uint32_t addr, boolean_t make, int mmflag);
+extern struct page *mmu_get_page(struct mmu_ctx *ctx, ptr_t addr, boolean_t make, int mmflag);
 extern int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *addrp);
 extern int mmu_unmap(struct mmu_ctx *ctx, ptr_t start, size_t size);
 extern void mmu_switch_ctx(struct mmu_ctx *ctx);
