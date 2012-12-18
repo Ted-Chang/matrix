@@ -7,7 +7,7 @@ ASFLAGS := -felf
 OBJ := ../bin/lib
 
 TARGETOBJ := \
-	$(OBJ)/crtlib.o \
+	$(OBJ)/crt1.o \
 	$(OBJ)/libinit.o \
 	$(OBJ)/syscalls.o \
 	$(OBJ)/div64.o \
@@ -29,8 +29,8 @@ $(OBJ)/%.o: %.c
 $(OBJ)/%.o: libc/%.c
 	$(CC) $(CFLAGS) -DBITS_PER_LONG=32 -m32 -Iinclude -c -o $@ $<
 
-$(OBJ)/crtlib.o:
-	nasm $(ASFLAGS) -o $(OBJ)/crtlib.o crtlib.s
+$(OBJ)/crt1.o:
+	nasm $(ASFLAGS) -o $(OBJ)/crt1.o crt1.s
 
 clean:
 	$(RM) $(OBJ)/*.o

@@ -4,7 +4,7 @@
  */
 OUTPUT_FORMAT(elf32-i386)
 ENTRY(_start)
-STARTUP(../bin/lib/crtlib.o)
+STARTUP(../bin/lib/crt1.o)
 INPUT(../bin/lib/libinit.o)
 INPUT(../bin/lib/syscalls.o)
 INPUT(../bin/lib/div64.o)

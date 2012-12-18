@@ -1,5 +1,6 @@
 #include <types.h>
 #include <stddef.h>
+#include "hal/hal.h"
 #include "util.h"
 #include "vector.h"
 #include "mm/mm.h"

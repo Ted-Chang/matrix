@@ -1,5 +1,6 @@
 #include <types.h>
 #include <string.h>
+#include "hal/hal.h"
 #include "mm/malloc.h"
 #include "dirent.h"
 #include "initrd.h"

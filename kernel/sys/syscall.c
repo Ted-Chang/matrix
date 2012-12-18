@@ -28,6 +28,8 @@ static void syscall_handler(struct registers *regs);
 static struct irq_hook _syscall_hook;
 static char _hostname[MAX_HOSTNAME_LEN + 1];
 
+extern int unit_test(uint32_t round);
+
 int open(const char *file, int flags, int mode)
 {
 	int fd = -1, rc = 0, file_type = VFS_FILE;
@@ -442,57 +444,6 @@ int waitpid(int pid)
 
  out:
 	return rc;
-}
-
-void unit_test(uint32_t round)
-{
-	int i, r;
-	slab_cache_t ut_cache;
-	void *obj[4];
-
-	r = 0;
-	memset(obj, 0, sizeof(obj));
-	slab_cache_init(&ut_cache, "ut-cache", 256, NULL, NULL, 0);
-	while (TRUE) {
-		kd_printf("unit-test round %d.\n", r);
-		
-		for (i = 0; i < 4; i++) {
-			ASSERT(obj[i] == NULL);
-			obj[i] = slab_cache_alloc(&ut_cache);
-			if (!obj[i]) {
-				DEBUG(DL_INF, ("slab_cache_alloc failed.\n"));
-				goto out;
-			} else {
-				memset(obj[i], 0, 256);
-			}
-		}
-
-		for (i = 0; i < 4; i++) {
-			if (obj[i]) {
-				slab_cache_free(&ut_cache, obj[i]);
-				obj[i] = NULL;
-			}
-		}
-		
-		r++;
-		
-		if (r > round) {
-			break;
-		}
-	}
-
-	DEBUG(DL_DBG, ("unit test finished with round %d.\n", round));
-
- out:
-	for (i = 0; i < 4; i++) {
-		if (obj[i]) {
-			slab_cache_free(&ut_cache, obj[i]);
-			obj[i] = NULL;
-		}
-	}
-	slab_cache_delete(&ut_cache);
-	
-	return;
 }
 
 /*
