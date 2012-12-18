@@ -197,12 +197,16 @@ void sched_insert_thread(struct thread *t)
 	t->cpu = sched_alloc_cpu(t);
 	
 	sched = t->cpu->sched;
+	
 	spinlock_acquire(&sched->lock);
 	
 	sched_enqueue(sched->active, t);
 	sched->total++;
 
 	spinlock_release(&sched->lock);
+
+	DEBUG(DL_DBG, ("thread(%s:%d) inserted, total(%d).\n",
+		       t->name, t->id, sched->total));
 }
 
 /**

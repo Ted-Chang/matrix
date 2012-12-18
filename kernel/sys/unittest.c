@@ -18,12 +18,13 @@ static void unit_test_thread(void *ctx)
 
 	m = (struct mutex *)ctx;
 
-	kd_printf("unit test thread(%s) is running.\n", CURR_THREAD->name);
+	DEBUG(DL_DBG, ("unit test thread(%s) is running.\n", CURR_THREAD->name));
 
-	while (_value < 0x000FFFFF) {
+	while (_value < 0x00000FFF) {
 		mutex_acquire(m);
 		_value++;
-		kd_printf("mutex(%p:%s) acquired, value(%x).\n", m, m->name, _value);
+		DEBUG(DL_DBG, ("thread(%s) mutex(%p:%s) acquired, value(%x).\n",
+			       CURR_THREAD->name, m, m->name, _value));
 		mutex_release(m);
 	}
 }
@@ -34,6 +35,7 @@ int unit_test(uint32_t round)
 	slab_cache_t ut_cache;
 	void *obj[4];
 
+	/* Create a slab cache to test the slab allocator */
 	r = 0;
 	memset(obj, 0, sizeof(obj));
 	slab_cache_init(&ut_cache, "ut-cache", 256, NULL, NULL, 0);
@@ -57,7 +59,6 @@ int unit_test(uint32_t round)
 		}
 		
 		r++;
-		
 		if (r > round) {
 			break;
 		}
@@ -65,23 +66,21 @@ int unit_test(uint32_t round)
 
 	DEBUG(DL_DBG, ("slab cache test finished with round %d.\n", round));
 
-	
+
+	/* Create two kernel thread to do the mutex test */
 	mutex_init(&_mutex, "ut-mutex", 0);
-	/* rc = thread_create("ut1", NULL, 0, unit_test_thread, &_mutex, NULL); */
-	/* if (rc != 0) { */
-	/* 	DEBUG(DL_DBG, ("thread_create ut1 failed, err(%d).\n", rc)); */
-	/* 	goto out; */
-	/* } */
-	/* rc = thread_create("ut2", NULL, 0, unit_test_thread, &_mutex, NULL); */
-	/* if (rc != 0) { */
-	/* 	DEBUG(DL_DBG, ("thread_create ut2 failed, err(%d).\n", rc)); */
-	/* 	goto out; */
-	/* } */
-	/* while (_value < 0x000FFFFF) { */
-	/* 	; */
-	/* } */
+	rc = thread_create("unit-test1", NULL, 0, unit_test_thread, &_mutex, NULL);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("thread_create ut1 failed, err(%d).\n", rc));
+		goto out;
+	}
+	rc = thread_create("unit-test2", NULL, 0, unit_test_thread, &_mutex, NULL);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("thread_create ut2 failed, err(%d).\n", rc));
+		goto out;
+	}
 	
-	/* DEBUG(DL_DBG, ("mutex test finished.\n")); */
+	DEBUG(DL_DBG, ("mutex test finished.\n"));
 
 
  out:

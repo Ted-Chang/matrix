@@ -82,8 +82,10 @@ void page_alloc(struct page *p, boolean_t kernel, boolean_t write)
 		p->frame = idx;
 	}
 
+#ifdef _DEBUG_MM
 	DEBUG(DL_DBG, ("page(%p), frame(%x), user(%d), write(%d).\n",
 		       p, p->frame, p->user, p->rw));
+#endif	/* _DEBUG_MM */
 }
 
 void page_free(struct page *p)
@@ -91,9 +93,11 @@ void page_free(struct page *p)
 	uint32_t frame;
 
 	ASSERT(p != NULL);
-	
+
+#ifdef _DEBUG_MM
 	DEBUG(DL_DBG, ("page(%p), frame(%x), user(%d), write(%d).\n",
 		       p, p->frame, p->user, p->rw));
+#endif	/* _DEBUG_MM */
 	
 	if (!(frame = p->frame)) {
 		DEBUG(DL_WRN, ("free page(%p) not allocated.\n", p));
