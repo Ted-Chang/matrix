@@ -8,6 +8,6 @@ popd
 pushd sdk
 make clean && make
 popd
-pushd matrix
+pushd uspace
 make clean && make
 popd

@@ -190,8 +190,14 @@ static void thread_dtor(void *obj)
 
 static boolean_t thread_interrupt_internal(struct thread *t, int flags)
 {
+	struct spinlock *l;
 	boolean_t ret = FALSE;
 
+	l = t->wait_lock;
+	if (l) {
+		spinlock_acquire(l);
+	}
+	
 	spinlock_acquire(&t->lock);
 	
 	if ((t->state == THREAD_SLEEPING) &&
@@ -202,6 +208,10 @@ static boolean_t thread_interrupt_internal(struct thread *t, int flags)
 	}
 
 	spinlock_release(&t->lock);
+
+	if (l) {
+		spinlock_release(l);
+	}
 
 	return ret;
 }
@@ -225,7 +235,13 @@ static void thread_wake_internal(struct thread *t)
 static void thread_timeout(void *ctx)
 {
 	struct thread *t = ctx;
+	struct spinlock *l;
 
+	l = t->wait_lock;
+	if (l) {
+		spinlock_acquire(l);
+	}
+	
 	spinlock_acquire(&t->lock);
 
 	/* The thread could have been woken up already by another CPU */
@@ -235,6 +251,10 @@ static void thread_timeout(void *ctx)
 	}
 
 	spinlock_release(&t->lock);
+
+	if (l) {
+		spinlock_release(l);
+	}
 }
 
 int thread_create(const char *name, struct process *owner, int flags,
@@ -331,6 +351,7 @@ int thread_sleep(struct spinlock *lock, useconds_t timeout, const char *name, in
 
 	spinlock_acquire_noirq(&CURR_THREAD->lock);
 	CURR_THREAD->sleep_status = 0;
+	CURR_THREAD->wait_lock = lock;
 
 	/* Start the timer if required */
 	if (timeout > 0) {

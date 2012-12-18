@@ -12,7 +12,6 @@ TARGETOBJ := \
 	$(OBJ)/mutex.o \
 	$(OBJ)/semaphore.o \
 	$(OBJ)/elf.o \
-	$(OBJ)/object.o \
 	$(OBJ)/terminal.o \
 
 .PHONY: clean help

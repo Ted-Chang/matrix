@@ -406,7 +406,7 @@ static int create_aspace(struct process_creation *info)
 	return rc;
 }
 
-static void copy_process_arguments(const char *src[], size_t count, ptr_t dst)
+static void copy_process_args(const char *src[], size_t count, ptr_t dst)
 {
 	size_t i;
 	char *ptr;
@@ -438,7 +438,7 @@ static void process_entry_thread(void *ctx)
 	args = (ptr_t)info->args;
 
 	/* Copy the arguments */
-	copy_process_arguments(info->argv, info->argc, args);
+	copy_process_args(info->argv, info->argc, args);
 
 	/* Get the ELF loader to clear BSS and get the entry pointer */
 	entry = elf_finish_binary(info->data);

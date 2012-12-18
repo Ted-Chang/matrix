@@ -363,7 +363,7 @@ void init_mmu()
 	_kernel_mmu_ctx.pdbr = pdbr;
 	memset(_kernel_mmu_ctx.pdir, 0, sizeof(struct pdir));
 	
-	DEBUG(DL_DBG, ("kernel mmu ctx(0x%08x), pdbr(0x%08x)\n",
+	DEBUG(DL_DBG, ("kernel mmu ctx(%p), pdbr(%p)\n",
 		       &_kernel_mmu_ctx, _kernel_mmu_ctx.pdbr));
 
 	/* Allocate some pages in the kernel heap area. Here we call mmu_get_page
@@ -383,9 +383,7 @@ void init_mmu()
 		page_alloc(page, FALSE, FALSE);
 	}
 
-	/* Allocate those pages we mapped earlier, our kernel heap start from
-	 * address 0xC0000000 and size is 0x800000
-	 */
+	/* Allocate those pages we mapped earlier */
 	for (i = KERNEL_KMEM_START;
 	     i < (KERNEL_KMEM_START + KERNEL_KMEM_SIZE);
 	     i += PAGE_SIZE) {

@@ -60,7 +60,7 @@ void page_alloc(struct page *p, boolean_t kernel, boolean_t write)
 	ASSERT(p != NULL);
 	
 	if (p->frame != 0) {
-		DEBUG(DL_WRN, ("page(0x%x), frame(0x%x), kernel(%d), write(%d)\n",
+		DEBUG(DL_WRN, ("page(%p), frame(%x), kernel(%d), write(%d)\n",
 			       p, p->frame, kernel, write));
 		PANIC("alloc page in use");
 		return;
@@ -128,9 +128,13 @@ void init_page()
 
 	DEBUG(DL_DBG, ("Detected physical memory size: %uMB.\n", mem_size/(1024*1024)));
 
+	/* Calculate how many pages we have in the system */
 	_nr_total_pages = mem_size / PAGE_SIZE;
 
 	/* Allocate the bitmap for the physical pages */
 	_pages = kmem_alloc(_nr_total_pages/(4*8), 0);
+	ASSERT(_pages != NULL);
+
+	/* Clear the pages bitmap */
 	memset(_pages, 0, _nr_total_pages/(4*8));
 }
