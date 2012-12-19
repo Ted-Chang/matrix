@@ -5,6 +5,7 @@
 
 static void usage();
 static void echo_test();
+static void ls_test();
 
 int main(int argc, char **argv)
 {
@@ -32,12 +33,14 @@ int main(int argc, char **argv)
 		if (rc != 0) {
 			printf("unit_test failed.\n");
 		} else {
-			printf("unit_test finished with round %d.\n", nr_round);
+			printf("unit_test: finished with round %d.\n", nr_round);
 		}
 		
 	} while (FALSE);
 
 	echo_test();
+	
+	ls_test();
 
 	while (TRUE) {
 		;
@@ -57,9 +60,32 @@ void echo_test()
 		NULL
 	};
 
+	printf("unit_test: echo message.\n");
+	
 	rc = create_process(echo[0], echo, 0, 16);
 	if (rc == -1) {
-		printf("create_process failed, err(%d).\n", rc);
+		printf("create_process(%s) failed, err(%d).\n", echo[0], rc);
+		goto out;
+	}
+
+ out:
+	return;
+}
+
+void ls_test()
+{
+	int rc;
+	char *ls[] = {
+		"/ls",
+		"/",
+		NULL
+	};
+
+	printf("unit_test: list directory.\n");
+	
+	rc = create_process(ls[0], ls, 0, 16);
+	if (rc == -1) {
+		printf("create_process(%s) failed, err(%d).\n", ls[0], rc);
 		goto out;
 	}
 

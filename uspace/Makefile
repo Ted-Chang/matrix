@@ -12,6 +12,7 @@ TARGETS := \
 	$(TARGETDIR)/echo \
 	$(TARGETDIR)/crond \
 	$(TARGETDIR)/unit_test \
+	$(TARGETDIR)/ls \
 
 OBJ := ./obji386
 
@@ -31,6 +32,9 @@ $(TARGETDIR)/crond: $(OBJ)/crond.o
 
 $(TARGETDIR)/unit_test: $(OBJ)/unit_test.o
 	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/unit_test.map -o $(TARGETDIR)/unit_test $(OBJ)/unit_test.o
+
+$(TARGETDIR)/ls: $(OBJ)/ls.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/ls.map -o $(TARGETDIR)/ls $(OBJ)/ls.o
 
 $(OBJ)/%.o: %.c
 	$(CC) $(CFLAGS) -m32 -g -I../sdk/include -c -o $@ $<

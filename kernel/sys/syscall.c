@@ -4,8 +4,8 @@
 #include <types.h>
 #include <stddef.h>
 #include <string.h>
+#include "matrix/matrix.h"
 #include "sys/time.h"
-#include "hal/hal.h"
 #include "hal/isr.h"
 #include "mm/malloc.h"
 #include "mm/slab.h"
@@ -13,7 +13,6 @@
 #include "dirent.h"
 #include "sys/stat.h"
 #include "proc/process.h"
-#include "matrix/matrix.h"
 #include "div64.h"
 #include "debug.h"
 #include "fd.h"
@@ -32,11 +31,11 @@ extern int unit_test(uint32_t round);
 
 int open(const char *file, int flags, int mode)
 {
-	int fd = -1, rc = 0, file_type = VFS_FILE;
+	int fd = -1, rc = 0;
 	struct vfs_node *n;
 
 	/* Lookup file system node */
-	n = vfs_lookup(file, file_type);
+	n = vfs_lookup(file, -1);
 	DEBUG(DL_DBG, ("file(%s), n(0x%x)\n", file, n));
 	if (!n && FLAG_ON(flags, 0x600)) {
 

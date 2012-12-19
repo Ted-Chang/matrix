@@ -1,7 +1,7 @@
 #include <types.h>
 #include <stddef.h>
 #include <string.h>
-#include "hal/hal.h"
+#include "matrix/matrix.h"
 #include "mm/slab.h"
 #include "debug.h"
 #include "kd.h"
@@ -34,6 +34,14 @@ int unit_test(uint32_t round)
 	int i, r, rc = 0;
 	slab_cache_t ut_cache;
 	void *obj[4];
+	struct spinlock lock;
+
+	/* Spinlock test */
+	spinlock_init(&lock, "ut-lock");
+	spinlock_acquire(&lock);
+	spinlock_release(&lock);
+	DEBUG(DL_DBG, ("spinlock test finished.\n"));
+	
 
 	/* Create a slab cache to test the slab allocator */
 	r = 0;
@@ -63,7 +71,6 @@ int unit_test(uint32_t round)
 			break;
 		}
 	}
-
 	DEBUG(DL_DBG, ("slab cache test finished with round %d.\n", round));
 
 
@@ -79,7 +86,6 @@ int unit_test(uint32_t round)
 		DEBUG(DL_DBG, ("thread_create ut2 failed, err(%d).\n", rc));
 		goto out;
 	}
-	
 	DEBUG(DL_DBG, ("mutex test finished.\n"));
 
 

@@ -1,6 +1,7 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
 
+#include "hal/hal.h"
 #include "util.h"
 #include "kd.h"
 
