@@ -47,5 +47,6 @@ extern struct vfs_node *vfs_finddir(struct vfs_node *node, char *name);
 extern struct vfs_node *vfs_clone(struct vfs_node *src);
 extern struct vfs_node *vfs_lookup(const char *path, int flags);
 extern int vfs_create(const char *path, int type, struct vfs_node **node);
+extern void init_fs();
 
 #endif	/* __FS_H__ */

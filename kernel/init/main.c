@@ -159,6 +159,10 @@ void sys_init_thread(void *ctx)
 		dump_cpu(c);
 	}
 
+	/* Bring up the file system manager */
+	init_fs();
+	kprintf("File System manager initialization done.\n");
+
 	/* Load the modules */
 	load_modules();
 	if (!_root_node) {

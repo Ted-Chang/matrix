@@ -6,6 +6,7 @@
 static void usage();
 static void echo_test();
 static void ls_test();
+static void cat_test();
 
 int main(int argc, char **argv)
 {
@@ -33,7 +34,7 @@ int main(int argc, char **argv)
 		if (rc != 0) {
 			printf("unit_test failed.\n");
 		} else {
-			printf("unit_test: finished with round %d.\n", nr_round);
+			printf("unit_test finished with round %d.\n", nr_round);
 		}
 		
 	} while (FALSE);
@@ -41,6 +42,8 @@ int main(int argc, char **argv)
 	echo_test();
 	
 	ls_test();
+
+	cat_test();
 
 	while (TRUE) {
 		;
@@ -60,7 +63,7 @@ void echo_test()
 		NULL
 	};
 
-	printf("unit_test: echo message.\n");
+	printf("unit_test echo message:\n");
 	
 	rc = create_process(echo[0], echo, 0, 16);
 	if (rc == -1) {
@@ -81,11 +84,32 @@ void ls_test()
 		NULL
 	};
 
-	printf("unit_test: list directory.\n");
+	printf("unit_test list directory:\n");
 	
 	rc = create_process(ls[0], ls, 0, 16);
 	if (rc == -1) {
 		printf("create_process(%s) failed, err(%d).\n", ls[0], rc);
+		goto out;
+	}
+
+ out:
+	return;
+}
+
+void cat_test()
+{
+	int rc;
+	char *cat[] = {
+		"/cat",
+		"/crontab",
+		NULL
+	};
+
+	printf("unit_test cat file:\n");
+
+	rc = create_process(cat[0], cat, 0, 16);
+	if (rc == -1) {
+		printf("create_process(%s) failed, err(%d).\n", cat[0], rc);
 		goto out;
 	}
 

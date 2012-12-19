@@ -32,7 +32,7 @@ int list_directory(int fd)
 	int rc = 0, i;
 	struct dirent d;
 
-	i = 0;
+	i = 1;
 	while (TRUE) {
 		rc = readdir(fd, i, &d);
 		if (rc != -1) {

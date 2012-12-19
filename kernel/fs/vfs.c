@@ -3,6 +3,25 @@
 #include "fs.h"
 #include "debug.h"
 #include "mm/malloc.h"
+#include "mm/slab.h"
+#include "mutex.h"
+
+/* List of registered File Systems */
+static struct list _fs_list = {
+	.prev = &_fs_list,
+	.next = &_fs_list
+};
+static struct mutex _fs_list_lock;
+
+/* List of all mounts */
+static struct list _mount_list = {
+	.prev = &_mount_list,
+	.next = &_mount_list
+};
+static struct mutex _mount_list_lock;
+
+/* Cache of Virtual File System node structure */
+static slab_cache_t _vfs_node_cache;
 
 struct vfs_node *_root_node = 0;
 
@@ -10,7 +29,7 @@ struct vfs_node *vfs_node_alloc(uint32_t type)
 {
 	struct vfs_node *n;
 
-	n = (struct vfs_node *)kmalloc(sizeof(struct vfs_node), 0);
+	n = (struct vfs_node *)slab_cache_alloc(&_vfs_node_cache);
 	if (n) {
 		memset(n, 0, sizeof(struct vfs_node));
 		n->ref_count = 1;
@@ -22,7 +41,7 @@ struct vfs_node *vfs_node_alloc(uint32_t type)
 
 void vfs_node_free(struct vfs_node *node)
 {
-	kfree(node);
+	slab_cache_free(&_vfs_node_cache, node);
 }
 
 int vfs_node_refer(struct vfs_node *node)
@@ -224,4 +243,16 @@ out:
 int vfs_create(const char *path, int type, struct vfs_node **node)
 {
 	return -1;
+}
+
+/* Initialize the File System layer */
+void init_fs()
+{
+	/* Initialize the fs list lock and mount list lock */
+	mutex_init(&_fs_list_lock, "fs-mutex", 0);
+	mutex_init(&_mount_list_lock, "mnt-mutex", 0);
+
+	/* Initialize the vfs node cache */
+	slab_cache_init(&_vfs_node_cache, "vfs-cache", sizeof(struct vfs_node),
+			NULL, NULL, 0);
 }

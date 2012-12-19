@@ -76,12 +76,12 @@ int unit_test(uint32_t round)
 
 	/* Create two kernel thread to do the mutex test */
 	mutex_init(&_mutex, "ut-mutex", 0);
-	rc = thread_create("unit-test1", NULL, 0, unit_test_thread, &_mutex, NULL);
+	rc = thread_create("unit-test1", CURR_PROC, 0, unit_test_thread, &_mutex, NULL);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("thread_create ut1 failed, err(%d).\n", rc));
 		goto out;
 	}
-	rc = thread_create("unit-test2", NULL, 0, unit_test_thread, &_mutex, NULL);
+	rc = thread_create("unit-test2", CURR_PROC, 0, unit_test_thread, &_mutex, NULL);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("thread_create ut2 failed, err(%d).\n", rc));
 		goto out;
