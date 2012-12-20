@@ -131,6 +131,7 @@ int kmain(u_long addr, uint32_t initial_stack)
 	return rc;
 }
 
+/* Load our kernel modules here */
 void load_modules()
 {
 	init_keyboard();
@@ -138,6 +139,9 @@ void load_modules()
 
 	init_floppy();
 	kprintf("Floppy driver initialization done.\n");
+
+	vfs_type_register(&_ramfs_type);
+	kprintf("Ramfs registration done.\n");
 }
 
 void sys_init_thread(void *ctx)

@@ -5,6 +5,7 @@
 #include "mm/malloc.h"
 #include "mm/slab.h"
 #include "mutex.h"
+#include "proc/process.h"
 
 /* List of registered File Systems */
 static struct list _fs_list = {
@@ -22,6 +23,9 @@ static struct mutex _mount_list_lock;
 
 /* Cache of Virtual File System node structure */
 static slab_cache_t _vfs_node_cache;
+
+/* Mount at the root of the File System */
+struct vfs_mount *_root_mount = NULL;
 
 struct vfs_node *_root_node = 0;
 
@@ -243,6 +247,203 @@ out:
 int vfs_create(const char *path, int type, struct vfs_node **node)
 {
 	return -1;
+}
+
+static struct vfs_type *vfs_type_lookup_internal(const char *name)
+{
+	struct list *l;
+	struct vfs_type *type;
+	
+	LIST_FOR_EACH(l, &_fs_list) {
+		type = LIST_ENTRY(l, struct vfs_type, link);
+		if (strcmp(type->name, name) == 0) {
+			return type;
+		}
+	}
+
+	return NULL;
+}
+
+static struct vfs_type *vfs_type_lookup(const char *name)
+{
+	struct vfs_type *type;
+
+	mutex_acquire(&_fs_list_lock);
+
+	type = vfs_type_lookup_internal(name);
+	if (type) {
+		atomic_inc(&type->ref_count);
+	}
+
+	mutex_release(&_fs_list_lock);
+
+	return type;
+}
+
+int vfs_type_register(struct vfs_type *type)
+{
+	int rc = -1;
+	
+	/* Check whether the structure is valid */
+	if (!type || !type->name || !type->desc) {
+		return rc;
+	}
+
+	mutex_acquire(&_fs_list_lock);
+
+	/* Check whether this File System has been registered */
+	if (NULL != vfs_type_lookup_internal(type->name)) {
+		goto out;
+	}
+	
+	type->ref_count = 0;
+	list_add_tail(&type->link, &_fs_list);
+
+	DEBUG(DL_DBG, ("registered file system(%s).\n", type->name));
+
+ out:
+	mutex_release(&_fs_list_lock);
+
+	return rc;
+}
+
+int vfs_type_unregister(struct vfs_type *type)
+{
+	int rc = -1;
+	
+	mutex_acquire(&_fs_list_lock);
+
+	if (vfs_type_lookup_internal(type->name) != type) {
+		;
+	} else if (type->ref_count > 0) {
+		;
+	} else {
+		ASSERT(type->ref_count == 0);
+		list_del(&type->link);
+		rc = 0;
+	}
+
+	mutex_release(&_fs_list_lock);
+
+	return rc;
+}
+
+int vfs_mount(const char *path, const char *type, const char *opts)
+{
+	int rc = -1, flags = 0;
+	struct vfs_node *n;
+	struct vfs_mount *mnt = NULL;
+
+	if (!path) {
+		return rc;
+	}
+
+	mutex_acquire(&_mount_list_lock);
+
+	/* If the root File System is not mounted yet, the only place we can
+	 * mount is root
+	 */
+	if (!_root_mount) {
+		ASSERT(CURR_PROC == _kernel_proc);
+		if (strcmp(path, "/") != 0) {
+			PANIC("Non-root mount before root File System mounted");
+		}
+	} else {
+		/* Look up the destination directory */
+		n = vfs_lookup(path, VFS_DIRECTORY);
+		if (!n) {
+			DEBUG(DL_DBG, ("vfs_lookup(%s) not found.\n", path));
+			goto out;
+		}
+
+		/* Check whether it is being used as a mount point already */
+		if (n->mount->root == n) {
+			rc = -1;
+			DEBUG(DL_DBG, ("%s is already a mount point"));
+			goto out;
+		}
+	}
+
+	/* Initialize the mount structure */
+	mnt = kmalloc(sizeof(struct vfs_mount), 0);
+	if (!mnt) {
+		goto out;
+	}
+	LIST_INIT(&mnt->link);
+	mutex_init(&mnt->lock, "fs-mnt-mutex", 0);
+	mnt->flags = flags;
+	mnt->mnt_point = n;
+	mnt->root = NULL;
+	mnt->type = NULL;
+
+	/* If a type is specified, look up it */
+	if (type) {
+		mnt->type = vfs_type_lookup(type);
+		if (!mnt->type) {
+			rc = -1;
+			DEBUG(DL_DBG, ("vfs_type_lookup(%s) not found.\n", type));
+			goto out;
+		}
+	}
+
+	/* Call the File System's mount function to do the mount */
+	rc = mnt->type->mount(mnt, 0);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("mount failed, err(%d).\n", rc));
+		goto out;
+	} else if (!mnt->root) {
+		PANIC("Mount with root not set");
+	}
+
+	/* Append the mount to the mount list */
+	list_add_tail(&mnt->link, &_mount_list);
+	if (!_root_mount) {
+		_root_mount = mnt;
+	}
+
+	DEBUG(DL_DBG, ("mounted on %s.\n", path));
+
+ out:
+	if (rc != 0) {
+		;
+	}
+	mutex_release(&_mount_list_lock);
+
+	return rc;
+}
+
+static int vfs_unmount_internal(struct vfs_node *n)
+{
+	int rc = -1;
+
+	return rc;
+}
+
+/* Unmount a file system */
+int vfs_unmount(const char *path)
+{
+	int rc = -1;
+	struct vfs_node *n;
+
+	if (!path) {
+		goto out;
+	}
+
+	/* Acquire the mount lock first */
+	mutex_acquire(&_mount_list_lock);
+
+	n = vfs_lookup(path, VFS_DIRECTORY);
+	if (n) {
+		rc = vfs_unmount_internal(n);
+	} else {
+		DEBUG(DL_DBG, ("vfs_lookup(%s) not found.\n", path));
+	}
+
+	/* Release the mount lock */
+	mutex_release(&_mount_list_lock);
+	
+ out:
+	return rc;
 }
 
 /* Initialize the File System layer */

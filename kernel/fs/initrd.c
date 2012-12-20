@@ -6,6 +6,13 @@
 #include "initrd.h"
 #include "debug.h"
 
+struct vfs_type _ramfs_type = {
+	.name = "ramfs",
+	.desc = "Ramdisk file system",
+	.ref_count = 0,
+	.mount = NULL,
+};
+
 struct initrd_header *initrd_hdr;
 struct initrd_file_header *file_hdrs;
 struct vfs_node *initrd_root;
@@ -27,8 +34,9 @@ static uint32_t initrd_read(struct vfs_node *node, uint32_t offset,
 		DEBUG(DL_DBG, ("offset(%d), length(%d)\n", offset, hdr.length));
 		return 0;
 	}
-	if (offset + size > hdr.length)
+	if (offset + size > hdr.length) {
 		size = hdr.length - offset;
+	}
 	memcpy(buffer, (uint8_t *)(hdr.offset + offset), size);
 
 	return size;
@@ -43,8 +51,9 @@ static struct dirent *initrd_readdir(struct vfs_node *node, uint32_t index)
 		return &dirent;
 	}
 
-	if (index - 1 >= nr_root_nodes)
+	if (index - 1 >= nr_root_nodes) {
 		return 0;
+	}
 
 	strcpy(dirent.name, root_nodes[index - 1].name);
 	dirent.name[strlen(root_nodes[index - 1].name)] = 0;
@@ -57,13 +66,14 @@ static struct vfs_node *initrd_finddir(struct vfs_node *node, char *name)
 {
 	int i;
 
-	if (node == initrd_root &&
-	    !strcmp(name, "dev"))
+	if (node == initrd_root && !strcmp(name, "dev")) {
 		return initrd_dev;
+	}
 
-	for (i = 0; i < nr_root_nodes; i++)
+	for (i = 0; i < nr_root_nodes; i++) {
 		if (!strcmp(name, root_nodes[i].name))
 			return &root_nodes[i];
+	}
 
 	return 0;
 }

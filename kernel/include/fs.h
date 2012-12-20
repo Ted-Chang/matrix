@@ -2,7 +2,36 @@
 #define __FS_H__
 
 #include <types.h>
+#include "mutex.h"
 
+struct vfs_mount;
+
+/* Structure contains File System type description */
+struct vfs_type {
+	struct list link;
+
+	const char *name;
+	const char *desc;
+	int ref_count;
+
+	/* Mount an instance of this File System */
+	int (*mount)(struct vfs_mount *mnt, size_t cnt);
+};
+
+/* Structure contains detail of a mounted File System */
+struct vfs_mount {
+	struct list link;
+	struct mutex lock;
+
+	int flags;
+	
+	struct vfs_node *root;
+	struct vfs_node *mnt_point;
+
+	struct vfs_type *type;
+};
+
+/* Structure contains detail of a File System node */
 struct vfs_node {
 	char name[128];
 	int ref_count;
@@ -14,6 +43,7 @@ struct vfs_node {
 	uint32_t offset;
 	uint32_t inode;
 	uint32_t impl;
+	struct vfs_mount *mount;	// Pointer to the File System mounted on this node
 	struct vfs_node *ptr;
 	uint32_t (*read)(struct vfs_node *, uint32_t, uint32_t, uint8_t *);
 	uint32_t (*write)(struct vfs_node *, uint32_t, uint32_t, uint8_t *);
@@ -34,6 +64,10 @@ struct vfs_node {
 
 extern struct vfs_node *_root_node;
 
+extern int vfs_type_register(struct vfs_type *type);
+extern int vfs_type_unregister(struct vfs_type *type);
+extern int vfs_mount(const char *path, const char *type, const char *opts);
+extern int vfs_unmount(const char *path);
 extern int vfs_node_refer(struct vfs_node *node);
 extern int vfs_node_deref(struct vfs_node *node);
 extern struct vfs_node *vfs_node_alloc(uint32_t type);

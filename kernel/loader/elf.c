@@ -94,7 +94,6 @@ int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **datap)
 	size_t size;
 	elf_binary_t *bin;
 	ptr_t virt, base;
-	struct page *page;
 	elf_shdr_t *shdr;
 	elf_ehdr_t *ehdr;
 
