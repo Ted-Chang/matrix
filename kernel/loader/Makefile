@@ -6,6 +6,7 @@ OBJ := ../../bin/obji386
 
 TARGETOBJ := \
 	$(OBJ)/elf.o \
+	$(OBJ)/module.o \
 
 .PHONY: clean help
 

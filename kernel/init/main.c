@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include "sys/time.h"
 #include "matrix/matrix.h"
+#include "matrix/module.h"
 #include "debug.h"
 #include "multiboot.h"
 #include "hal/hal.h"
@@ -26,11 +27,25 @@
 #include "proc/thread.h"
 #include "terminal.h"
 #include "kd.h"
-#include "keyboard.h"
-#include "floppy.h"
+#include "module.h"
+
+struct boot_module {
+	struct list link;
+	size_t size;
+	char *name;
+	int handle;		// File handle for the module data
+};
+
+/* List of modules from the loader */
+static struct list _boot_module_list = {
+	.prev = &_boot_module_list,
+	.next = &_boot_module_list
+};
 
 uint32_t _initial_esp;
 struct multiboot_info *_mbi;
+
+extern struct vfs_mount *_root_mount;
 
 extern void init_syscalls();
 
@@ -131,19 +146,55 @@ int kmain(u_long addr, uint32_t initial_stack)
 	return rc;
 }
 
+static void load_boot_module(struct boot_module *mod)
+{
+	int rc;
+
+	/* Try to load the module */
+	rc = module_load(mod->handle);
+	if (rc == 0) {
+		kprintf("Load module %s done.\n", mod->name);
+	} else {
+		PANIC("Load module failed");
+	}
+}
+
 /* Load our kernel modules here */
 void load_modules()
 {
-	init_keyboard();
-	kprintf("Keyboard driver initialization done.\n");
+	struct list *l;
+	struct boot_module *mod;
 
-	init_floppy();
-	kprintf("Floppy driver initialization done.\n");
+	/* Populate our module list with the module details */
+	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
+	LIST_INIT(&mod->link);
+	mod->name = kmalloc(MODULE_NAME_MAX, MM_BOOT_F);
+	strncpy(mod->name, "ramfs", MODULE_NAME_MAX);
+	mod->handle = 1;	// TODO: use file handle in the future
+	list_add_tail(&mod->link, &_boot_module_list);
 
-	vfs_type_register(&_ramfs_type);
-	kprintf("Ramfs registration done.\n");
+	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
+	LIST_INIT(&mod->link);
+	mod->name = kmalloc(MODULE_NAME_MAX, MM_BOOT_F);
+	strncpy(mod->name, "kbd", MODULE_NAME_MAX);
+	mod->handle = 2;	// TODO: use file handle in the future
+	list_add_tail(&mod->link, &_boot_module_list);
+
+	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
+	LIST_INIT(&mod->link);
+	mod->name = kmalloc(MODULE_NAME_MAX, MM_BOOT_F);
+	strncpy(mod->name, "flpy", MODULE_NAME_MAX);
+	mod->handle = 3;	// TODO: use file handle in the future
+	list_add_tail(&mod->link, &_boot_module_list);
+
+	/* Load all kernel modules */
+	LIST_FOR_EACH(l, &_boot_module_list) {
+		mod = LIST_ENTRY(l, struct boot_module, link);
+		load_boot_module(mod);
+	}
 }
 
+/* System initialize thread */
 void sys_init_thread(void *ctx)
 {
 	int rc = -1;
@@ -167,9 +218,14 @@ void sys_init_thread(void *ctx)
 	init_fs();
 	kprintf("File System manager initialization done.\n");
 
+	/* Bring up the module system manager */
+	init_module();
+	kprintf("Module system manager initialization done.\n");
+
 	/* Load the modules */
 	load_modules();
-	if (!_root_node) {
+	
+	if (!_root_mount) {
 		/* Find the location of our initial ramdisk */
 		initrd_location = *((uint32_t *)_mbi->mods_addr);
 		initrd_end = *(uint32_t *)(_mbi->mods_addr + 4);

@@ -1,6 +1,6 @@
 #ifndef __KEYBOARD_H__
 #define __KEYBOARD_H__
 
-extern void init_keyboard();
+extern int keyboard_init(void);
 
 #endif	/* __KEYBOARD_H__ */

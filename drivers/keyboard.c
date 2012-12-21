@@ -623,7 +623,7 @@ static void kbd_callback(struct registers *regs)
 	irq_done(regs->int_no);
 }
 
-void init_keyboard()
+int keyboard_init(void)
 {
 	/* Choose keyboard layout */
 	//...
@@ -636,4 +636,8 @@ void init_keyboard()
 
 	/* Clear the keyboard queue */
 	keyq_clear();
+
+	DEBUG(DL_DBG, ("module kbd initialize successfully.\n"));
+	
+	return 0;
 }

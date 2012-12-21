@@ -148,3 +148,10 @@ struct vfs_node *init_initrd(uint32_t location)
 
 	return initrd_root;
 }
+
+int initrd_init(void)
+{
+	DEBUG(DL_DBG, ("module initrd initialize successfully.\n"));
+
+	return 0;
+}

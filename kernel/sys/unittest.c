@@ -35,6 +35,18 @@ int unit_test(uint32_t round)
 	slab_cache_t ut_cache;
 	void *obj[4];
 	struct spinlock lock;
+	void *buf_ptr;
+
+	/* Kernel memory pool test */
+	buf_ptr = kmalloc(4321, 0);
+	if (!buf_ptr) {
+		DEBUG(DL_DBG, ("malloc from kernel pool failed.\n"));
+		goto out;
+	} else {
+		memset(buf_ptr, 0, 4321);
+		kfree(buf_ptr);
+	}
+	
 
 	/* Spinlock test */
 	spinlock_init(&lock, "ut-lock");

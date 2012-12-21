@@ -395,7 +395,7 @@ int flpy_write(struct fdd *d, uint32_t lba, const uint8_t buf, uint32_t nr_secto
 	return rc;
 }
 
-void init_floppy()
+int floppy_init(void)
 {
 	int res, i;
 	u_long cmos_drive0, cmos_drive1;
@@ -437,4 +437,8 @@ void init_floppy()
 		if (_primary_fdc.drive[i].param->cmos_type)
 			;	// Setup callback
 	}
+
+	DEBUG(DL_DBG, ("module flpy initialize successfully.\n"));
+	
+	return 0;
 }
