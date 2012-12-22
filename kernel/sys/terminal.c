@@ -175,6 +175,8 @@ void preinit_terminal()
 		init_ansi_parser(&_serial_ansi_parser);
 		_debug_terminal_ops = &_serial_terminal_output_ops;
 		register_terminal_input_ops(&_serial_terminal_input_ops);
+	} else {
+		kprintf("serial port(%d), status(%x).\n", SERIAL_PORT, status);
 	}
 
 	/* Register the KD command */

@@ -110,15 +110,15 @@ void arch_thread_enter_uspace(ptr_t entry, ptr_t ustack, ptr_t ctx)
 	ustack -= sizeof(ptr_t);
 	*((ptr_t *)ustack) = ctx;
 
-	/* Setup a stack structure for switching to user mode.
+	/* Setup a stack frame for switching to user mode.
 	 * The code firstly disables interrupts, as we're working on a critical
-	 * section of code. It then sets the ds, es, fs and gs segment selectors
+	 * section of code. It then sets the ds, es and fs segment selectors
 	 * to our user mode data selector - 0x23. Note that sti will not work when
 	 * we enter user mode as it is a privileged instruction, we will set the
 	 * interrupt flag to enable interrupt.
 	 */
 	asm volatile("cli\n"
-		     "mov %1, %%esp\n"
+		     "mov %1, %%esp\n"		/* Stack pointer */
 		     "mov $0x23, %%ax\n"	/* Segment selector */
 		     "mov %%ax, %%ds\n"
 		     "mov %%ax, %%es\n"
@@ -129,8 +129,8 @@ void arch_thread_enter_uspace(ptr_t entry, ptr_t ustack, ptr_t ctx)
 		     "pushf\n"			/* Push flags */
 		     "pop %%eax\n"		/* Enable the interrupt flag */
 		     "orl $0x200, %%eax\n"
-		     "push %%eax\n"
-		     "pushl $0x1B\n"
+		     "pushl %%eax\n"
+		     "pushl $0x1B\n"		/* Code segment */
 		     "pushl %0\n"		/* Push the entry point */
 		     "iret\n"
 		     :: "m"(entry), "r"(ustack) : "%ax", "%esp", "%eax");

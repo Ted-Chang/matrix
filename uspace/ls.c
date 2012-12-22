@@ -36,7 +36,7 @@ int list_directory(int fd)
 	while (TRUE) {
 		rc = readdir(fd, i, &d);
 		if (rc != -1) {
-			printf("%s\n", d.name);
+			printf("%d\t %s\n", i, d.name);
 		} else {
 			break;
 		}

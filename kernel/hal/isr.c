@@ -7,6 +7,7 @@
 #include "hal/isr.h"
 #include "hal/hal.h"
 #include "hal/spinlock.h"
+#include "hal/cpu.h"
 #include "util.h"
 #include "debug.h"
 
@@ -119,92 +120,116 @@ void unregister_irq_handler(struct irq_hook *hook)
 	spinlock_release(&_irq_chains[irq].lock);
 }
 
+void dump_registers(struct registers *regs)
+{
+	kprintf("\nFaulting CPU%d:\n"
+		"  eip:0x%08x esp:0x%08x ebp:0x%08x uesp:0x%08x\n"
+		"  cs:0x%04x ss:0x%04x ds:0x%04x es:0x%04x gs:0x%04x\n"
+		"  err_code:0x%08x int_no:0x%08x eflags:0x%08x\n\n",
+		CURR_CPU->id, regs->eip, regs->esp, regs->ebp, regs->user_esp,
+		regs->cs, regs->ss, regs->ds, regs->es, regs->gs,
+		regs->int_no, regs->err_code, regs->eflags);
+}
+
 void divide_by_zero_fault(struct registers *regs)
 {
+	dump_registers(regs);
 	PANIC("Divide by zero");
 }
 
 void single_step_fault(struct registers *regs)
 {
+	dump_registers(regs);
 	PANIC("Single step trap");
 }
 
 void nmi_trap(struct registers *regs)
 {
+	dump_registers(regs);
 	PANIC("NMI trap");
 }
 
 void breakpoint_trap(struct registers *regs)
 {
+	dump_registers(regs);
 	PANIC("Breakpoint trap");
 }
 
 void overflow_trap(struct registers *regs)
 {
+	dump_registers(regs);
 	PANIC("Overflow trap");
 }
 
 void bounds_check_fault(struct registers *regs)
 {
+	dump_registers(regs);
 	PANIC("Bounds check fault");
 }
 
 void invalid_opcode_fault(struct registers *regs)
 {
-	kprintf("Invalid opcode CS:0x%x, EIP:0x%x\n",
-		regs->cs, regs->eip);
+	dump_registers(regs);
 	PANIC("Invalid opcode fault");
 }
 
 void no_device_fault(struct registers *regs)
 {
+	dump_registers(regs);
 	PANIC("Device not found");
 }
 
 void double_fault_abort(struct registers *regs)
 {
+	dump_registers(regs);
 	PANIC("Double fault");
 }
 
 void invalid_tss_fault(struct registers *regs)
 {
+	dump_registers(regs);
 	PANIC("Invalid TSS");
 }
 
 void no_segment_fault(struct registers *regs)
 {
+	dump_registers(regs);
 	PANIC("Invalid segment");
 }
 
 void stack_fault(struct registers *regs)
 {
+	dump_registers(regs);
 	PANIC("Stack fault");
 }
 
 void general_protection_fault(struct registers *regs)
 {
-	kprintf("General protection fault CS:0x%x, EIP:0x%x\n",
-		regs->cs, regs->eip);
+	dump_registers(regs);
 	PANIC("General protection fault");
 }
 
 void fpu_fault(struct registers *regs)
 {
+	dump_registers(regs);
 	PANIC("FPU fault");
 }
 
 void alignment_check_fault(struct registers *regs)
 {
+	dump_registers(regs);
 	PANIC("Alignment fault");
 }
 
 void machine_check_abort(struct registers *regs)
 {
+	dump_registers(regs);
 	PANIC("Machine check fault");
 }
 
 void simd_fpu_fault(struct registers *regs)
 {
+	dump_registers(regs);
 	PANIC("SIMD FPU fault");
 }
 
@@ -216,7 +241,8 @@ void simd_fpu_fault(struct registers *regs)
 void init_irqs()
 {
 	int i;
-	
+
+	/* Initialize the IRQ chain */
 	for (i = 0; i < 256; i++) {
 		spinlock_init(&_irq_chains[i].lock, "irq-lock");
 		_irq_chains[i].head = NULL;

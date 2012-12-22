@@ -1,6 +1,10 @@
 #ifndef __MODULE_H__
 #define __MODULE_H__
 
+#define KMOD_RAMFS	1
+#define KMOD_KBD	2
+#define KMOD_FLPY	3
+
 typedef int (*module_init_func_t)(void);
 
 typedef int (*module_unload_func_t)(void);

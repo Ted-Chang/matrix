@@ -93,24 +93,22 @@ extern isr_handler
 ; and finally restores the stack frame.
 isr_common_stub:
 	pusha                   ; Pushes edi,esi,ebp,esp,ebx,edx,ecx,eax
-
-	mov ax, ds              ; Lower 16-bits of eax = ds.
-	push eax                ; save the data segment descriptor
+	push ds
+	push es
+	push fs
+	push gs
 
 	mov ax, 0x10  		; load the kernel data segment descriptor
 	mov ds, ax
 	mov es, ax
 	mov fs, ax
-	mov gs, ax
 
 	call isr_handler
 
-	pop ebx        		; reload the original data segment descriptor
-	mov ds, bx
-	mov es, bx
-	mov fs, bx
-	mov gs, bx
-
+	pop gs
+	pop fs
+	pop es
+	pop ds
 	popa                    ; Pops edi,esi,ebp...
 	add esp, 8     		; Cleans up the pushed error code and pushed ISR number
 	sti
@@ -124,24 +122,22 @@ extern irq_handler
 ; finally restores the stack frame.
 irq_common_stub:
 	pusha
-
-	mov ax, ds
-	push eax		; Save the data segment
+	push ds
+	push es
+	push fs
+	push gs
 
 	mov ax, 0x10		; Load the kernel data segment
 	mov ds, ax
 	mov es, ax
 	mov fs, ax
-	mov gs, ax
 
 	call irq_handler
 
-	pop ebx			; Reload the original data segment which we pushed into eax
-	mov ds, bx
-	mov es, bx
-	mov fs, bx
-	mov gs, bx
-
+	pop gs
+	pop fs
+	pop es
+	pop ds
 	popa
 	add esp, 8		; Stack rewind
 	sti

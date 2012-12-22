@@ -271,18 +271,20 @@ void page_fault(struct registers *regs)
 	us = regs->err_code & 0x4;
 	reserved = regs->err_code & 0x8;
 
+	dump_registers(regs);
+
+	/* Print current thread */
+	kprintf("Faulting process(%s:%d) thread(%s:%d)\n\n", CURR_PROC->name,
+		CURR_PROC->id, CURR_THREAD->name, CURR_THREAD->id);
+
 	/* Print an error message */
-	kprintf("Page fault(%s%s%s%s) at 0x%x - EIP: 0x%x\n", 
+	kprintf("Page fault(%s%s%s%s) at 0x%x - EIP: 0x%x\n\n", 
 		present ? "present " : "non-present ",
 		rw ? "write " : "read ",
 		us ? "user-mode " : "supervisor-mode ",
 		reserved ? "reserved " : "",
 		faulting_addr,
 		regs->eip);
-
-	/* Print current thread */
-	kprintf("Faulting process(%s:%d) thread(%s:%d)\n", CURR_PROC->name,
-		CURR_PROC->id, CURR_THREAD->name, CURR_THREAD->id);
 
 	PANIC("Page fault");
 }

@@ -27,17 +27,17 @@ static int load_module_stub(struct module *m)
 	int rc = 0;
 
 	switch (m->handle) {
-	case 1:
+	case KMOD_RAMFS:
 		m->name = "ramfs";
 		m->desc = "Ram File System";
 		m->init = initrd_init;
 		break;
-	case 2:
+	case KMOD_KBD:
 		m->name = "kbd";
 		m->desc = "Keyboard driver";
 		m->init = keyboard_init;
 		break;
-	case 3:
+	case KMOD_FLPY:
 		m->name = "flpy";
 		m->desc = "Floppy driver";
 		m->init = floppy_init;

@@ -26,7 +26,7 @@ const char *dbglevel_string(uint32_t level)
 void panic(const char *file, uint32_t line, const char *msg)
 {
 	irq_disable();	// Disable all interrupts
-	kprintf("PANIC(%s) at %s:%d\n", msg, file, line);
+	kprintf("KERNEL PANIC(%s) at %s:%d", msg, file, line);
 	for (; ; ) ;
 }
 

@@ -170,21 +170,21 @@ void load_modules()
 	LIST_INIT(&mod->link);
 	mod->name = kmalloc(MODULE_NAME_MAX, MM_BOOT_F);
 	strncpy(mod->name, "ramfs", MODULE_NAME_MAX);
-	mod->handle = 1;	// TODO: use file handle in the future
+	mod->handle = KMOD_RAMFS;	// TODO: use file handle in the future
 	list_add_tail(&mod->link, &_boot_module_list);
 
 	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
 	LIST_INIT(&mod->link);
 	mod->name = kmalloc(MODULE_NAME_MAX, MM_BOOT_F);
 	strncpy(mod->name, "kbd", MODULE_NAME_MAX);
-	mod->handle = 2;	// TODO: use file handle in the future
+	mod->handle = KMOD_KBD;		// TODO: use file handle in the future
 	list_add_tail(&mod->link, &_boot_module_list);
 
 	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
 	LIST_INIT(&mod->link);
 	mod->name = kmalloc(MODULE_NAME_MAX, MM_BOOT_F);
 	strncpy(mod->name, "flpy", MODULE_NAME_MAX);
-	mod->handle = 3;	// TODO: use file handle in the future
+	mod->handle = KMOD_FLPY;	// TODO: use file handle in the future
 	list_add_tail(&mod->link, &_boot_module_list);
 
 	/* Load all kernel modules */

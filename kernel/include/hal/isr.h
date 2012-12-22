@@ -19,6 +19,9 @@
 #define IRQ15	47
 
 struct registers {
+	uint32_t gs;
+	uint32_t fs;
+	uint32_t es;
 	uint32_t ds;
 	uint32_t edi;
 	uint32_t esi;
@@ -33,7 +36,7 @@ struct registers {
 	uint32_t eip;
 	uint32_t cs;
 	uint32_t eflags;
-	uint32_t useresp;
+	uint32_t user_esp;
 	uint32_t ss;
 };
 
@@ -48,7 +51,8 @@ struct irq_hook {
 	uint8_t irq;
 };
 
-void init_irqs();
+extern void init_irqs();
+extern void dump_registers(struct registers *regs);
 extern void register_irq_handler(uint8_t irq, struct irq_hook *hook, isr_t handler);
 extern void unregister_irq_handler(struct irq_hook *hook);
 
