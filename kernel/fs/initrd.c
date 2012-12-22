@@ -6,11 +6,13 @@
 #include "initrd.h"
 #include "debug.h"
 
+static int initrd_mount(struct vfs_mount *mnt, size_t cnt);
+
 struct vfs_type _ramfs_type = {
 	.name = "ramfs",
 	.desc = "Ramdisk file system",
 	.ref_count = 0,
-	.mount = NULL,
+	.mount = initrd_mount,
 };
 
 struct initrd_header *initrd_hdr;
@@ -104,23 +106,6 @@ struct vfs_node *init_initrd(uint32_t location)
 	initrd_root->ptr = 0;
 	initrd_root->impl = 0;
 
-	/* Initialize the dev directory */
-	initrd_dev = vfs_node_alloc(VFS_DIRECTORY);
-	strcpy(initrd_dev->name, "dev");
-	initrd_dev->mask = initrd_dev->uid =
-		initrd_dev->gid =
-		initrd_dev->inode =
-		initrd_dev->length =
-		0;
-	initrd_dev->read = 0;
-	initrd_dev->write = 0;
-	initrd_dev->open = 0;
-	initrd_dev->close = 0;
-	initrd_dev->readdir = initrd_readdir;
-	initrd_dev->finddir = initrd_finddir;
-	initrd_dev->ptr = 0;
-	initrd_dev->impl = 0;
-
 	/* Initialize the file nodes in root directory */
 	root_nodes = (struct vfs_node *)
 		kmalloc(sizeof(struct vfs_node) * initrd_hdr->nr_files, 0);
@@ -149,9 +134,28 @@ struct vfs_node *init_initrd(uint32_t location)
 	return initrd_root;
 }
 
+int initrd_mount(struct vfs_mount *mnt, size_t cnt)
+{
+	int rc = -1;
+
+	mnt->root = vfs_node_alloc(VFS_DIRECTORY);
+	ASSERT(mnt->root != NULL);
+
+	rc = 0;
+
+	return rc;
+}
+
 int initrd_init(void)
 {
-	DEBUG(DL_DBG, ("module initrd initialize successfully.\n"));
+	int rc;
+	
+	rc = vfs_type_register(&_ramfs_type);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("module initrd initialize failed.\n"));
+	} else {
+		DEBUG(DL_DBG, ("module initrd initialize successfully.\n"));
+	}
 
-	return 0;
+	return rc;
 }

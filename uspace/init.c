@@ -63,7 +63,7 @@ void start_crond()
 
 	rc = waitpid(rc, &status, 0);
 	if (rc == -1) {
-		printf("waiting process failed, err(%d).\n", rc);
+		printf("waiting %s failed, err(%d).\n", crond[0], rc);
 		goto out;
 	}
 	printf("crond process terminated.\n");
@@ -98,7 +98,7 @@ void announce()
 	/* Display the Matrix startup banner */
 	printf("\nMatrix %d.%d "
 	       "Copyright(c) 2012, Ted Chang, Beijing, China.\n"
-	       "Build date and time: %s, %s\n",
+	       "Build date and time: %s, %s\n\n",
 	       MATRIX_VERSION, MATRIX_RELEASE, __TIME__, __DATE__);
 }
 

@@ -225,7 +225,13 @@ void sys_init_thread(void *ctx)
 	/* Load the modules */
 	load_modules();
 	
+	/* Mount the ramfs at root if it was not mounted yet */
 	if (!_root_mount) {
+		rc = vfs_mount("/", "ramfs", NULL);
+		if (rc != 0) {
+			PANIC("Mount ramfs for root failed");
+		}
+		
 		/* Find the location of our initial ramdisk */
 		initrd_location = *((uint32_t *)_mbi->mods_addr);
 		initrd_end = *(uint32_t *)(_mbi->mods_addr + 4);

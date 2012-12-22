@@ -77,7 +77,7 @@ void echo_test()
 
 void ls_test()
 {
-	int rc;
+	int rc, status;
 	char *ls[] = {
 		"/ls",
 		"/",
@@ -92,13 +92,19 @@ void ls_test()
 		goto out;
 	}
 
+	rc = waitpid(rc, &status, 0);
+	if (rc == -1) {
+		printf("waiting %s failed, err(%d).\n", ls[0], rc);
+		goto out;
+	}
+
  out:
 	return;
 }
 
 void cat_test()
 {
-	int rc;
+	int rc, status;
 	char *cat[] = {
 		"/cat",
 		"/crontab",
@@ -110,6 +116,12 @@ void cat_test()
 	rc = create_process(cat[0], cat, 0, 16);
 	if (rc == -1) {
 		printf("create_process(%s) failed, err(%d).\n", cat[0], rc);
+		goto out;
+	}
+
+	rc = waitpid(cat[0], &status, 0);
+	if (rc == -1) {
+		printf("waiting %s failed, err(%d).\n", cat[0], rc);
 		goto out;
 	}
 

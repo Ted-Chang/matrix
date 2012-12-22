@@ -299,6 +299,8 @@ int vfs_type_register(struct vfs_type *type)
 	type->ref_count = 0;
 	list_add_tail(&type->link, &_fs_list);
 
+	rc = 0;
+	
 	DEBUG(DL_DBG, ("registered file system(%s).\n", type->name));
 
  out:
@@ -387,6 +389,7 @@ int vfs_mount(const char *path, const char *type, const char *opts)
 	}
 
 	/* Call the File System's mount function to do the mount */
+	ASSERT(mnt->type->mount != NULL);
 	rc = mnt->type->mount(mnt, 0);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("mount failed, err(%d).\n", rc));

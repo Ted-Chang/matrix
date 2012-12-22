@@ -28,6 +28,7 @@ int main(int argc, char **argv)
 		printf("open %s failed.\n", path);
 	} else {
 		rc = cat_file(fd);
+		close(fd);
 	}
 
  out:
