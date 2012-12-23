@@ -29,7 +29,8 @@ struct vfs_mount *_root_mount = NULL;
 
 struct vfs_node *_root_node = 0;
 
-struct vfs_node *vfs_node_alloc(uint32_t type)
+struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
+				struct vfs_node_ops *ops, void *data)
 {
 	struct vfs_node *n;
 
@@ -38,6 +39,9 @@ struct vfs_node *vfs_node_alloc(uint32_t type)
 		memset(n, 0, sizeof(struct vfs_node));
 		n->ref_count = 1;
 		n->type = type;
+		n->ops = ops;
+		n->data = data;
+		n->mount = mnt;
 	}
 
 	return n;
@@ -50,8 +54,9 @@ void vfs_node_free(struct vfs_node *node)
 
 int vfs_node_refer(struct vfs_node *node)
 {
-	int ref_count = node->ref_count;
+	int ref_count;
 
+	ref_count = node->ref_count;
 	node->ref_count++;
 	if (node->ref_count == 1) {
 		PANIC("vfs_node_refer: ref_count is corrupted!");
@@ -62,8 +67,9 @@ int vfs_node_refer(struct vfs_node *node)
 
 int vfs_node_deref(struct vfs_node *node)
 {
-	int ref_count = node->ref_count;
+	int ref_count;
 
+	ref_count = node->ref_count;
 	node->ref_count--;
 	if (!node->ref_count) {
 		vfs_node_free(node);
@@ -72,48 +78,78 @@ int vfs_node_deref(struct vfs_node *node)
 	return ref_count;
 }
 
-uint32_t vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer)
+int vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer)
 {
-	if (node->read != 0)
-		return node->read(node, offset, size, buffer);
-	else
-		return 0;
+	int rc = -1;
+	
+	if (node->ops->read != NULL) {
+		rc = node->ops->read(node, offset, size, buffer);
+	} else {
+		rc = 0;
+	}
+
+	return rc;
 }
 
-uint32_t vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer)
+int vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer)
 {
-	if (node->write != 0)
-		return node->read(node, offset, size, buffer);
-	else
-		return 0;
+	int rc = -1;
+	
+	if (node->ops->write != NULL) {
+		rc = node->ops->read(node, offset, size, buffer);
+	} else {
+		rc = 0;
+	}
+
+	return rc;
 }
 
-void vfs_open(struct vfs_node *node)
+int vfs_open(struct vfs_node *node)
 {
-	if (node->open != 0)
-		node->open(node);
+	int rc = -1;
+	
+	if (node->ops->open != NULL) {
+		rc = node->ops->open(node);
+	}
+
+	return rc;
 }
 
-void vfs_close(struct vfs_node *node)
+int vfs_close(struct vfs_node *node)
 {
-	if (node->close != 0)
-		node->close(node);
+	int rc = -1;
+	
+	if (node->ops->close != NULL) {
+		rc = node->ops->close(node);
+	}
+
+	return rc;
 }
 
 struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index)
 {
-	if (((node->type & 0x07) == VFS_DIRECTORY) && (node->readdir != 0)) {
-		return node->readdir(node, index);
-	} else
-		return 0;
+	struct dirent *d;
+	
+	if (((node->type & 0x07) == VFS_DIRECTORY) && (node->ops->readdir != NULL)) {
+		d = node->ops->readdir(node, index);
+	} else {
+		d = NULL;
+	}
+
+	return d;
 }
 
 struct vfs_node *vfs_finddir(struct vfs_node *node, char *name)
 {
-	if (((node->type & 0x07) == VFS_DIRECTORY) && (node->finddir != 0))
-		return node->finddir(node, name);
-	else
-		return 0;
+	struct vfs_node *n;
+	
+	if (((node->type & 0x07) == VFS_DIRECTORY) && (node->ops->finddir != NULL)) {
+		n = node->ops->finddir(node, name);
+	} else {
+		n = NULL;
+	}
+
+	return n;
 }
 
 struct vfs_node *vfs_clone(struct vfs_node *src)

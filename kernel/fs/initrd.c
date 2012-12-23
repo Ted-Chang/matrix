@@ -25,7 +25,7 @@ int nr_root_nodes;
 
 struct dirent dirent;
 
-static uint32_t initrd_read(struct vfs_node *node, uint32_t offset,
+static int initrd_read(struct vfs_node *node, uint32_t offset,
 			    uint32_t size, uint8_t *buffer)
 {
 	struct initrd_file_header hdr;
@@ -80,6 +80,15 @@ static struct vfs_node *initrd_finddir(struct vfs_node *node, char *name)
 	return 0;
 }
 
+static struct vfs_node_ops _ramfs_node_ops = {
+	.read = initrd_read,
+	.write = NULL,
+	.open = NULL,
+	.close = NULL,
+	.readdir = initrd_readdir,
+	.finddir = initrd_finddir
+};
+
 struct vfs_node *init_initrd(uint32_t location)
 {
 	int i;
@@ -89,7 +98,7 @@ struct vfs_node *init_initrd(uint32_t location)
 		(location + sizeof(struct initrd_header));
 
 	/* Initialize the root directory */
-	initrd_root = vfs_node_alloc(VFS_DIRECTORY);
+	initrd_root = vfs_node_alloc(NULL, VFS_DIRECTORY, &_ramfs_node_ops, NULL);
 	strcpy(initrd_root->name, "initrd");
 	initrd_root->mask = initrd_root->uid =
 		initrd_root->gid =
@@ -97,12 +106,6 @@ struct vfs_node *init_initrd(uint32_t location)
 		initrd_root->length =
 		0;
 
-	initrd_root->read = 0;
-	initrd_root->write = 0;
-	initrd_root->open = 0;
-	initrd_root->close = 0;
-	initrd_root->readdir = initrd_readdir;
-	initrd_root->finddir = initrd_finddir;
 	initrd_root->ptr = 0;
 	initrd_root->impl = 0;
 
@@ -122,12 +125,7 @@ struct vfs_node *init_initrd(uint32_t location)
 		root_nodes[i].length = file_hdrs[i].length;
 		root_nodes[i].inode = i;
 		root_nodes[i].type = VFS_FILE;
-		root_nodes[i].read = initrd_read;
-		root_nodes[i].write = 0;
-		root_nodes[i].open = 0;
-		root_nodes[i].close = 0;
-		root_nodes[i].readdir = 0;
-		root_nodes[i].finddir = 0;
+		root_nodes[i].ops = &_ramfs_node_ops;
 		root_nodes[i].impl = 0;
 	}
 
@@ -138,7 +136,7 @@ int initrd_mount(struct vfs_mount *mnt, size_t cnt)
 {
 	int rc = -1;
 
-	mnt->root = vfs_node_alloc(VFS_DIRECTORY);
+	mnt->root = vfs_node_alloc(mnt, VFS_DIRECTORY, &_ramfs_node_ops, NULL);
 	ASSERT(mnt->root != NULL);
 
 	rc = 0;
