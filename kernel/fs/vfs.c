@@ -27,8 +27,6 @@ static slab_cache_t _vfs_node_cache;
 /* Mount at the root of the File System */
 struct vfs_mount *_root_mount = NULL;
 
-struct vfs_node *_root_node = 0;
-
 struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
 				struct vfs_node_ops *ops, void *data)
 {
@@ -146,6 +144,8 @@ struct vfs_node *vfs_finddir(struct vfs_node *node, char *name)
 	if (((node->type & 0x07) == VFS_DIRECTORY) && (node->ops->finddir != NULL)) {
 		n = node->ops->finddir(node, name);
 	} else {
+		DEBUG(DL_INF, ("node->type(%x), finddir(%p).\n",
+			       node->type, node->ops->finddir));
 		n = NULL;
 	}
 
@@ -184,7 +184,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 		}
 
 		/* Get the root node of the current process. */
-		n = _root_node;
+		n = _root_mount->root;
 		vfs_node_refer(n);
 
 		ASSERT(n->type == VFS_DIRECTORY);
@@ -246,13 +246,13 @@ struct vfs_node *vfs_lookup(const char *path, int type)
 	char *dup = NULL;
 	size_t len;
 	
-	if (!_root_node || !path || !path[0]) {
+	if (!_root_mount || !path || !path[0]) {
 		goto out;
 	}
 
 	/* Start from the current directory if the path is relative */
 	if (path[0] != '/'); {
-		c = _root_node;		// TODO: set this to the current node of the process
+		c = _root_mount->root;
 		vfs_node_refer(c);
 	}
 
@@ -366,13 +366,13 @@ int vfs_type_unregister(struct vfs_type *type)
 	return rc;
 }
 
-int vfs_mount(const char *path, const char *type, const char *opts)
+int vfs_mount(const char *dev, const char *path, const char *type, const char *opts)
 {
 	int rc = -1, flags = 0;
 	struct vfs_node *n;
 	struct vfs_mount *mnt = NULL;
 
-	if (!path) {
+	if (!path || (!dev && !type)) {
 		return rc;
 	}
 
@@ -451,9 +451,17 @@ int vfs_mount(const char *path, const char *type, const char *opts)
 	return rc;
 }
 
-static int vfs_unmount_internal(struct vfs_node *n)
+static int vfs_unmount_internal(struct vfs_mount *mnt, struct vfs_node *n)
 {
 	int rc = -1;
+
+	if (n) {
+		if (n != mnt->root) {
+			return rc;
+		} else if (!mnt->mnt_point) {
+			return rc;
+		}
+	}
 
 	return rc;
 }
@@ -473,7 +481,7 @@ int vfs_unmount(const char *path)
 
 	n = vfs_lookup(path, VFS_DIRECTORY);
 	if (n) {
-		rc = vfs_unmount_internal(n);
+		rc = vfs_unmount_internal(n->mount, n);
 	} else {
 		DEBUG(DL_DBG, ("vfs_lookup(%s) not found.\n", path));
 	}

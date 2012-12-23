@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include <string.h>
 #include "matrix/matrix.h"
+#include "mm/mmu.h"
+#include "mm/malloc.h"
 #include "mm/slab.h"
 #include "debug.h"
 #include "kd.h"
@@ -36,6 +38,8 @@ int unit_test(uint32_t round)
 	void *obj[4];
 	struct spinlock lock;
 	void *buf_ptr;
+	ptr_t start;
+	size_t size;
 
 	/* Kernel memory pool test */
 	buf_ptr = kmalloc(4321, 0);
@@ -46,6 +50,21 @@ int unit_test(uint32_t round)
 		memset(buf_ptr, 0, 4321);
 		kfree(buf_ptr);
 	}
+
+
+	/* Memory map test */
+	start = 0x40000000;
+	size = 0x4000;
+	rc = mmu_map(CURR_PROC->mmu_ctx, start, size, MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("mmu_map failed.\n"));
+		goto out;
+	} else {
+		memset(start, 0, size);
+		rc = mmu_unmap(CURR_PROC->mmu_ctx, start, size);
+		ASSERT(rc == 0);
+	}
+	DEBUG(DL_DBG, ("memory map test finished.\n"));
 	
 
 	/* Spinlock test */

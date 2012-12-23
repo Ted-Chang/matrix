@@ -6,6 +6,9 @@
 #include "initrd.h"
 #include "debug.h"
 
+extern struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
+				       struct vfs_node_ops *ops, void *data);
+
 static int initrd_mount(struct vfs_mount *mnt, size_t cnt);
 
 struct vfs_type _ramfs_type = {
@@ -17,8 +20,6 @@ struct vfs_type _ramfs_type = {
 
 struct initrd_header *initrd_hdr;
 struct initrd_file_header *file_hdrs;
-struct vfs_node *initrd_root;
-struct vfs_node *initrd_dev;
 struct vfs_node *root_nodes;
 
 int nr_root_nodes;
@@ -46,13 +47,6 @@ static int initrd_read(struct vfs_node *node, uint32_t offset,
 
 static struct dirent *initrd_readdir(struct vfs_node *node, uint32_t index)
 {
-	if (node == initrd_root && index == 0) {
-		strcpy(dirent.name, "dev");
-		dirent.name[3] = 0;
-		dirent.ino = 0;
-		return &dirent;
-	}
-
 	if (index - 1 >= nr_root_nodes) {
 		return 0;
 	}
@@ -68,14 +62,12 @@ static struct vfs_node *initrd_finddir(struct vfs_node *node, char *name)
 {
 	int i;
 
-	if (node == initrd_root && !strcmp(name, "dev")) {
-		return initrd_dev;
-	}
-
 	for (i = 0; i < nr_root_nodes; i++) {
 		if (!strcmp(name, root_nodes[i].name))
 			return &root_nodes[i];
 	}
+
+	DEBUG(DL_DBG, ("%s not found.\n", name));
 
 	return 0;
 }
@@ -89,25 +81,13 @@ static struct vfs_node_ops _ramfs_node_ops = {
 	.finddir = initrd_finddir
 };
 
-struct vfs_node *init_initrd(uint32_t location)
+void init_initrd(uint32_t location)
 {
 	int i;
 	
 	initrd_hdr = (struct initrd_header *)location;
 	file_hdrs = (struct initrd_file_header *)
 		(location + sizeof(struct initrd_header));
-
-	/* Initialize the root directory */
-	initrd_root = vfs_node_alloc(NULL, VFS_DIRECTORY, &_ramfs_node_ops, NULL);
-	strcpy(initrd_root->name, "initrd");
-	initrd_root->mask = initrd_root->uid =
-		initrd_root->gid =
-		initrd_root->inode =
-		initrd_root->length =
-		0;
-
-	initrd_root->ptr = 0;
-	initrd_root->impl = 0;
 
 	/* Initialize the file nodes in root directory */
 	root_nodes = (struct vfs_node *)
@@ -126,10 +106,7 @@ struct vfs_node *init_initrd(uint32_t location)
 		root_nodes[i].inode = i;
 		root_nodes[i].type = VFS_FILE;
 		root_nodes[i].ops = &_ramfs_node_ops;
-		root_nodes[i].impl = 0;
 	}
-
-	return initrd_root;
 }
 
 int initrd_mount(struct vfs_mount *mnt, size_t cnt)
