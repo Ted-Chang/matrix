@@ -5,6 +5,7 @@
 #include "hal/hal.h"
 #include "hal/isr.h"
 #include "hal/spinlock.h"
+#include "util.h"
 #include "kd.h"
 #include "terminal.h"
 

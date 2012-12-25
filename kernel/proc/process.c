@@ -74,7 +74,9 @@ static void move_stack(uint32_t new_stack, uint32_t size)
 		
 		page = mmu_get_page(CURR_ASPACE, i, TRUE, 0);
 		/* Associate the pte with a physical page */
-		page_alloc(page, FALSE, TRUE);
+		page_alloc(page, 0);
+		page->user = FALSE;
+		page->rw = TRUE;
 	}
 	/* start = new_stack - size; */
 	/* rc = mmu_map(&_kernel_mmu_ctx, start, size + PAGE_SIZE, */
@@ -332,10 +334,8 @@ static int create_aspace(struct process_creation *info)
 {
 	int rc = -1, i;
 	size_t size;
-	ptr_t virt = 0;
 	void *data = NULL;
 	struct vfs_node *n;
-	struct page *page;
 	struct mmu_ctx *mmu = NULL;
 
 	/* Initialize the semaphore for synchronize with new entry thread */

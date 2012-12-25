@@ -3,9 +3,9 @@
 
 #include <stddef.h>
 
-#define HEAP_INDEX_SIZE		0x20000
-#define HEAP_MAGIC		0x123890AB
-#define HEAP_MIN_SIZE		0x70000
+#define POOL_INDEX_SIZE		0x20000
+#define POOL_MAGIC		0x123890AB
+#define POOL_MIN_SIZE		0x70000
 
 
 /*

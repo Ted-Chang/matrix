@@ -6,7 +6,6 @@ OBJ := ../../bin/obji386
 
 TARGETOBJ := \
 	$(OBJ)/rtc.o \
-	$(OBJ)/platform.o \
 	$(OBJ)/pit.o \
 
 .PHONY: clean help

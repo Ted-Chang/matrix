@@ -321,8 +321,6 @@ void sched_post_switch(boolean_t state)
 		 * Instead we queue the thread to the reaper's queue.
 		 */
 		if (t->state == THREAD_DEAD) {
-			struct list *l;
-
 			spinlock_acquire(&_dead_threads_lock);
 			list_add_tail(&t->runq_link, &_dead_threads);
 			spinlock_release(&_dead_threads_lock);
@@ -338,7 +336,7 @@ void sched_post_switch(boolean_t state)
 static void sched_reaper_thread(void *ctx)
 {
 	/* Reap the dead threads */
-	struct list *p, *l;
+	struct list *l;
 	struct thread *t;
 
 	/* If this is the first time reaper run, you should enable IRQ first */

@@ -13,6 +13,7 @@ TARGETOBJ := \
 	$(OBJ)/semaphore.o \
 	$(OBJ)/terminal.o \
 	$(OBJ)/unittest.o \
+	$(OBJ)/platform.o \
 
 .PHONY: clean help
 

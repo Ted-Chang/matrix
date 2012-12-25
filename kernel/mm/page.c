@@ -55,13 +55,13 @@ static uint32_t first_frame()
 	return 0;
 }
 
-void page_alloc(struct page *p, boolean_t kernel, boolean_t write)
+void page_alloc(struct page *p, int flags)
 {
 	ASSERT(p != NULL);
 	
 	if (p->frame != 0) {
-		DEBUG(DL_WRN, ("page(%p), frame(%x), kernel(%d), write(%d)\n",
-			       p, p->frame, kernel, write));
+		DEBUG(DL_WRN, ("page(%p), frame(%x), flags(%d)\n",
+			       p, p->frame, flags));
 		PANIC("alloc page in use");
 		return;
 	} else {
@@ -77,14 +77,11 @@ void page_alloc(struct page *p, boolean_t kernel, boolean_t write)
 		set_frame(idx * 0x1000);
 
 		p->present = 1;
-		p->rw = write ? 1 : 0;
-		p->user = kernel ? 0 : 1;
 		p->frame = idx;
 	}
 
 #ifdef _DEBUG_MM
-	DEBUG(DL_DBG, ("page(%p), frame(%x), user(%d), write(%d).\n",
-		       p, p->frame, p->user, p->rw));
+	DEBUG(DL_DBG, ("page(%p), frame(%x).\n", p, p->frame));
 #endif	/* _DEBUG_MM */
 }
 
@@ -95,8 +92,7 @@ void page_free(struct page *p)
 	ASSERT(p != NULL);
 
 #ifdef _DEBUG_MM
-	DEBUG(DL_DBG, ("page(%p), frame(%x), user(%d), write(%d).\n",
-		       p, p->frame, p->user, p->rw));
+	DEBUG(DL_DBG, ("page(%p), frame(%x).\n", p, p->frame));
 #endif	/* _DEBUG_MM */
 	
 	if (!(frame = p->frame)) {

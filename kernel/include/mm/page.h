@@ -22,7 +22,7 @@ struct page {
 
 extern phys_addr_t _placement_addr;
 
-extern void page_alloc(struct page *p, boolean_t kernel, boolean_t write);
+extern void page_alloc(struct page *p, int flags);
 extern void page_free(struct page *p);
 extern void init_page();
 

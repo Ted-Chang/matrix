@@ -90,17 +90,15 @@ int kmain(u_long addr, uint32_t initial_stack)
 
 	/* Initialize our memory manager */
 	init_page();
-	DEBUG(DL_DBG, ("Page initialization done.\n"));
+	kprintf("Page initialization done.\n");
 	init_mmu();
-	DEBUG(DL_DBG, ("MMU initialization done.\n"));
+	kprintf("MMU initialization done.\n");
 	init_kmem();
-	DEBUG(DL_DBG, ("Kernel memory manager initialization done.\n"));
+	kprintf("Kernel memory manager initialization done.\n");
 	init_slab();
-	DEBUG(DL_DBG, ("Slab memory cache initialization done.\n"));
+	kprintf("Slab memory cache initialization done.\n");
 	init_malloc();
-	DEBUG(DL_DBG, ("Kernel memory allocator initialization done.\n"));
-
-	kprintf("Memory manager initialization done.\n");
+	kprintf("Kernel memory allocator initialization done.\n");
 
 	/* Initialize our terminal */
 	init_terminal();
@@ -110,11 +108,10 @@ int kmain(u_long addr, uint32_t initial_stack)
 	 * memory management subsystem was up
 	 */
 	init_cpu_percpu();
-	DEBUG(DL_DBG, ("Per-CPU CPU initialization done.\n"));
+	kprintf("Per-CPU CPU initialization done.\n");
+
 	/* Properly initialize the CPU and detect other CPUs */
 	init_cpu();
-	DEBUG(DL_DBG, ("CPU initialization done.\n"));
-
 	kprintf("CPU initialization done.\n");
 
 	/* Start process sub system now */
@@ -127,10 +124,9 @@ int kmain(u_long addr, uint32_t initial_stack)
 
 	/* Initialize the scheduler */
 	init_sched_percpu();
-	DEBUG(DL_DBG, ("Per-CPU scheduler initialization done.\n"));
+	kprintf("Per-CPU scheduler initialization done.\n");
+	
 	init_sched();
-	DEBUG(DL_DBG, ("Scheduler initialization done.\n"));
-
 	kprintf("Scheduler initialization done.\n");
 
 	init_syscalls();
@@ -201,7 +197,6 @@ void sys_init_thread(void *ctx)
 	struct list *l;
 	struct cpu *c;
 	uint32_t initrd_location;
-	uint32_t initrd_end;
 	const char *init_argv[] = {
 		"/init",
 		"-d",

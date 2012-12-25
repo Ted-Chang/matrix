@@ -71,7 +71,7 @@ static struct ptbl *clone_ptbl(struct ptbl *src, phys_addr_t *phys_addr)
 		if (src->pte[i].frame) {
 
 			/* Get a new frame */
-			page_alloc(&(ptbl->pte[i]), FALSE, FALSE);
+			page_alloc(&(ptbl->pte[i]), 0);
 
 			/* Clone the flags from source to destination */
 			if (src->pte[i].present) ptbl->pte[i].present = 1;
@@ -139,7 +139,6 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *add
 	int rc;
 	struct page *p;
 	ptr_t virt;
-	boolean_t kernel, write;
 
 	if (!size || (size % PAGE_SIZE)) {
 		DEBUG(DL_DBG, ("size (%x) invalid.\n", size));
@@ -166,9 +165,6 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *add
 
 	DEBUG(DL_DBG, ("ctx(%p) start(%p), size(%x).\n", ctx, start, size));
 
-	kernel = IS_KERNEL_CTX(ctx);
-	write = FLAG_ON(flags, MAP_WRITE_F) ? TRUE : FALSE;
-
 	for (virt = start; virt < (start + size); virt += PAGE_SIZE) {
 		p = mmu_get_page(ctx, virt, TRUE, 0);
 		if (!p) {
@@ -177,7 +173,9 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *add
 			goto out;
 		}
 		DEBUG(DL_DBG, ("ctx(%p) page(%p) frame(%x).\n", ctx, p, p->frame));
-		page_alloc(p, kernel, write);
+		page_alloc(p, 0);
+		p->user = IS_KERNEL_CTX(ctx) ? FALSE : TRUE;
+		p->rw = FLAG_ON(flags, MAP_WRITE_F) ? TRUE : FALSE;
 	}
 	
 	rc = 0;
@@ -382,7 +380,9 @@ void init_mmu()
 	for (i = 0; i < (_placement_addr + PAGE_SIZE); i += PAGE_SIZE) {
 		/* Kernel code is readable but not writable from user-mode */
 		page = mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
-		page_alloc(page, FALSE, FALSE);
+		page_alloc(page, 0);
+		page->user = FALSE;
+		page->rw = FALSE;
 	}
 
 	/* Allocate those pages we mapped earlier */
@@ -390,7 +390,9 @@ void init_mmu()
 	     i < (KERNEL_KMEM_START + KERNEL_KMEM_SIZE);
 	     i += PAGE_SIZE) {
 		page = mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
-		page_alloc(page, FALSE, FALSE);
+		page_alloc(page, 0);
+		page->user = FALSE;
+		page->rw = FALSE;
 	}
 
 	/* Before we enable paging, we must register our page fault handler */

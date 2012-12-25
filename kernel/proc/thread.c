@@ -453,9 +453,7 @@ void thread_release(struct thread *t)
 void thread_exit()
 {
 	int rc;
-	ptr_t virt;
 	boolean_t state;
-	struct page *page;
 
 	/* Unmap the user stack */
 	if (CURR_THREAD->ustack_size) {

@@ -8,6 +8,7 @@ TARGETOBJ := \
 	$(OBJ)/avltree.o \
 	$(OBJ)/notifier.o \
 	$(OBJ)/object.o \
+	$(OBJ)/bitmap.o \
 
 .PHONY: clean help
 

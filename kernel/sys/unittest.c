@@ -10,6 +10,7 @@
 #include "mutex.h"
 #include "proc/thread.h"
 #include "proc/process.h"
+#include "bitmap.h"
 
 uint32_t _value = 0;
 struct mutex _mutex;
@@ -40,6 +41,9 @@ int unit_test(uint32_t round)
 	void *buf_ptr;
 	ptr_t start;
 	size_t size;
+	struct bitmap bm;
+	u_long *bm_buf;
+	char *pch;
 
 	/* Kernel memory pool test */
 	buf_ptr = kmalloc(4321, 0);
@@ -48,6 +52,10 @@ int unit_test(uint32_t round)
 		goto out;
 	} else {
 		memset(buf_ptr, 0, 4321);
+		pch = buf_ptr;
+		for (i = 0; i < 4321; i++) {
+			ASSERT(pch[i] == 0);
+		}
 		kfree(buf_ptr);
 	}
 
@@ -60,7 +68,7 @@ int unit_test(uint32_t round)
 		DEBUG(DL_DBG, ("mmu_map failed.\n"));
 		goto out;
 	} else {
-		memset(start, 0, size);
+		memset((void *)start, 0, size);
 		rc = mmu_unmap(CURR_PROC->mmu_ctx, start, size);
 		ASSERT(rc == 0);
 	}
@@ -72,6 +80,21 @@ int unit_test(uint32_t round)
 	spinlock_acquire(&lock);
 	spinlock_release(&lock);
 	DEBUG(DL_DBG, ("spinlock test finished.\n"));
+
+
+	/* Bitmap test */
+	bm_buf = kmalloc(256/8, 0);
+	memset((void *)bm_buf, 0, 256/8);
+	for (i = 0; i < (256/(8*sizeof(u_long))); i++) {
+		ASSERT(bm_buf[i] == 0);
+	}
+	bitmap_init(&bm, bm_buf, 256);
+	bitmap_set(&bm, 34);
+	ASSERT(bitmap_test(&bm, 34));
+	bitmap_clear(&bm, 34);
+	ASSERT(!bitmap_test(&bm, 34));
+	kfree(bm_buf);
+	DEBUG(DL_DBG, ("bitmap test finished.\n"));
 	
 
 	/* Create a slab cache to test the slab allocator */
