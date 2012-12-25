@@ -79,6 +79,14 @@ int vfs_node_deref(struct vfs_node *node)
 int vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer)
 {
 	int rc = -1;
+
+	if (!node || !buffer) {
+		goto out;
+	}
+
+	if (node->type != VFS_FILE) {
+		goto out;
+	}
 	
 	if (node->ops->read != NULL) {
 		rc = node->ops->read(node, offset, size, buffer);
@@ -86,12 +94,21 @@ int vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buf
 		rc = 0;
 	}
 
+ out:
 	return rc;
 }
 
 int vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer)
 {
 	int rc = -1;
+
+	if (!node || !buffer) {
+		goto out;
+	}
+
+	if (node->type != VFS_FILE) {
+		goto out;
+	}
 	
 	if (node->ops->write != NULL) {
 		rc = node->ops->read(node, offset, size, buffer);
@@ -99,56 +116,77 @@ int vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *bu
 		rc = 0;
 	}
 
+ out:
 	return rc;
 }
 
 int vfs_open(struct vfs_node *node)
 {
 	int rc = -1;
+
+	if (!node) {
+		goto out;
+	}
 	
 	if (node->ops->open != NULL) {
 		rc = node->ops->open(node);
 	}
 
+ out:
 	return rc;
 }
 
 int vfs_close(struct vfs_node *node)
 {
 	int rc = -1;
+
+	if (!node) {
+		goto out;
+	}
 	
 	if (node->ops->close != NULL) {
 		rc = node->ops->close(node);
 	}
 
+ out:
 	return rc;
 }
 
 struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index)
 {
-	struct dirent *d;
+	struct dirent *d = NULL;
+
+	if (!node) {
+		goto out;
+	}
 	
 	if (((node->type & 0x07) == VFS_DIRECTORY) && (node->ops->readdir != NULL)) {
 		d = node->ops->readdir(node, index);
 	} else {
-		d = NULL;
+		DEBUG(DL_INF, ("node->type(%x), readdir(%p).\n",
+			       node->type, node->ops->readdir));
 	}
 
+ out:
 	return d;
 }
 
 struct vfs_node *vfs_finddir(struct vfs_node *node, char *name)
 {
-	struct vfs_node *n;
+	struct vfs_node *n = NULL;
+
+	if (!node || !name) {
+		goto out;
+	}
 	
 	if (((node->type & 0x07) == VFS_DIRECTORY) && (node->ops->finddir != NULL)) {
 		n = node->ops->finddir(node, name);
 	} else {
 		DEBUG(DL_INF, ("node->type(%x), finddir(%p).\n",
 			       node->type, node->ops->finddir));
-		n = NULL;
 	}
 
+ out:
 	return n;
 }
 

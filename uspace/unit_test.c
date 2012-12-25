@@ -7,6 +7,7 @@ static void usage();
 static void echo_test();
 static void ls_test();
 static void cat_test();
+static void clear_test();
 
 int main(int argc, char **argv)
 {
@@ -44,6 +45,8 @@ int main(int argc, char **argv)
 	ls_test();
 
 	cat_test();
+
+	clear_test();
 
 	while (TRUE) {
 		;
@@ -122,6 +125,26 @@ void cat_test()
 	rc = waitpid(cat[0], &status, 0);
 	if (rc == -1) {
 		printf("waiting %s failed, err(%d).\n", cat[0], rc);
+		goto out;
+	}
+
+ out:
+	return;
+}
+
+void clear_test()
+{
+	int rc, status;
+	char *clear[] = {
+		"/clear",
+		NULL
+	};
+
+	printf("unit_test clear screen.\n");
+
+	rc = create_process(clear[0], clear, 0, 16);
+	if (rc == -1) {
+		printf("create_process(%s) failed, err(%d).\n", clear[0], rc);
 		goto out;
 	}
 

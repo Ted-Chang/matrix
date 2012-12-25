@@ -445,6 +445,12 @@ int waitpid(int pid)
 	return rc;
 }
 
+int clear()
+{
+	clear_scr();
+	return 0;
+}
+
 /*
  * NOTE: When adding a system call, please add the following items:
  *   [1] _nr_syscalls - number of the system calls
@@ -452,7 +458,7 @@ int waitpid(int pid)
  *   [3] define macro in /loader/syscalls.c
  *   [4] define macro in /include/syscall.h
  */
-uint32_t _nr_syscalls = 25;
+uint32_t _nr_syscalls = 26;
 static void *_syscalls[] = {
 	putstr,
 	open,
@@ -478,6 +484,7 @@ static void *_syscalls[] = {
 	create_process,
 	waitpid,
 	unit_test,
+	clear,
 	NULL
 };
 
