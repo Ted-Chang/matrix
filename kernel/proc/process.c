@@ -46,6 +46,7 @@ static slab_cache_t _proc_cache;
 
 /* Tree of all processes */
 static struct avl_tree _proc_tree;
+static struct mutex _proc_tree_lock;
 
 /* kernel process */
 struct process *_kernel_proc = NULL;
@@ -241,7 +242,9 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 	}
 
 	/* Insert this process into process tree */
+	mutex_acquire(&_proc_tree_lock);
 	avl_tree_insert_node(&_proc_tree, &p->tree_link, p->id, p);
+	mutex_release(&_proc_tree_lock);
 
 	p->state = PROCESS_RUNNING;
 	*procp = p;
@@ -266,8 +269,9 @@ struct process *process_lookup(pid_t pid)
 {
 	struct process *proc;
 
-	// TODO: Use a lock to protect this operation
+	mutex_acquire(&_proc_tree_lock);
 	proc = avl_tree_lookup(&_proc_tree, pid);
+	mutex_release(&_proc_tree_lock);
 
 	return proc;
 }
@@ -524,7 +528,9 @@ int process_destroy(struct process *proc)
 	ASSERT(LIST_EMPTY(&proc->threads));
 	
 	/* Remove this process from the process tree */
+	mutex_acquire(&_proc_tree_lock);
 	avl_tree_remove_node(&_proc_tree, &proc->tree_link);
+	mutex_release(&_proc_tree_lock);
 
 	notifier_clear(&proc->death_notifier);
 
@@ -652,8 +658,9 @@ void init_process()
 	slab_cache_init(&_proc_cache, "proc-cache", sizeof(struct process),
 			process_ctor, process_dtor, 0);
 
-	/* Initialize the process avl tree */
+	/* Initialize the process avl tree and its lock */
 	avl_tree_init(&_proc_tree);
+	mutex_init(&_proc_tree_lock, "ptree-mutex", 0);
 
 	/* Create the kernel process */
 	rc = process_alloc("kernel", NULL, NULL, 0, 16, NULL, &_kernel_proc);

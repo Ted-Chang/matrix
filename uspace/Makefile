@@ -15,6 +15,7 @@ TARGETS := \
 	$(TARGETDIR)/ls \
 	$(TARGETDIR)/cat \
 	$(TARGETDIR)/clear \
+	$(TARGETDIR)/shutdown \
 
 OBJ := ./obji386
 
@@ -43,6 +44,9 @@ $(TARGETDIR)/cat: $(OBJ)/cat.o
 
 $(TARGETDIR)/clear: $(OBJ)/clear.o
 	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/clear.map -o $(TARGETDIR)/clear $(OBJ)/clear.o
+
+$(TARGETDIR)/shutdown: $(OBJ)/shutdown.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/shutdown.map -o $(TARGETDIR)/shutdown $(OBJ)/shutdown.o
 
 $(OBJ)/%.o: %.c
 	$(CC) $(CFLAGS) -m32 -g -I../sdk/include -c -o $@ $<

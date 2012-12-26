@@ -8,6 +8,7 @@ static void echo_test();
 static void ls_test();
 static void cat_test();
 static void clear_test();
+static void shutdown_test();
 
 int main(int argc, char **argv)
 {
@@ -47,6 +48,8 @@ int main(int argc, char **argv)
 	cat_test();
 
 	clear_test();
+
+	shutdown_test();
 
 	while (TRUE) {
 		;
@@ -145,6 +148,26 @@ void clear_test()
 	rc = create_process(clear[0], clear, 0, 16);
 	if (rc == -1) {
 		printf("create_process(%s) failed, err(%d).\n", clear[0], rc);
+		goto out;
+	}
+
+ out:
+	return;
+}
+
+void shutdown_test()
+{
+	int rc;
+	char *shutdown[] = {
+		"/shutdown",
+		NULL
+	};
+
+	printf("unit_test shutdown.\n");
+
+	rc = create_process(shutdown[0], shutdown, 0, 16);
+	if (rc == -1) {
+		printf("create_process(%s) failed, err(%d).\n", shutdown[0], rc);
 		goto out;
 	}
 

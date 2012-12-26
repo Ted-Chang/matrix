@@ -19,6 +19,7 @@
 #include "timer.h"
 #include "semaphore.h"
 #include "pit.h"
+#include "platform.h"
 
 #define MAX_HOSTNAME_LEN	256
 
@@ -451,14 +452,20 @@ int clear()
 	return 0;
 }
 
+int shutdown()
+{
+	platform_shutdown();
+	return 0;
+}
+
 /*
  * NOTE: When adding a system call, please add the following items:
  *   [1] _nr_syscalls - number of the system calls
  *   [2] _syscalls - the array which contains pointers to the system calls
- *   [3] define macro in /loader/syscalls.c
- *   [4] define macro in /include/syscall.h
+ *   [3] define macro in /sdk/syscalls.c
+ *   [4] define macro in /sdk/include/syscall.h
  */
-uint32_t _nr_syscalls = 26;
+uint32_t _nr_syscalls = 27;
 static void *_syscalls[] = {
 	putstr,
 	open,
@@ -485,6 +492,7 @@ static void *_syscalls[] = {
 	waitpid,
 	unit_test,
 	clear,
+	shutdown,
 	NULL
 };
 

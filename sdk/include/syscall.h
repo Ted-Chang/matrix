@@ -78,6 +78,8 @@ DECL_SYSCALL1(sleep, uint32_t);
 DECL_SYSCALL4(create_process, const char *,const char **, int, int);
 DECL_SYSCALL1(wait, int)
 DECL_SYSCALL1(unit_test, uint32_t);
+DECL_SYSCALL0(clear);
+DECL_SYSCALL0(shutdown);
 /* System call declaration end */
 
 #endif	/* __SYSCALL_H__ */
