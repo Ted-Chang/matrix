@@ -25,7 +25,7 @@ struct footer {
 };
 
 /* Structure describing a kernel memory pool */
-struct kpool {
+struct kmem_pool {
 	struct vector index;
 	ptr_t start_addr;	// start of our allocated space
 	ptr_t end_addr;		// end of our allocated space
@@ -34,9 +34,9 @@ struct kpool {
 	uint8_t readonly;
 };
 
-struct kpool *_kpool = NULL;
+struct kmem_pool *_kpool = NULL;
 
-void *alloc(struct kpool *pool, size_t size, boolean_t page_align);
+void *alloc(struct kmem_pool *pool, size_t size, boolean_t page_align);
 
 void *kmem_alloc_int(size_t size, boolean_t align, phys_addr_t *phys)
 {
@@ -102,7 +102,7 @@ void *kmem_alloc_p(size_t size, phys_addr_t *phys, int mmflag)
 	return ret;
 }
 
-static void expand(struct kpool *pool, size_t new_size)
+static void expand(struct kmem_pool *pool, size_t new_size)
 {
 	struct page *p;
 	size_t old_size, i;
@@ -132,7 +132,7 @@ static void expand(struct kpool *pool, size_t new_size)
 	pool->end_addr = pool->start_addr + new_size;
 }
 
-static uint32_t contract(struct kpool *pool, size_t new_size)
+static uint32_t contract(struct kmem_pool *pool, size_t new_size)
 {
 	struct page *p;
 	size_t old_size, i;
@@ -180,16 +180,16 @@ static int8_t header_compare(void *x, void *y)
  * create the pool
  * start - the address to place the pool index at
  */
-struct kpool *create_pool(uint32_t start, uint32_t end, uint32_t max,
-			  uint8_t supervisor, uint8_t readonly)
+struct kmem_pool *create_pool(uint32_t start, uint32_t end, uint32_t max,
+			      uint8_t supervisor, uint8_t readonly)
 {
-	struct kpool *pool;
+	struct kmem_pool *pool;
 	struct header *hole;
 
 	ASSERT(start % PAGE_SIZE == 0);
 	ASSERT(end % PAGE_SIZE == 0);
 
-	pool = (struct kpool *)kmem_alloc(sizeof(struct kpool), 0);
+	pool = (struct kmem_pool *)kmem_alloc(sizeof(struct kmem_pool), 0);
 
 	/* Initialize the index of the pool, size of index is fixed */
 	place_vector(&pool->index, (void *)start, POOL_INDEX_SIZE, header_compare);
@@ -220,7 +220,7 @@ struct kpool *create_pool(uint32_t start, uint32_t end, uint32_t max,
 	return pool;
 }
 
-static uint32_t find_smallest_hole(struct kpool *pool, size_t size, uint8_t page_align)
+static uint32_t find_smallest_hole(struct kmem_pool *pool, size_t size, uint8_t page_align)
 {
 	uint32_t iterator;
 	
@@ -261,7 +261,7 @@ static uint32_t find_smallest_hole(struct kpool *pool, size_t size, uint8_t page
 	}
 }
 
-void *alloc(struct kpool *pool, size_t size, boolean_t page_align)
+void *alloc(struct kmem_pool *pool, size_t size, boolean_t page_align)
 {
 	size_t new_size;
 	int32_t iterator;
@@ -396,14 +396,14 @@ void *alloc(struct kpool *pool, size_t size, boolean_t page_align)
 	return (void *)((uint32_t)block_hdr + sizeof(struct header));
 }
 
-void free(struct kpool *pool, void *p)
+void free(struct kmem_pool *pool, void *p)
 {
 	boolean_t do_add, do_contract;
 	struct header *header, *test_hdr;
 	struct footer *footer, *test_ftr;
 	uint32_t iterator;
 	
-	if (p == 0) {
+	if (!p) {
 		return;
 	}
 

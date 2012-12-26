@@ -28,6 +28,7 @@
 #include "terminal.h"
 #include "kd.h"
 #include "module.h"
+#include "platform.h"
 
 struct boot_module {
 	struct list link;
@@ -79,58 +80,62 @@ int kmain(u_long addr, uint32_t initial_stack)
 	/* Initialize the CPU */
 	preinit_cpu();
 	preinit_cpu_percpu(&_boot_cpu);
-	kprintf("CPU preinitialization done.\n");
+	kprintf("CPU preinitialization... done.\n");
 
 	/* Enable interrupt so our timer can work */
 	irq_enable();
 
 	/* Initialize our timer */
 	init_clock();
-	kprintf("System PIT initialization done.\n");
+	kprintf("System PIT initialization... done.\n");
 
 	/* Initialize our memory manager */
 	init_page();
-	kprintf("Page initialization done.\n");
+	kprintf("Page initialization... done.\n");
 	init_mmu();
-	kprintf("MMU initialization done.\n");
+	kprintf("MMU initialization... done.\n");
 	init_kmem();
-	kprintf("Kernel memory manager initialization done.\n");
+	kprintf("Kernel memory manager initialization... done.\n");
 	init_slab();
-	kprintf("Slab memory cache initialization done.\n");
+	kprintf("Slab memory cache initialization... done.\n");
 	init_malloc();
-	kprintf("Kernel memory allocator initialization done.\n");
+	kprintf("Kernel memory allocator initialization... done.\n");
 
 	/* Initialize our terminal */
 	init_terminal();
-	kprintf("Terminal initialization done.\n");
+	kprintf("Terminal initialization... done.\n");
 
 	/* Perform more per-CPU initialization that can be done after the
 	 * memory management subsystem was up
 	 */
 	init_cpu_percpu();
-	kprintf("Per-CPU CPU initialization done.\n");
+	kprintf("Per-CPU CPU initialization... done.\n");
+
+	/* Initialize the platform */
+	init_platform();
+	kprintf("Platform initialization... done.\n");
 
 	/* Properly initialize the CPU and detect other CPUs */
 	init_cpu();
-	kprintf("CPU initialization done.\n");
+	kprintf("CPU initialization... done.\n");
 
 	/* Start process sub system now */
 	init_process();
-	kprintf("Process initialization done.\n");
+	kprintf("Process initialization... done.\n");
 
 	/* Start thread sub system now */
 	init_thread();
-	kprintf("Thread initialization done.\n");
+	kprintf("Thread initialization... done.\n");
 
 	/* Initialize the scheduler */
 	init_sched_percpu();
-	kprintf("Per-CPU scheduler initialization done.\n");
+	kprintf("Per-CPU scheduler initialization... done.\n");
 	
 	init_sched();
-	kprintf("Scheduler initialization done.\n");
+	kprintf("Scheduler initialization... done.\n");
 
 	init_syscalls();
-	kprintf("System call initialization done.\n");
+	kprintf("System call initialization... done.\n");
 
 	/* Create the initialization process */
 	rc = thread_create("init", NULL, 0, sys_init_thread, NULL, NULL);
@@ -149,7 +154,7 @@ static void load_boot_module(struct boot_module *mod)
 	/* Try to load the module */
 	rc = module_load(mod->handle);
 	if (rc == 0) {
-		kprintf("Load module %s done.\n", mod->name);
+		kprintf("Load module %s... done.\n", mod->name);
 	} else {
 		PANIC("Load module failed");
 	}
@@ -211,15 +216,15 @@ void sys_init_thread(void *ctx)
 
 	/* Bring up the file system manager */
 	init_fs();
-	kprintf("File System manager initialization done.\n");
+	kprintf("File System manager initialization... done.\n");
 
 	/* Bring up the module system manager */
 	init_module();
-	kprintf("Module system manager initialization done.\n");
+	kprintf("Module system manager initialization... done.\n");
 
 	/* Load the modules */
 	load_modules();
-	kprintf("Load boot modules done.\n");
+	kprintf("Load boot modules... done.\n");
 	
 	/* Mount the ramfs at root if it was not mounted yet */
 	if (!_root_mount) {

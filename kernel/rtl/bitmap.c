@@ -69,3 +69,13 @@ boolean_t bitmap_test(struct bitmap *b, u_long bit)
 	shift_cnt = bit & 0x7;
 	return ((*byte_addr & (1 << shift_cnt)) == 0) ? FALSE : TRUE;
 }
+
+void bitmap_clear_all(struct bitmap *b)
+{
+	memset(b->buf, 0, ((b->nr_bits + 31) / 32) * sizeof(u_long));
+}
+
+void bitmap_set_all(struct bitmap *b)
+{
+	memset(b->buf, 0xFF, ((b->nr_bits + 31) / 32) * sizeof(u_long));
+}

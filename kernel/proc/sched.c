@@ -2,14 +2,15 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
-#include "debug.h"
 #include "matrix/const.h"
 #include "hal/hal.h"
 #include "hal/cpu.h"
 #include "hal/spinlock.h"
+#include "bitops.h"
 #include "mm/malloc.h"
 #include "mm/mmu.h"
 #include "sys/time.h"
+#include "debug.h"
 #include "timer.h"
 #include "proc/process.h"
 #include "proc/sched.h"
@@ -23,7 +24,7 @@
 
 /* Run queue structure */
 struct sched_queue {
-	uint32_t bitmap;			// Bitmap of queues with data
+	u_long bitmap;				// Bitmap of queues with data
 	struct list threads[NR_PRIORITIES];	// Queues of runnable threads
 };
 typedef struct sched_queue sched_queue_t;
@@ -90,7 +91,7 @@ static struct cpu *sched_alloc_cpu(struct thread *t)
  * for inserting a process into one of the scheduling queues. `p' must not in the
  * scheduling queues before enqueue.
  */
-static void sched_enqueue(struct sched_queue *queue, struct thread *t)
+static INLINE void sched_enqueue(struct sched_queue *queue, struct thread *t)
 {
 	int q;
 #ifdef _DEBUG_SCHED
@@ -113,13 +114,14 @@ static void sched_enqueue(struct sched_queue *queue, struct thread *t)
 	/* Now add the process to the tail of the queue. */
 	ASSERT((q < NR_PRIORITIES) && (q >= 0));
 	list_add_tail(&t->runq_link, &queue->threads[q]);
+	queue->bitmap |= (1 << q);
 }
 
 /**
  * A process must be removed from the scheduling queues, for example, because it has
  * been blocked.
  */
-static void sched_dequeue(struct sched_queue *queue, struct thread *t)
+static INLINE void sched_dequeue(struct sched_queue *queue, struct thread *t)
 {
 	int q;
 #ifdef _DEBUG_SCHED
@@ -135,6 +137,9 @@ static void sched_dequeue(struct sched_queue *queue, struct thread *t)
 	 */
 	ASSERT((q < NR_PRIORITIES) && (q >= 0));
 	list_del(&t->runq_link);
+	if (LIST_EMPTY(&queue->threads[q])) {
+		queue->bitmap &= ~(1 << q);
+	}
 	
 #ifdef _DEBUG_SCHED
 	/* You can also just remove the specified process, but I just make sure it is
@@ -166,25 +171,22 @@ static void sched_timer_func(void *ctx)
  */
 static struct thread *sched_pick_thread(struct sched_cpu *c)
 {
+	int q;
 	struct thread *t;
 	struct list *l;
-	int q;
 
 	t = NULL;
-	
-	/* Check each of the scheduling queues for ready processes. The number of
-	 * queues is defined in process.h. The lowest queue contains IDLE, which
-	 * is always ready.
-	 */
-	for (q = NR_PRIORITIES - 1; q >= 0; q--) {
-		if (!LIST_EMPTY(&c->active->threads[q])) {
-			l = c->active->threads[q].next;
-			t = LIST_ENTRY(l, struct thread, runq_link);
-			sched_dequeue(c->active, t);
-			break;
-		}
+
+	if (!c->active->bitmap) {
+		return NULL;
 	}
 
+	q = bitops_fls(c->active->bitmap);
+	ASSERT(!LIST_EMPTY(&c->active->threads[q]));
+	l = c->active->threads[q].next;
+	t = LIST_ENTRY(l, struct thread, runq_link);
+	sched_dequeue(c->active, t);
+	
 	return t;
 }
 
