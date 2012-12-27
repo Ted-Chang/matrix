@@ -7,7 +7,6 @@
 #include <string.h>
 #include "matrix/matrix.h"
 #include "matrix/const.h"
-#include "debug.h"
 #include "matrix/process.h"
 #include "hal/hal.h"
 #include "hal/cpu.h"
@@ -15,11 +14,12 @@
 #include "mm/mmu.h"
 #include "mm/malloc.h"
 #include "mm/slab.h"
+#include "rtl/object.h"
 #include "proc/process.h"
 #include "proc/sched.h"
 #include "proc/thread.h"
+#include "debug.h"
 #include "elf.h"
-#include "object.h"
 #include "semaphore.h"
 
 struct process_creation {

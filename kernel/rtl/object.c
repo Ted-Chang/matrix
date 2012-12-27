@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include "matrix/matrix.h"
 #include "semaphore.h"
-#include "object.h"
+#include "rtl/object.h"
 
 /* Object waiting internal data structure */
 struct object_wait_sync {

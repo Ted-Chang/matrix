@@ -22,6 +22,14 @@ struct symbol_table {
 };
 typedef struct symbol_table symbol_table_t;
 
+extern void symbol_table_init(struct symbol_table *t);
+extern void symbol_table_destroy(struct symbol_table *t);
+extern void symbol_table_insert(struct symbol_table *t, const char *name,
+				ptr_t addr, size_t size, boolean_t global,
+				boolean_t exported);
+extern struct symbol *symbol_lookup_by_addr(ptr_t addr, size_t *offp);
+extern struct symbol *symbol_lookup_by_name(const char *name, boolean_t global,
+					    boolean_t exported);
 extern void init_symbol();
 
 #endif	/* __SYMBOL_H__ */

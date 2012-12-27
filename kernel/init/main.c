@@ -29,6 +29,7 @@
 #include "kd.h"
 #include "module.h"
 #include "platform.h"
+#include "symbol.h"
 
 struct boot_module {
 	struct list link;
@@ -118,6 +119,10 @@ int kmain(u_long addr, uint32_t initial_stack)
 	/* Properly initialize the CPU and detect other CPUs */
 	init_cpu();
 	kprintf("CPU initialization... done.\n");
+
+	/* Initialize symbol of our kernel */
+	init_symbol();
+	kprintf("Symbol initialization... done.\n");
 
 	/* Start process sub system now */
 	init_process();

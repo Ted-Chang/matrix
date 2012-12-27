@@ -6,8 +6,8 @@
 #include "matrix/const.h"
 #include "matrix/matrix.h"
 #include "list.h"
-#include "avltree.h"
-#include "notifier.h"
+#include "rtl/avltree.h"
+#include "rtl/notifier.h"
 #include "mm/mlayout.h"		// For memory layout
 #include "proc/thread.h"
 #include "fs.h"

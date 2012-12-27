@@ -1,7 +1,8 @@
 #include <types.h>
 #include <stddef.h>
+#include <string.h>
 #include "debug.h"
-#include "bitmap.h"
+#include "rtl/bitmap.h"
 
 static void dump_bitmap(struct bitmap *b)
 {

@@ -10,7 +10,7 @@
 #include "mutex.h"
 #include "proc/thread.h"
 #include "proc/process.h"
-#include "bitmap.h"
+#include "rtl/bitmap.h"
 
 uint32_t _value = 0;
 struct mutex _mutex;
@@ -38,7 +38,7 @@ int unit_test(uint32_t round)
 	slab_cache_t ut_cache;
 	void *obj[4];
 	struct spinlock lock;
-	void *buf_ptr;
+	void *buf_ptr[32];
 	ptr_t start;
 	size_t size;
 	struct bitmap bm;
@@ -46,18 +46,28 @@ int unit_test(uint32_t round)
 	char *pch;
 
 	/* Kernel memory pool test */
-	buf_ptr = kmalloc(4321, 0);
-	if (!buf_ptr) {
-		DEBUG(DL_DBG, ("malloc from kernel pool failed.\n"));
-		goto out;
-	} else {
-		memset(buf_ptr, 0, 4321);
-		pch = buf_ptr;
-		for (i = 0; i < 4321; i++) {
-			ASSERT(pch[i] == 0);
+	memset(buf_ptr, 0, sizeof(buf_ptr));
+	for (i = 0; i < 32; i++) {
+		size_t s;
+		
+		if (i % 2) {
+			s = 4321;
+		} else {
+			s = 1234;
 		}
-		kfree(buf_ptr);
+		buf_ptr[i] = kmalloc(s, 0);
+		if (!buf_ptr[i]) {
+			DEBUG(DL_DBG, ("malloc from kernel pool failed.\n"));
+			goto out;
+		} else {
+			memset(buf_ptr[i], 0, s);
+		}
 	}
+	for (i = 0; i < 32; i++) {
+		ASSERT(buf_ptr[i] != NULL);
+		kfree(buf_ptr[i]);
+	}
+	DEBUG(DL_DBG, ("memory pool test finished.\n"));
 
 
 	/* Memory map test */

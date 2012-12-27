@@ -5,8 +5,8 @@
 #include "matrix/const.h"
 #include "hal/cpu.h"
 #include "hal/spinlock.h"
-#include "avltree.h"
-#include "notifier.h"
+#include "rtl/avltree.h"
+#include "rtl/notifier.h"
 #include "timer.h"
 #include "proc/signal.h"
 

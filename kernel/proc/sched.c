@@ -175,11 +175,11 @@ static struct thread *sched_pick_thread(struct sched_cpu *c)
 	struct thread *t;
 	struct list *l;
 
-	t = NULL;
-
 	if (!c->active->bitmap) {
 		return NULL;
 	}
+
+	t = NULL;
 
 	q = bitops_fls(c->active->bitmap);
 	ASSERT(!LIST_EMPTY(&c->active->threads[q]));

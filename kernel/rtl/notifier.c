@@ -1,9 +1,9 @@
 #include <types.h>
 #include <stddef.h>
 #include "matrix/matrix.h"
-#include "debug.h"
 #include "mm/malloc.h"
-#include "notifier.h"
+#include "debug.h"
+#include "rtl/notifier.h"
 
 struct notifier_func {
 	struct list link;	// Link to other functions
