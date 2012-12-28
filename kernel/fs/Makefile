@@ -6,6 +6,7 @@ OBJ := ../../bin/obji386
 TARGETOBJ := \
 	$(OBJ)/vfs.o \
 	$(OBJ)/initrd.o \
+	$(OBJ)/devfs.o \
 
 .PHONY: clean help
 
