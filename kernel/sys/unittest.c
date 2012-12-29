@@ -32,7 +32,7 @@ static void unit_test_thread(void *ctx)
 	}
 }
 
-int unit_test(uint32_t round)
+int do_unit_test(uint32_t round)
 {
 	int i, r, rc = 0;
 	slab_cache_t ut_cache;

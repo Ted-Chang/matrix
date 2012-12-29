@@ -35,7 +35,7 @@ struct vfs_mount {
 struct vfs_node_ops {
 	int (*read)(struct vfs_node *, uint32_t, uint32_t, uint8_t *);
 	int (*write)(struct vfs_node *, uint32_t, uint32_t, uint8_t *);
-	int (*open)(struct vfs_node *);
+	int (*create)(struct vfs_node *, const char *, uint32_t, struct vfs_node **);
 	int (*close)(struct vfs_node *);
 	struct dirent *(*readdir)(struct vfs_node *, uint32_t);
 	struct vfs_node *(*finddir)(struct vfs_node *, char *);
@@ -76,9 +76,8 @@ extern int vfs_node_deref(struct vfs_node *node);
 extern void vfs_node_free(struct vfs_node *node);
 extern int vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer);
 extern int vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer);
-extern int vfs_open(struct vfs_node *node);
 extern int vfs_close(struct vfs_node *node);
-extern int vfs_create(const char *path, int type, struct vfs_node **node);
+extern int vfs_create(const char *path, uint32_t type, struct vfs_node **node);
 extern struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index);
 extern struct vfs_node *vfs_finddir(struct vfs_node *node, char *name);
 extern struct vfs_node *vfs_clone(struct vfs_node *src);

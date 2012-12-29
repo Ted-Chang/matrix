@@ -26,8 +26,23 @@ int nr_root_nodes;
 
 struct dirent dirent;
 
+static int initrd_create(struct vfs_node *parent, const char *name,
+			 uint32_t type, struct vfs_node **np)
+{
+	int rc = 0;
+
+	return rc;
+}
+
+static int initrd_close(struct vfs_node *node)
+{
+	int rc = 0;
+
+	return rc;
+}
+
 static int initrd_read(struct vfs_node *node, uint32_t offset,
-			    uint32_t size, uint8_t *buffer)
+		       uint32_t size, uint8_t *buffer)
 {
 	struct initrd_file_header hdr;
 
@@ -75,8 +90,8 @@ static struct vfs_node *initrd_finddir(struct vfs_node *node, char *name)
 static struct vfs_node_ops _ramfs_node_ops = {
 	.read = initrd_read,
 	.write = NULL,
-	.open = NULL,
-	.close = NULL,
+	.create = initrd_create,
+	.close = initrd_close,
 	.readdir = initrd_readdir,
 	.finddir = initrd_finddir
 };

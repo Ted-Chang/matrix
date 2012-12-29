@@ -193,6 +193,13 @@ void load_modules()
 	mod->handle = KMOD_FLPY;	// TODO: use file handle in the future
 	list_add_tail(&mod->link, &_boot_module_list);
 
+	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
+	LIST_INIT(&mod->link);
+	mod->name = kmalloc(MODULE_NAME_MAX, MM_BOOT_F);
+	strncpy(mod->name, "devfs", MODULE_NAME_MAX);
+	mod->handle = KMOD_DEVFS;	// TODO: use file handle in the future
+	list_add_tail(&mod->link, &_boot_module_list);
+
 	/* Load all kernel modules */
 	LIST_FOR_EACH(l, &_boot_module_list) {
 		mod = LIST_ENTRY(l, struct boot_module, link);

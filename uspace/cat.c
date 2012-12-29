@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <syscall.h>
+#include <sys/stat.h>
 #include <errno.h>
 
 static void usage();
@@ -39,14 +40,28 @@ int cat_file(int fd)
 {
 	int rc = 0;
 	char buf[1024] = {0};
+	struct stat st;
+
+	rc = lstat(fd, &st);
+	if (rc == -1) {
+		printf("lstat failed.\n");
+		goto out;
+	}
+
+	if (st.st_mode == _IFDIR) {
+		printf("cannot cat directory.\n");
+		goto out;
+	}
 
 	rc = read(fd, buf, 1024);
 	if (rc == -1) {
 		printf("read failed.\n");
+		goto out;
 	} else {
 		printf("%s\n", buf);
 	}
 
+ out:
 	return rc;
 }
 

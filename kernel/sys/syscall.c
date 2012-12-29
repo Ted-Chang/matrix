@@ -28,9 +28,15 @@ static void syscall_handler(struct registers *regs);
 static struct irq_hook _syscall_hook;
 static char _hostname[MAX_HOSTNAME_LEN + 1];
 
-extern int unit_test(uint32_t round);
+extern int do_unit_test(uint32_t round);
 
-int open(const char *file, int flags, int mode)
+int do_putstr(const char *str)
+{
+	putstr(str);
+	return 0;
+}
+
+int do_open(const char *file, int flags, int mode)
 {
 	int fd = -1, rc = 0;
 	struct vfs_node *n;
@@ -48,7 +54,7 @@ int open(const char *file, int flags, int mode)
 			DEBUG(DL_WRN, ("vfs_create failed, path:%s, error:%d\n",
 				       file, rc));
 		}
-	} 
+	}
 
 	if (n) {
 		/* Attach the file descriptor to the process */
@@ -58,7 +64,7 @@ int open(const char *file, int flags, int mode)
 	return fd;
 }
 
-int close(int fd)
+int do_close(int fd)
 {
 	int rc = -1;
 	struct vfs_node *n;
@@ -77,7 +83,7 @@ out:
 	return rc;
 }
 
-int read(int fd, char *buf, int len)
+int do_read(int fd, char *buf, int len)
 {
 	uint32_t out = -1;
 	struct vfs_node *n;
@@ -91,7 +97,7 @@ int read(int fd, char *buf, int len)
 	return out;
 }
 
-int write(int fd, char *buf, int len)
+int do_write(int fd, char *buf, int len)
 {
 	uint32_t out = -1;
 	struct vfs_node *n;
@@ -105,13 +111,13 @@ int write(int fd, char *buf, int len)
 	return out;
 }
 
-int exit(int rc)
+int do_exit(int rc)
 {
 	process_exit(rc);
 	return rc;
 }
 
-int gettimeofday(struct timeval *tv, struct timezone *tz)
+int do_gettimeofday(struct timeval *tv, struct timezone *tz)
 {
 	struct tm t;
 	useconds_t usecs;
@@ -129,12 +135,12 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 	return 0;
 }
 
-int settimeofday(const struct timeval *tv, const struct timezone *tz)
+int do_settimeofday(const struct timeval *tv, const struct timezone *tz)
 {
 	return 0;
 }
 
-int readdir(int fd, int index, struct dirent *entry)
+int do_readdir(int fd, int index, struct dirent *entry)
 {
 	int rc = -1;
 	struct vfs_node *n;
@@ -165,7 +171,7 @@ out:
 	return rc;
 }
 
-int lseek(int fd, int offset, int whence)
+int do_lseek(int fd, int offset, int whence)
 {
 	int off = -1;
 	struct vfs_node *n;
@@ -197,7 +203,7 @@ out:
 	return off;
 }
 
-int lstat(int fd, void *stat)
+int do_lstat(int fd, void *stat)
 {
 	int rc = -1;
 	struct vfs_node *n;
@@ -235,12 +241,14 @@ int lstat(int fd, void *stat)
 	s->st_gid = n->gid;
 	s->st_rdev = 0;
 	s->st_size = n->length;
+
+	rc = 0;
 	
 out:
 	return rc;
 }
 
-int chdir(const char *path)
+int do_chdir(const char *path)
 {
 	int rc = -1;
 	struct vfs_node *n;
@@ -253,7 +261,7 @@ out:
 	return rc;
 }
 
-int mkdir(const char *path, uint32_t mode)
+int do_mkdir(const char *path, uint32_t mode)
 {
 	int rc = -1;
 
@@ -265,7 +273,7 @@ out:
 	return rc;
 }
 
-int gethostname(char *name, size_t len)
+int do_gethostname(char *name, size_t len)
 {
 	int rc = -1;
 
@@ -280,7 +288,7 @@ out:
 	return rc;
 }
 
-int sethostname(const char *name, size_t len)
+int do_sethostname(const char *name, size_t len)
 {
 	int rc = -1;
 
@@ -295,12 +303,12 @@ out:
 	return rc;
 }
 
-int getuid()
+int do_getuid()
 {
 	return CURR_PROC->uid;
 }
 
-int setuid(uid_t uid)
+int do_setuid(uid_t uid)
 {
 	int rc = -1;
 
@@ -310,12 +318,12 @@ int setuid(uid_t uid)
 	return rc;
 }
 
-int getgid()
+int do_getgid()
 {
 	return CURR_PROC->gid;
 }
 
-int setgid(gid_t gid)
+int do_setgid(gid_t gid)
 {
 	int rc = -1;
 
@@ -325,12 +333,12 @@ int setgid(gid_t gid)
 	return rc;
 }
 
-int getpid()
+int do_getpid()
 {
 	return process_getid();
 }
 
-int sleep(uint32_t ms)
+int do_sleep(uint32_t ms)
 {
 	timer_delay(ms);
 
@@ -372,7 +380,7 @@ static void free_args(char **args)
 	kfree(args);
 }
 
-int create_process(const char *path, const char *args[], int flags, int priority)
+int do_create_process(const char *path, const char *args[], int flags, int priority)
 {
 	int rc = -1;
 	char **arguments = NULL;
@@ -409,7 +417,7 @@ int create_process(const char *path, const char *args[], int flags, int priority
 	return rc;
 }
 
-int waitpid(int pid)
+int do_waitpid(int pid)
 {
 	int rc = -1;
 	struct process *proc;
@@ -446,16 +454,21 @@ int waitpid(int pid)
 	return rc;
 }
 
-int clear()
+int do_clear()
 {
 	clear_scr();
 	return 0;
 }
 
-int shutdown()
+int do_shutdown()
 {
 	platform_shutdown();
 	return 0;
+}
+
+int do_syslog(char *buf, size_t len)
+{
+	return -1;
 }
 
 /*
@@ -465,34 +478,35 @@ int shutdown()
  *   [3] define macro in /sdk/syscalls.c
  *   [4] define macro in /sdk/include/syscall.h
  */
-uint32_t _nr_syscalls = 27;
+uint32_t _nr_syscalls = 28;
 static void *_syscalls[] = {
-	putstr,
-	open,
-	read,
-	write,
-	close,
-	exit,
-	gettimeofday,
-	settimeofday,
-	readdir,
-	lseek,
-	lstat,
-	chdir,
-	mkdir,
-	gethostname,
-	sethostname,
-	getuid,
-	setuid,
-	getgid,
-	setgid,
-	getpid,
-	sleep,
-	create_process,
-	waitpid,
-	unit_test,
-	clear,
-	shutdown,
+	do_putstr,
+	do_open,
+	do_read,
+	do_write,
+	do_close,
+	do_exit,
+	do_gettimeofday,
+	do_settimeofday,
+	do_readdir,
+	do_lseek,
+	do_lstat,
+	do_chdir,
+	do_mkdir,
+	do_gethostname,
+	do_sethostname,
+	do_getuid,
+	do_setuid,
+	do_getgid,
+	do_setgid,
+	do_getpid,
+	do_sleep,
+	do_create_process,
+	do_waitpid,
+	do_unit_test,
+	do_clear,
+	do_shutdown,
+	do_syslog,
 	NULL
 };
 

@@ -35,6 +35,7 @@ DEFN_SYSCALL1(waitpid, 22, int)
 DEFN_SYSCALL1(unit_test, 23, uint32_t)
 DEFN_SYSCALL0(clear, 24)
 DEFN_SYSCALL0(shutdown, 25)
+DEFN_SYSCALL2(syslog, 26, char *, size_t)
 
 
 int open(const char *file, int flags, int mode)
@@ -165,4 +166,9 @@ int clear()
 int shutdown()
 {
 	return mtx_shutdown();
+}
+
+int syslog(char *buf, size_t len)
+{
+	return mtx_syslog(buf, len);
 }

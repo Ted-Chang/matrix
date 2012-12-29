@@ -4,6 +4,7 @@
 #define KMOD_RAMFS	1
 #define KMOD_KBD	2
 #define KMOD_FLPY	3
+#define KMOD_DEVFS	4
 
 typedef int (*module_init_func_t)(void);
 

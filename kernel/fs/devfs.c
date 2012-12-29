@@ -13,11 +13,26 @@ struct vfs_type _devfs_type = {
 	.mount = devfs_mount,
 };
 
+static int devfs_create(struct vfs_node *parent, const char *name,
+			uint32_t type, struct vfs_node **np)
+{
+	int rc = -1;
+
+	return rc;
+}
+
+static int devfs_close(struct vfs_node *n)
+{
+	int rc = -1;
+
+	return rc;
+}
+
 static struct vfs_node_ops _devfs_node_ops = {
 	.read = NULL,
 	.write = NULL,
-	.open = NULL,
-	.close = NULL,
+	.create = devfs_create,
+	.close = devfs_close,
 	.readdir = NULL,
 	.finddir = NULL
 };

@@ -13,6 +13,7 @@
 extern int initrd_init(void);
 extern int keyboard_init(void);
 extern int floppy_init(void);
+extern int devfs_init(void);
 
 /* List of loaded modules */
 static struct list _module_list = {
@@ -41,6 +42,11 @@ static int load_module_stub(struct module *m)
 		m->name = "flpy";
 		m->desc = "Floppy driver";
 		m->init = floppy_init;
+		break;
+	case KMOD_DEVFS:
+		m->name = "devfs";
+		m->desc = "Device File System";
+		m->init = devfs_init;
 		break;
 	default:
 		rc = -1;

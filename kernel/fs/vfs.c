@@ -120,19 +120,47 @@ int vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *bu
 	return rc;
 }
 
-int vfs_open(struct vfs_node *node)
+int vfs_create(const char *path, uint32_t type, struct vfs_node **np)
 {
 	int rc = -1;
+	char *dir, *name;
+	struct vfs_node *parent, *n;
 
-	if (!node) {
+	parent = NULL;
+	n = NULL;
+	dir = NULL; name = NULL;	// TODO: split the dir and name
+	
+	/* Check whether file name is valid */
+	if ((strcmp(name, ".") == 0) || (strcmp(name, "..") == 0)) {
 		goto out;
 	}
-	
-	if (node->ops->open != NULL) {
-		rc = node->ops->open(node);
+
+	/* Lookup the parent node */
+	parent = vfs_lookup(dir, VFS_DIRECTORY);
+	if (!parent) {
+		DEBUG(DL_DBG, ("parent not exist.\n"));
+		goto out;
+	}
+
+	if (!parent->ops->create) {
+		DEBUG(DL_DBG, ("create not supported by file system.\n"));
+		goto out;
+	}
+
+	/* Create file node */
+	rc = parent->ops->create(parent, name, type, &n);
+	if (rc != 0) {
+		goto out;
+	}
+
+	if (np) {
+		*np = n;
 	}
 
  out:
+	if (rc != 0) {
+		;
+	}
 	return rc;
 }
 
@@ -316,11 +344,6 @@ out:
 		kfree(dup);
 	}
 	return n;
-}
-
-int vfs_create(const char *path, int type, struct vfs_node **node)
-{
-	return -1;
 }
 
 static struct vfs_type *vfs_type_lookup_internal(const char *name)

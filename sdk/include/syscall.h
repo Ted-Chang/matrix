@@ -80,6 +80,7 @@ DECL_SYSCALL1(wait, int)
 DECL_SYSCALL1(unit_test, uint32_t);
 DECL_SYSCALL0(clear);
 DECL_SYSCALL0(shutdown);
+DECL_SYSCALL2(syslog, char *, size_t);
 /* System call declaration end */
 
 #endif	/* __SYSCALL_H__ */

@@ -22,6 +22,7 @@ int main(int argc, char **argv)
 		printf("open %s failed.\n", path);
 	} else {
 		rc = list_directory(fd);
+		close(fd);
 	}
 
 	return rc;
@@ -40,6 +41,7 @@ int list_directory(int fd)
 		} else {
 			break;
 		}
+
 		i++;
 	}
 
