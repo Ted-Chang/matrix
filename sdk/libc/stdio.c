@@ -8,7 +8,7 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <string.h>
-#include "intrnl.h"
+#include "format.h"
 #include "div64.h"
 #ifdef __KERNEL__
 #include "mm/page.h"		// PAGE_SIZE

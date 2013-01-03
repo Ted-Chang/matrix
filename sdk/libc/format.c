@@ -1,7 +1,7 @@
 #include <types.h>
 #include <stddef.h>
 #include <ctype.h>
-#include "intrnl.h"
+#include "format.h"
 #include "div64.h"
 
 int skip_atoi(const char **s)

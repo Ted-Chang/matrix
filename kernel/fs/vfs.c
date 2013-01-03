@@ -1,11 +1,13 @@
 #include <stddef.h>
 #include <string.h>
-#include "fs.h"
-#include "debug.h"
+#include "matrix/matrix.h"
 #include "mm/malloc.h"
 #include "mm/slab.h"
 #include "mutex.h"
 #include "proc/process.h"
+#include "fs.h"
+#include "rtl/fsrtl.h"
+#include "debug.h"
 
 /* List of registered File Systems */
 static struct list _fs_list = {
@@ -128,7 +130,14 @@ int vfs_create(const char *path, uint32_t type, struct vfs_node **np)
 
 	parent = NULL;
 	n = NULL;
-	dir = NULL; name = NULL;	// TODO: split the dir and name
+	dir = NULL;
+	name = NULL;
+
+	/* Split the path into directory and file name */
+	rc = split_path(path, &dir, &name, 0);
+	if (rc != 0) {
+		goto out;
+	}
 	
 	/* Check whether file name is valid */
 	if ((strcmp(name, ".") == 0) || (strcmp(name, "..") == 0)) {
@@ -153,6 +162,8 @@ int vfs_create(const char *path, uint32_t type, struct vfs_node **np)
 		goto out;
 	}
 
+	DEBUG(DL_DBG, ("create(%s) node(%p).\n", path, n));
+
 	if (np) {
 		*np = n;
 	}
@@ -160,6 +171,12 @@ int vfs_create(const char *path, uint32_t type, struct vfs_node **np)
  out:
 	if (rc != 0) {
 		;
+	}
+	if (dir) {
+		kfree(dir);
+	}
+	if (name) {
+		kfree(name);
 	}
 	return rc;
 }

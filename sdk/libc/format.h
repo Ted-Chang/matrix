@@ -1,5 +1,5 @@
-#ifndef __INTRNL_H__
-#define __INTRNL_H__
+#ifndef __FORMAT_H__
+#define __FORMAT_H__
 
 #define ZEROPAD	1		// pad with zero
 #define SIGN	2		// unsigned or signed long
@@ -47,4 +47,4 @@ char *put_dec_full(char *buf, unsigned q);
 char *put_dec(char *buf, unsigned long long num);
 int format_decode(const char *fmt, struct printf_spec *spec);
 
-#endif	/* __INTRNL_H__ */
+#endif	/* __FORMAT_H__ */

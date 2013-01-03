@@ -9,6 +9,7 @@ TARGETOBJ := \
 	$(OBJ)/notifier.o \
 	$(OBJ)/object.o \
 	$(OBJ)/bitmap.o \
+	$(OBJ)/name.o \
 
 .PHONY: clean help
 

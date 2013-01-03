@@ -12,7 +12,7 @@ INPUT(../bin/lib/string.o)
 INPUT(../bin/lib/vsprintf.o)
 INPUT(../bin/lib/stdio.o)
 INPUT(../bin/lib/printf.o)
-INPUT(../bin/lib/intrnl.o)
+INPUT(../bin/lib/format.o)
 phys = 0x20000000;
 SECTIONS
 {
