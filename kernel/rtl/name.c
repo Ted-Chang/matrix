@@ -33,7 +33,7 @@ int split_path(const char *path, char **dir, char **file, int flags)
 	/* Copy the file name */
 	if (file) {
 		/* Do not include `/' */
-		*file = kstrdup(path[pos], flags);
+		*file = kstrdup(&path[pos], flags);
 		if (!(*file)) {
 			goto out;
 		}

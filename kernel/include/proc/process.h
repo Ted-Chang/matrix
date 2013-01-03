@@ -31,7 +31,7 @@ struct process {
 	
 	int flags;				// Behaviour flags for the process
 	int8_t priority;			// Current scheduling priority
-	char name[P_NAME_LEN];			// Name of the process, include `\0'
+	char *name;				// Name of the process
 
 	struct list threads;			// List of threads
 

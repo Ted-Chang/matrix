@@ -125,7 +125,7 @@ void cat_test()
 		goto out;
 	}
 
-	rc = waitpid(cat[0], &status, 0);
+	rc = waitpid(rc, &status, 0);
 	if (rc == -1) {
 		printf("waiting %s failed, err(%d).\n", cat[0], rc);
 		goto out;
@@ -148,6 +148,12 @@ void clear_test()
 	rc = create_process(clear[0], clear, 0, 16);
 	if (rc == -1) {
 		printf("create_process(%s) failed, err(%d).\n", clear[0], rc);
+		goto out;
+	}
+
+	rc = waitpid(rc, &status, 0);
+	if (rc == -1) {
+		printf("waiting %s failed, err(%d).\n", clear[0], rc);
 		goto out;
 	}
 

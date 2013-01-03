@@ -11,6 +11,7 @@
 #include "proc/thread.h"
 #include "proc/process.h"
 #include "rtl/bitmap.h"
+#include "kstrdup.h"
 
 uint32_t _value = 0;
 struct mutex _mutex;
@@ -43,7 +44,8 @@ int do_unit_test(uint32_t round)
 	size_t size;
 	struct bitmap bm;
 	u_long *bm_buf;
-	char *pch;
+	char *pch, *dir = NULL, *name = NULL;
+	char *path = "/dev";
 
 	/* Kernel memory pool test */
 	memset(buf_ptr, 0, sizeof(buf_ptr));
@@ -151,6 +153,15 @@ int do_unit_test(uint32_t round)
 		goto out;
 	}
 	DEBUG(DL_DBG, ("mutex test finished.\n"));
+
+
+	/* Test fsrtl functions */
+	rc = split_path(path, &dir, &name, 0);
+	if (rc == 0) {
+		DEBUG(DL_DBG, ("dir(%s), name(%s).\n", dir, name));
+		kfree(dir);
+		kfree(name);
+	}
 
 
  out:

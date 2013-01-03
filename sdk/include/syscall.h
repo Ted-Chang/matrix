@@ -54,12 +54,13 @@
 	}
 
 /* Declare your system call here */
+DECL_SYSCALL0(null);
+DECL_SYSCALL1(exit, int);
 DECL_SYSCALL1(putstr, const char *);
 DECL_SYSCALL3(open, const char *, int, int);
 DECL_SYSCALL3(read, int, char *, int);
 DECL_SYSCALL3(write, int, char *, int);
 DECL_SYSCALL1(close, int);
-DECL_SYSCALL1(exit, int);
 DECL_SYSCALL2(gettimeofday, void *, void *);
 DECL_SYSCALL2(settimeofday, const void *, const void *);
 DECL_SYSCALL3(readdir, int, int, void *);

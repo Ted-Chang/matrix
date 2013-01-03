@@ -30,6 +30,17 @@ static char _hostname[MAX_HOSTNAME_LEN + 1];
 
 extern int do_unit_test(uint32_t round);
 
+int do_null()
+{
+	return 0;
+}
+
+int do_exit(int rc)
+{
+	process_exit(rc);
+	return rc;
+}
+
 int do_putstr(const char *str)
 {
 	putstr(str);
@@ -109,12 +120,6 @@ int do_write(int fd, char *buf, int len)
 	out = vfs_write(n, 0, len, (uint8_t *)buf);
 	
 	return out;
-}
-
-int do_exit(int rc)
-{
-	process_exit(rc);
-	return rc;
 }
 
 int do_gettimeofday(struct timeval *tv, struct timezone *tz)
@@ -480,12 +485,13 @@ int do_syslog(char *buf, size_t len)
  */
 uint32_t _nr_syscalls = 28;
 static void *_syscalls[] = {
+	do_null,
+	do_exit,
 	do_putstr,
 	do_open,
 	do_read,
 	do_write,
 	do_close,
-	do_exit,
 	do_gettimeofday,
 	do_settimeofday,
 	do_readdir,

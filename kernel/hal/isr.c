@@ -34,11 +34,12 @@ void isr_handler(struct registers regs)
 {
 	struct irq_hook *hook;
 	boolean_t processed = FALSE;
+	uint8_t int_no;
 	
 	/* Avoid the problem caused by the signed interrupt number if it is
-	 * max than 0x80
+	 * more than 0x80
 	 */
-	uint8_t int_no = regs.int_no & 0xFF;
+	int_no = regs.int_no & 0xFF;
 
 	hook = _irq_chains[int_no].head;
 	while (hook) {
@@ -62,11 +63,19 @@ void isr_handler(struct registers regs)
 void irq_handler(struct registers regs)
 {
 	struct irq_hook *hook;
+	uint8_t int_no;
+
+	ASSERT(regs.int_no <= 0xFF);
+
+	/* Avoid the problem caused by the signed interrupt number if it is
+	 * more than 0x80
+	 */
+	int_no = regs.int_no;
 	
 	/* Notify the PIC that we have done so we can accept >= priority IRQs now */
-	irq_done(regs.int_no);
+	irq_done(int_no);
 
-	hook = _irq_chains[regs.int_no].head;
+	hook = _irq_chains[int_no].head;
 	while (hook) {
 		isr_t handler = hook->handler;
 		if (handler) {

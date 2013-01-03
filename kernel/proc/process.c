@@ -14,6 +14,7 @@
 #include "mm/mmu.h"
 #include "mm/malloc.h"
 #include "mm/slab.h"
+#include "kstrdup.h"
 #include "rtl/object.h"
 #include "proc/process.h"
 #include "proc/sched.h"
@@ -208,8 +209,7 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 		p->id = 0;		// The first process must be kernel process
 	}
 	
-	strncpy(p->name, name, P_NAME_LEN - 1);
-	p->name[P_NAME_LEN - 1] = 0;
+	p->name = kstrdup(name, 0);
 
 	p->uid = 500;			// FixMe: set it to the currently logged user
 	p->gid = 500;			// FixMe: set it to the current user's group
@@ -534,6 +534,8 @@ int process_destroy(struct process *proc)
 
 	notifier_clear(&proc->death_notifier);
 
+	kfree(proc->name);
+	
 	/* Free this process to our process cache */
 	slab_cache_free(&_proc_cache, proc);
 
