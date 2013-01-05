@@ -7,6 +7,7 @@ static void usage();
 static void echo_test();
 static void ls_test();
 static void cat_test();
+static void mkdir_test();
 static void clear_test();
 static void shutdown_test();
 
@@ -46,6 +47,8 @@ int main(int argc, char **argv)
 	ls_test();
 
 	cat_test();
+
+	mkdir_test();
 
 	clear_test();
 
@@ -128,6 +131,33 @@ void cat_test()
 	rc = waitpid(rc, &status, 0);
 	if (rc == -1) {
 		printf("waiting %s failed, err(%d).\n", cat[0], rc);
+		goto out;
+	}
+
+ out:
+	return;
+}
+
+void mkdir_test()
+{
+	int rc, status;
+	char *mkdir[] = {
+		"/mkdir",
+		"/dev",
+		NULL
+	};
+
+	printf("unit_test make directory.\n");
+
+	rc = create_process(mkdir[0], mkdir, 0, 16);
+	if (rc == -1) {
+		printf("create_process(%s) failed, err(%d).\n", mkdir[0], rc);
+		goto out;
+	}
+
+	rc = waitpid(rc, &status, 0);
+	if (rc == -1) {
+		printf("waiting %s failed, err(%d).\n", mkdir[0], rc);
 		goto out;
 	}
 

@@ -90,7 +90,7 @@ int do_close(int fd)
 
 	rc = fd_detach(NULL, fd);
 
-out:
+ out:
 	return rc;
 }
 
@@ -100,8 +100,9 @@ int do_read(int fd, char *buf, int len)
 	struct vfs_node *n;
 
 	n = fd_2_vfs_node(NULL, fd);
-	if (!n)
+	if (!n) {
 		return -1;
+	}
 
 	out = vfs_read(n, 0, len, (uint8_t *)buf);
 
@@ -114,8 +115,9 @@ int do_write(int fd, char *buf, int len)
 	struct vfs_node *n;
 
 	n = fd_2_vfs_node(NULL, fd);
-	if (!n)
+	if (!n) {
 		return -1;
+	}
 
 	out = vfs_write(n, 0, len, (uint8_t *)buf);
 	
@@ -172,7 +174,7 @@ int do_readdir(int fd, int index, struct dirent *entry)
 
 	// TODO: Need to make a convention whether the directory entry
 	// will be freed by us.
-out:
+ out:
 	return rc;
 }
 
@@ -204,7 +206,7 @@ int do_lseek(int fd, int offset, int whence)
 		DEBUG(DL_DBG, ("invalid whence(%d)\n", whence));
 	}
 
-out:
+ out:
 	return off;
 }
 
@@ -215,8 +217,9 @@ int do_lstat(int fd, void *stat)
 	struct stat *s;
 	uint32_t flags = 0;
 
-	if (!stat)
+	if (!stat) {
 		goto out;
+	}
 	
 	n = fd_2_vfs_node(NULL, fd);
 	if (!n) {
@@ -226,17 +229,17 @@ int do_lstat(int fd, void *stat)
 
 	s = (struct stat *)stat;
 	if (n->type == VFS_FILE)
-		flags = _IFREG;
+		flags = S_IFREG;
 	if (n->type == VFS_DIRECTORY)
-		flags = _IFDIR;
+		flags = S_IFDIR;
 	if (n->type == VFS_PIPE)
-		flags = _IFIFO;
+		flags = S_IFIFO;
 	if (n->type == VFS_CHARDEVICE)
-		flags = _IFCHR;
+		flags = S_IFCHR;
 	if (n->type == VFS_BLOCKDEVICE)
-		flags = _IFBLK;
+		flags = S_IFBLK;
 	if (n->type == VFS_SYMLINK)
-		flags = _IFLNK;
+		flags = S_IFLNK;
 
 	s->st_dev = 0;
 	s->st_ino = n->inode;
@@ -249,7 +252,7 @@ int do_lstat(int fd, void *stat)
 
 	rc = 0;
 	
-out:
+ out:
 	return rc;
 }
 
@@ -262,19 +265,32 @@ int do_chdir(const char *path)
 		goto out;
 	}
 
-out:
+ out:
 	return rc;
 }
 
 int do_mkdir(const char *path, uint32_t mode)
 {
 	int rc = -1;
+	struct vfs_node *n;
 
 	if (!path) {
 		goto out;
 	}
 
-out:
+	n = vfs_lookup(path, VFS_DIRECTORY);
+	if (n) {
+		goto out;
+	}
+
+	/* Create the directory */
+	rc = vfs_create(path, VFS_DIRECTORY, &n);
+	if (rc != 0) {
+		DEBUG(DL_WRN, ("vfs_create failed, path(%s) error(%d).\n",
+			       path, rc));
+	}
+
+ out:
 	return rc;
 }
 
@@ -289,7 +305,7 @@ int do_gethostname(char *name, size_t len)
 	strncpy(name, _hostname, len);
 	rc = 0;
 
-out:
+ out:
 	return rc;
 }
 
@@ -304,7 +320,7 @@ int do_sethostname(const char *name, size_t len)
 	memcpy(_hostname, name, len);
 	rc = 0;
 
-out:
+ out:
 	return rc;
 }
 

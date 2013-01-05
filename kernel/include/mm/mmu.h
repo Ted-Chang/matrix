@@ -7,6 +7,7 @@
 
 #include "hal/isr.h"	// For struct registers
 #include "page.h"
+#include "mutex.h"
 
 struct pdir;
 
@@ -19,6 +20,9 @@ struct mmu_ctx {
 
 	/* Physical address of the page directory */
 	phys_addr_t pdbr;
+
+	/* MMU context lock */
+	struct mutex lock;
 };
 
 extern struct mmu_ctx _kernel_mmu_ctx;

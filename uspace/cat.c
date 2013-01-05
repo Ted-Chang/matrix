@@ -48,7 +48,7 @@ int cat_file(int fd)
 		goto out;
 	}
 
-	if (st.st_mode == _IFDIR) {
+	if (S_ISDIR(st.st_mode)) {
 		printf("cannot cat directory.\n");
 		goto out;
 	}

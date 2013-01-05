@@ -89,6 +89,16 @@ static struct ptbl *clone_ptbl(struct ptbl *src, phys_addr_t *phys_addr)
 	return ptbl;
 }
 
+void mmu_acquire_ctx(struct mmu_ctx *ctx)
+{
+	;
+}
+
+void mmu_release_ctx(struct mmu_ctx *ctx)
+{
+	;
+}
+
 /**
  * Get a page from the specified mmu context
  * @ctx		- mmu context
@@ -341,6 +351,8 @@ struct mmu_ctx *mmu_create_ctx()
 	memset(ctx->pdir, 0, sizeof(struct pdir));
 	ctx->pdbr = pdbr;
 	ASSERT((ctx->pdbr % PAGE_SIZE) == 0);
+
+	mutex_init(&ctx->lock, "mmu-mutex", 0);	// TODO: flags need to be confirmed
 
 	return ctx;
 }

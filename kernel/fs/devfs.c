@@ -18,12 +18,16 @@ static int devfs_create(struct vfs_node *parent, const char *name,
 {
 	int rc = -1;
 
+	DEBUG(DL_DBG, ("create device(%s), type(%d).\n", name, type));
+
 	return rc;
 }
 
 static int devfs_close(struct vfs_node *n)
 {
 	int rc = -1;
+
+	DEBUG(DL_DBG, ("close device(%s).\n", n->name));
 
 	return rc;
 }

@@ -29,14 +29,18 @@ struct dirent dirent;
 static int initrd_create(struct vfs_node *parent, const char *name,
 			 uint32_t type, struct vfs_node **np)
 {
-	int rc = 0;
+	int rc = -1;
+
+	DEBUG(DL_DBG, ("create(%s), type(%d).\n", name, type));
 
 	return rc;
 }
 
 static int initrd_close(struct vfs_node *node)
 {
-	int rc = 0;
+	int rc = -1;
+
+	DEBUG(DL_DBG, ("close(%s).\n", node->name));
 
 	return rc;
 }
@@ -78,8 +82,9 @@ static struct vfs_node *initrd_finddir(struct vfs_node *node, char *name)
 	int i;
 
 	for (i = 0; i < nr_root_nodes; i++) {
-		if (!strcmp(name, root_nodes[i].name))
+		if (!strcmp(name, root_nodes[i].name)) {
 			return &root_nodes[i];
+		}
 	}
 
 	DEBUG(DL_DBG, ("%s not found.\n", name));
