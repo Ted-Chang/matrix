@@ -17,6 +17,7 @@ TARGETOBJ := \
 	$(OBJ)/sprintf.o \
 	$(OBJ)/printf.o \
 	$(OBJ)/format.o \
+	$(OBJ)/time.o \
 
 
 .PHONY: clean help

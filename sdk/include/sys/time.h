@@ -1,6 +1,10 @@
 #ifndef __TIME_H__
 #define __TIME_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif	/* __cplusplus */
+
 typedef unsigned long clock_t;
 
 struct tm {
@@ -27,5 +31,9 @@ struct timezone {
 	int tz_minuteswest;	/* minutes west of Greenwich */
 	int tz_dsttime;		/* type of DST correction */
 };
+
+#ifdef __cplusplus
+}
+#endif	/* __cplusplus */
 
 #endif	/* __TIME_H__ */

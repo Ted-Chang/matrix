@@ -11,8 +11,10 @@ INPUT(../bin/lib/div64.o)
 INPUT(../bin/lib/string.o)
 INPUT(../bin/lib/vsprintf.o)
 INPUT(../bin/lib/stdio.o)
+INPUT(../bin/lib/sprintf.o)
 INPUT(../bin/lib/printf.o)
 INPUT(../bin/lib/format.o)
+INPUT(../bin/lib/time.o)
 phys = 0x20000000;
 SECTIONS
 {
