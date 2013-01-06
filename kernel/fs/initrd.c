@@ -18,11 +18,11 @@ struct vfs_type _ramfs_type = {
 	.mount = initrd_mount,
 };
 
-struct initrd_header *initrd_hdr;
-struct initrd_file_header *file_hdrs;
-struct vfs_node *root_nodes;
+struct initrd_header *initrd_hdr = NULL;
+struct initrd_file_header *file_hdrs = NULL;
+struct vfs_node *root_nodes = NULL;
 
-int nr_root_nodes;
+int nr_root_nodes = 0;
 
 struct dirent dirent;
 
@@ -67,7 +67,7 @@ static int initrd_read(struct vfs_node *node, uint32_t offset,
 static struct dirent *initrd_readdir(struct vfs_node *node, uint32_t index)
 {
 	if (index - 1 >= nr_root_nodes) {
-		return 0;
+		return NULL;
 	}
 
 	strcpy(dirent.name, root_nodes[index - 1].name);

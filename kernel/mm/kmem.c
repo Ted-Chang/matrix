@@ -220,7 +220,7 @@ struct kmem_pool *create_pool(uint32_t start, uint32_t end, uint32_t max,
 	return pool;
 }
 
-static uint32_t find_smallest_hole(struct kmem_pool *pool, size_t size, uint8_t page_align)
+static uint32_t find_smallest_hole(struct kmem_pool *pool, size_t size, boolean_t page_align)
 {
 	uint32_t iterator;
 	
@@ -230,7 +230,6 @@ static uint32_t find_smallest_hole(struct kmem_pool *pool, size_t size, uint8_t 
 	while (iterator < pool->index.size) {
 		struct header *header;
 		header = (struct header *)lookup_vector(&pool->index, iterator);
-		ASSERT(header->is_hole == TRUE);
 		/* If the user has requested the memory be page-aligned */
 		if (page_align) {
 			/* Page-align the starting point of this header */
