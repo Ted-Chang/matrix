@@ -38,21 +38,24 @@ static void clear_frame(uint32_t frame_addr)
 
 static uint32_t first_frame()
 {
-	uint32_t i, j;
+	uint32_t i, j, frame;
+
+	frame = 0;
 
 	for (i = 0; i < INDEX_FROM_BIT(_nr_total_pages); i++) {
 		if (_pages[i] != 0xFFFFFFFF) {
 			for (j = 0; j < 32; j++) {
 				uint32_t to_test = 0x1 << j;
 				if (!(_pages[i] & to_test)) {
-					return i * 4 * 8 + j;
+					frame = i * 4 * 8 + j;
+					goto out;
 				}
 			}
 		}
 	}
 
-	PANIC("no frame left");
-	return 0;
+ out:
+	return frame;
 }
 
 void page_alloc(struct page *p, int flags)

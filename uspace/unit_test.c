@@ -146,7 +146,7 @@ void mkdir_test()
 	int rc, status;
 	char *mkdir[] = {
 		"/mkdir",
-		"/dev",
+		"/test",
 		NULL
 	};
 

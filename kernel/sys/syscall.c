@@ -52,7 +52,7 @@ int do_open(const char *file, int flags, int mode)
 	int fd = -1, rc = 0;
 	struct vfs_node *n;
 
-	/* Lookup file system node */
+	/* Lookup file system node, if success the node will be referenced */
 	n = vfs_lookup(file, -1);
 	DEBUG(DL_DBG, ("file(%s), n(0x%x)\n", file, n));
 	if (!n && FLAG_ON(flags, 0x600)) {
@@ -86,8 +86,12 @@ int do_close(int fd)
 		goto out;
 	}
 	
-	vfs_close(n);
+	rc = vfs_close(n);
+	if (rc != 0) {
+		goto out;
+	}
 
+	/* Detach the file descriptor from current process */
 	rc = fd_detach(NULL, fd);
 
  out:

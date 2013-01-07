@@ -7,6 +7,7 @@
 #include "proc/process.h"
 #include "fs.h"
 #include "rtl/fsrtl.h"
+#include "kstrdup.h"
 #include "debug.h"
 
 /* List of registered File Systems */
@@ -37,7 +38,7 @@ struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
 	n = (struct vfs_node *)slab_cache_alloc(&_vfs_node_cache);
 	if (n) {
 		memset(n, 0, sizeof(struct vfs_node));
-		n->ref_count = 1;
+		n->ref_count = 0;
 		n->type = type;
 		n->ops = ops;
 		n->data = data;
@@ -58,7 +59,7 @@ int vfs_node_refer(struct vfs_node *node)
 
 	ref_count = node->ref_count;
 	node->ref_count++;
-	if (node->ref_count == 1) {
+	if (node->ref_count == 0) {
 		PANIC("vfs_node_refer: ref_count is corrupted!");
 	}
 	
@@ -87,13 +88,14 @@ int vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buf
 	}
 
 	if (node->type != VFS_FILE) {
+		DEBUG(DL_DBG, ("read node failed, type(%d).\n", node->type));
 		goto out;
 	}
 	
 	if (node->ops->read != NULL) {
 		rc = node->ops->read(node, offset, size, buffer);
 	} else {
-		rc = 0;
+		DEBUG(DL_DBG, ("read node failed, operation not support.\n"));
 	}
 
  out:
@@ -191,6 +193,12 @@ int vfs_close(struct vfs_node *node)
 	
 	if (node->ops->close != NULL) {
 		rc = node->ops->close(node);
+		if (rc != 0) {
+			DEBUG(DL_DBG, ("close (%p:%d) failed.\n",
+				       node, node->ref_count));
+		} else {
+			vfs_node_deref(node);
+		}
 	}
 
  out:
@@ -327,7 +335,6 @@ struct vfs_node *vfs_lookup(const char *path, int type)
 {
 	struct vfs_node *n = NULL, *c = NULL;
 	char *dup = NULL;
-	size_t len;
 	
 	if (!_root_mount || !path || !path[0]) {
 		goto out;
@@ -340,12 +347,10 @@ struct vfs_node *vfs_lookup(const char *path, int type)
 	}
 
 	/* Duplicate path so that vfs_lookup_internal can modify it */
-	len = strlen(path) + 1;
-	dup = (char *)kmalloc(len, 0);
+	dup = kstrdup(path, 0);
 	if (!dup) {
 		goto out;
 	}
-	strcpy(dup, path);
 
 	/* Look up the path string */
 	n = vfs_lookup_internal(c, dup);
@@ -516,6 +521,7 @@ int vfs_mount(const char *dev, const char *path, const char *type, const char *o
 	list_add_tail(&mnt->link, &_mount_list);
 	if (!_root_mount) {
 		_root_mount = mnt;
+		vfs_node_refer(_root_mount->root);
 	}
 
 	DEBUG(DL_DBG, ("mounted on %s.\n", path));

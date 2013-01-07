@@ -18,6 +18,7 @@ TARGETS := \
 	$(TARGETDIR)/shutdown \
 	$(TARGETDIR)/mkdir \
 	$(TARGETDIR)/date \
+	$(TARGETDIR)/mount \
 
 OBJ := ./obji386
 
@@ -55,6 +56,9 @@ $(TARGETDIR)/mkdir: $(OBJ)/mkdir.o
 
 $(TARGETDIR)/date: $(OBJ)/date.o
 	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/date.map -o $(TARGETDIR)/date $(OBJ)/date.o
+
+$(TARGETDIR)/mount: $(OBJ)/mount.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/mount.map -o $(TARGETDIR)/mount $(OBJ)/mount.o
 
 $(OBJ)/%.o: %.c
 	$(CC) $(CFLAGS) -m32 -g -I../sdk/include -c -o $@ $<

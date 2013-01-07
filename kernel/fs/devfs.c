@@ -13,31 +13,19 @@ struct vfs_type _devfs_type = {
 	.mount = devfs_mount,
 };
 
-static int devfs_create(struct vfs_node *parent, const char *name,
-			uint32_t type, struct vfs_node **np)
+static struct dirent *devfs_readdir(struct vfs_node *n, uint32_t index)
 {
-	int rc = -1;
-
-	DEBUG(DL_DBG, ("create device(%s), type(%d).\n", name, type));
-
-	return rc;
-}
-
-static int devfs_close(struct vfs_node *n)
-{
-	int rc = -1;
-
-	DEBUG(DL_DBG, ("close device(%s).\n", n->name));
-
-	return rc;
+	DEBUG(DL_DBG, ("read directory(%s).\n", n->name));
+	
+	return NULL;
 }
 
 static struct vfs_node_ops _devfs_node_ops = {
 	.read = NULL,
 	.write = NULL,
-	.create = devfs_create,
-	.close = devfs_close,
-	.readdir = NULL,
+	.create = NULL,
+	.close = NULL,
+	.readdir = devfs_readdir,
 	.finddir = NULL
 };
 
