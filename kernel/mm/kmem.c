@@ -493,11 +493,4 @@ void init_kmem()
 	/* Create kernel pool */
 	_kpool = create_pool(KERNEL_KMEM_START, KERNEL_KMEM_START + KERNEL_KMEM_SIZE,
 			     0xCFFFF000, FALSE, FALSE);
-
-	/* Clone the page directory and switch to it. This makes the kernel page
-	 * directory clean.
-	 */
-	ctx = mmu_create_ctx();
-	mmu_clone_ctx(ctx, &_kernel_mmu_ctx);
-	mmu_switch_ctx(ctx);
 }

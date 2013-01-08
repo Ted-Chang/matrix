@@ -27,21 +27,36 @@ typedef struct elf_binary elf_binary_t;
 
 boolean_t elf_ehdr_check(elf_ehdr_t *ehdr)
 {
+	boolean_t ret = FALSE;
+
 	/* Check the magic number and version */
 	if (strncmp((const char *)ehdr->e_ident, ELF_MAGIC, strlen(ELF_MAGIC)) != 0) {
-		return FALSE;
+		DEBUG(DL_DBG, ("Magic is not OK.\n"));
+		goto out;
 	} else if (ehdr->e_ident[ELF_EI_VERSION] != 1 || ehdr->e_version != 1) {
-		return FALSE;
+		DEBUG(DL_DBG, ("Version(%d) is not OK.\n", ehdr->e_ident[ELF_EI_VERSION]));
+		goto out;
 	}
 
 	/* Check whether it matches the architecture we're running on. */
 	if (ehdr->e_ident[ELF_EI_CLASS] != ELF_CLASS ||
 	    ehdr->e_ident[ELF_EI_DATA] != ELF_ENDIAN ||
 	    ehdr->e_machine != ELF_MACHINE) {
-		return FALSE;
+		DEBUG(DL_DBG, ("Machine(%d:%d:%d) is not OK.\n", ehdr->e_ident[ELF_EI_CLASS],
+			       ehdr->e_ident[ELF_EI_DATA], ehdr->e_machine));
+		goto out;
 	}
 
-	return TRUE;
+	/* We can only load EXEC now */
+	if (ehdr->e_type != ELF_ET_EXEC) {
+		DEBUG(DL_DBG, ("Type(%d) is not OK.\n", ehdr->e_type));
+		goto out;
+	}
+
+	ret = TRUE;
+
+ out:
+	return ret;
 }
 
 ptr_t elf_finish_binary(void *data)
@@ -91,7 +106,7 @@ ptr_t elf_finish_binary(void *data)
 int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **datap)
 {
 	int rc = -1, i;
-	size_t size;
+	size_t size, load_cnt;
 	elf_binary_t *bin;
 	ptr_t virt, base;
 	elf_shdr_t *shdr;
@@ -138,8 +153,8 @@ int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **datap)
 	 * specified in the ELF. For Matrix default is 0x20000000 which was specified
 	 * in the link script.
 	 */
-	i = 0;
-	for (virt = 0; virt < (ehdr->e_shentsize * ehdr->e_shnum); virt += ehdr->e_shentsize, i++) {
+	load_cnt = 0;
+	for (i = 0, virt = 0; virt < (ehdr->e_shentsize * ehdr->e_shnum); virt += ehdr->e_shentsize, i++) {
 
 		/* Read a section header */
 		shdr = (elf_shdr_t *)(((uint8_t *)ehdr) + (ehdr->e_shoff + virt));
@@ -170,8 +185,16 @@ int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **datap)
 				goto out;
 			}
 
+			load_cnt++;
 			DEBUG(DL_DBG, ("i(%d), address space mapped.\n", i));
 		}
+	}
+
+	/* Check whether we actually loaded anything */
+	if (!load_cnt) {
+		rc = -1;
+		DEBUG(DL_WRN, ("binary do not have any loadable sections.\n"));
+		goto out;
 	}
 
 	bin->load_base = base;

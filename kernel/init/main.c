@@ -216,7 +216,6 @@ void sys_init_thread(void *ctx)
 	uint32_t initrd_location;
 	const char *init_argv[] = {
 		"/init",
-		"-d",
 		NULL
 	};
 

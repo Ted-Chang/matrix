@@ -53,6 +53,7 @@ static void init_descriptor(struct cpu *c)
 static void cpu_ctor(struct cpu *c, cpu_id_t id, int state)
 {
 	memset(c, 0, sizeof(struct cpu));
+	
 	LIST_INIT(&c->link);
 	c->id = id;
 	c->state = state;

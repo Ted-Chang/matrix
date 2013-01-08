@@ -56,7 +56,7 @@ void start_crond()
 
 	rc = create_process(crond[0], crond, 0, 16);
 	if (rc == -1) {
-		printf("create_process failed, err(%d).\n", rc);
+		printf("create_process(%s) failed, err(%d).\n", crond[0], rc);
 		goto out;
 	}
 	printf("crond started, process id(%d).\n", rc);

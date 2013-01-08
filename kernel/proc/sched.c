@@ -282,9 +282,9 @@ void sched_reschedule(boolean_t state)
 	 */
 	if (CURR_THREAD != c->prev_thread) {
 #ifdef _DEBUG_SCHED
-		DEBUG(DL_DBG, ("switching to (%s:%d:%s:%d:%d).\n",
+		DEBUG(DL_DBG, ("switching to (%s:%d:%s:%d:%d:%p).\n",
 			       CURR_PROC->name, CURR_PROC->id, CURR_THREAD->name,
-			       CURR_THREAD->id, CURR_CPU->id));
+			       CURR_THREAD->id, CURR_CPU->id, CURR_THREAD));
 #endif	/* _DEBUG_SCHED */
 		
 		/* Switch the address space. The NULL case will be handled by the

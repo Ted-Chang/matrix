@@ -69,21 +69,10 @@ static void move_stack(uint32_t new_stack, uint32_t size)
 	uint32_t offset;
 	ptr_t start;
 
-	/* Allocate some space for the new stack */
-	for (i = new_stack; i >= (new_stack - size); i -= PAGE_SIZE) {
-		/* General purpose stack is in user-mode */
-		struct page *page;
-		
-		page = mmu_get_page(CURR_ASPACE, i, TRUE, 0);
-		/* Associate the pte with a physical page */
-		page_alloc(page, 0);
-		page->user = FALSE;
-		page->rw = TRUE;
-	}
-	/* start = new_stack - size; */
-	/* rc = mmu_map(&_kernel_mmu_ctx, start, size + PAGE_SIZE, */
-	/* 	     MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL); */
-	/* ASSERT(rc == 0); */
+	start = new_stack - size;
+	rc = mmu_map(&_kernel_mmu_ctx, start, size + PAGE_SIZE,
+		     MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
+	ASSERT(rc == 0);
 	
 	/* Flush the TLB by reading and writing the page directory address again */
 	asm volatile("mov %%cr3, %0" : "=r"(pd_addr));
@@ -99,10 +88,7 @@ static void move_stack(uint32_t new_stack, uint32_t size)
 	new_esp = old_esp + offset;
 	new_ebp = old_ebp + offset;
 
-	DEBUG(DL_DBG, ("move stack to new address.\n"
-		       "- old_esp(0x%x), old_ebp(0x%x)\n"
-		       "- new_esp(0x%x), new_ebp(0x%x)\n"
-		       "- _initial_esp(0x%x)\n",
+	DEBUG(DL_DBG, ("o_esp(0x%x) o_ebp(0x%x) n_esp(0x%x) n_ebp(0x%x) i_esp(0x%x)\n",
 		       old_esp, old_ebp, new_esp, new_ebp, _initial_esp));
 	
 	/* Copy the old stack to new stack. Although we have switched to cloned

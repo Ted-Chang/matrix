@@ -5,6 +5,7 @@ OBJ := ../../bin/obji386
 
 TARGETOBJ := \
 	$(OBJ)/vfs.o \
+	$(OBJ)/fd.o \
 	$(OBJ)/initrd.o \
 	$(OBJ)/devfs.o \
 

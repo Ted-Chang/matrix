@@ -112,6 +112,8 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, ptr_t virt, boolean_t make, int m
 	uint32_t dir_idx, tbl_idx;
 	struct pdir *pdir;
 
+	ASSERT(ctx != NULL);
+	
 	/* Get the page directory from the context */
 	pdir = ctx->pdir;
 
@@ -241,6 +243,8 @@ void mmu_switch_ctx(struct mmu_ctx *ctx)
 		
 		ASSERT((ctx->pdbr % PAGE_SIZE) == 0);
 
+		DEBUG(DL_DBG, ("ctx(%p), CURR_ASPACE(%p).\n", ctx, CURR_ASPACE));
+
 		state = irq_disable();
 
 		/* Update the current mmu context */
@@ -282,8 +286,9 @@ void page_fault(struct registers *regs)
 	dump_registers(regs);
 
 	/* Print current thread */
-	kprintf("Faulting process(%s:%d) thread(%s:%d)\n\n", CURR_PROC->name,
-		CURR_PROC->id, CURR_THREAD->name, CURR_THREAD->id);
+	kprintf("Faulting process(%s:%d) pdir(%p) thread(%s:%d)\n",
+		CURR_PROC->name, CURR_PROC->id, CURR_PROC->mmu_ctx->pdir,
+		CURR_THREAD->name, CURR_THREAD->id);
 
 	/* Print an error message */
 	kprintf("Page fault(%s%s%s%s) at 0x%x - EIP: 0x%x\n\n", 

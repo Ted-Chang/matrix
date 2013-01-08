@@ -9,8 +9,8 @@
 struct ramfs_node {
 	char name[128];
 	uint32_t type;
-	uint32_t length;
 	uint32_t inode;
+	uint32_t length;
 };
 
 extern struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
@@ -29,7 +29,8 @@ struct initrd_header *initrd_hdr = NULL;
 struct initrd_file_header *file_hdrs = NULL;
 struct ramfs_node *_initrd_nodes = NULL;
 
-int _nr_initrd_nodes = 0, _nr_total_initrd_nodes = 0;
+int _nr_initrd_nodes = 0;
+int _nr_total_initrd_nodes = 0;
 
 struct dirent dirent;
 
@@ -37,10 +38,11 @@ static int initrd_create(struct vfs_node *parent, const char *name,
 			 uint32_t type, struct vfs_node **np)
 {
 	int rc = -1;
+	struct vfs_node *n;
 
 	DEBUG(DL_DBG, ("create(%s), type(%d).\n", name, type));
 
-	if (type != VFS_DIRECTORY) {		// Only support create directory now
+	if (type != VFS_DIRECTORY) {	// Only support create directory now
 		goto out;
 	}
 
@@ -51,6 +53,7 @@ static int initrd_create(struct vfs_node *parent, const char *name,
 	strcpy(_initrd_nodes[_nr_initrd_nodes].name, name);
 	_initrd_nodes[_nr_initrd_nodes].inode = _nr_initrd_nodes;
 	_initrd_nodes[_nr_initrd_nodes].type = type;
+	_initrd_nodes[_nr_initrd_nodes].length = 0;
 	_nr_initrd_nodes++;
 
 	rc = 0;
@@ -71,18 +74,18 @@ static int initrd_close(struct vfs_node *node)
 static int initrd_read(struct vfs_node *node, uint32_t offset,
 		       uint32_t size, uint8_t *buffer)
 {
-	struct initrd_file_header hdr;
+	struct initrd_file_header *hdr;
 
-	hdr = file_hdrs[node->inode];
+	hdr = &file_hdrs[node->inode];
 	
-	if (offset > hdr.length) {
-		DEBUG(DL_DBG, ("offset(%d), length(%d)\n", offset, hdr.length));
+	if (offset > hdr->length) {
+		DEBUG(DL_DBG, ("offset(%d), length(%d)\n", offset, hdr->length));
 		return 0;
 	}
-	if (offset + size > hdr.length) {
-		size = hdr.length - offset;
+	if (offset + size > hdr->length) {
+		size = hdr->length - offset;
 	}
-	memcpy(buffer, (uint8_t *)(hdr.offset + offset), size);
+	memcpy(buffer, (uint8_t *)(hdr->offset + offset), size);
 
 	return size;
 }
@@ -111,6 +114,7 @@ static struct vfs_node *initrd_finddir(struct vfs_node *node, char *name)
 		if (!strcmp(name, _initrd_nodes[i].name)) {
 			n = vfs_node_alloc(node->mount, _initrd_nodes[i].type, node->ops, NULL);
 			n->length = _initrd_nodes[i].length;
+			n->inode = _initrd_nodes[i].inode;
 			break;
 		}
 	}
@@ -137,29 +141,31 @@ void init_initrd(uint32_t location)
 	size_t size;
 	
 	initrd_hdr = (struct initrd_header *)location;
-	file_hdrs = (struct initrd_file_header *)
-		(location + sizeof(struct initrd_header));
+	file_hdrs = (struct initrd_file_header *)(location + sizeof(struct initrd_header));
 
 	/* Initialize the file nodes in root directory, we will allocate 10 more
 	 * nodes for creating new nodes.
 	 */
 	_nr_total_initrd_nodes = initrd_hdr->nr_files + 10;
+	_nr_initrd_nodes = initrd_hdr->nr_files;
+
 	size = sizeof(struct ramfs_node) * (_nr_total_initrd_nodes);
 	_initrd_nodes = (struct ramfs_node *)kmalloc(size, 0);
 	ASSERT(_initrd_nodes != NULL);
+	
 	memset(_initrd_nodes, 0, size);
 	
-	_nr_initrd_nodes = initrd_hdr->nr_files;
-
-	/* For each file in the root directory */
+	/* For each file in the root directory initialize the corresponding ramfs
+	 * nodes.
+	 */
 	for (i = 0; i < _nr_initrd_nodes; i++) {
 		file_hdrs[i].offset += location;
 
 		/* Create a new file node */
-		strcpy(_initrd_nodes[i].name, (const char *)&file_hdrs[i].name);
-		_initrd_nodes[i].length = file_hdrs[i].length;
+		strcpy(_initrd_nodes[i].name, file_hdrs[i].name);
 		_initrd_nodes[i].inode = i;
 		_initrd_nodes[i].type = VFS_FILE;
+		_initrd_nodes[i].length = file_hdrs[i].length;
 	}
 }
 
