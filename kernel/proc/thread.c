@@ -459,9 +459,9 @@ void thread_exit()
 	if (CURR_THREAD->ustack_size) {
 		DEBUG(DL_DBG, ("unmap ustack, proc(%s), mmu(%p).\n",
 			       CURR_PROC->name, CURR_PROC->mmu_ctx));
-		//rc = mmu_unmap(CURR_PROC->mmu_ctx, CURR_THREAD->ustack,
-		//	       CURR_THREAD->ustack_size);
-		//ASSERT(rc == 0);
+		rc = mmu_unmap(CURR_PROC->mmu_ctx, CURR_THREAD->ustack,
+			       CURR_THREAD->ustack_size);
+		ASSERT(rc == 0);
 	}
 
 	/* Notify the waiter */

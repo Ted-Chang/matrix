@@ -45,11 +45,11 @@ int main(int argc, char **argv)
 
 	echo_test();
 	
+	mkdir_test();
+
 	ls_test();
 
 	cat_test();
-
-	mkdir_test();
 
 	date_test();
 

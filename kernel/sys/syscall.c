@@ -22,6 +22,7 @@
 #include "platform.h"
 
 #define MAX_HOSTNAME_LEN	256
+#define NR_SYSCALLS		(sizeof(_syscalls)/sizeof(_syscalls[0]))
 
 static void syscall_handler(struct registers *regs);
 
@@ -496,14 +497,18 @@ int do_syslog(char *buf, size_t len)
 	return -1;
 }
 
+int do_mount(const char *src, const char *target, const char *fstype,
+	     int flags, const void *data)
+{
+	return -1;
+}
+
 /*
  * NOTE: When adding a system call, please add the following items:
- *   [1] _nr_syscalls - number of the system calls
- *   [2] _syscalls - the array which contains pointers to the system calls
- *   [3] define macro in /sdk/syscalls.c
- *   [4] define macro in /sdk/include/syscall.h
+ *   [1] _syscalls - the array which contains pointers to the system calls
+ *   [2] define macro in /sdk/syscalls.c
+ *   [3] define macro in /sdk/include/syscall.h
  */
-uint32_t _nr_syscalls = 28;
 static void *_syscalls[] = {
 	do_null,
 	do_exit,
@@ -533,6 +538,7 @@ static void *_syscalls[] = {
 	do_clear,
 	do_shutdown,
 	do_syslog,
+	do_mount,
 	NULL
 };
 
@@ -556,7 +562,7 @@ void syscall_handler(struct registers *regs)
 	 * The syscall number is found in EAX.
 	 */
 	syscall_id = regs->eax;
-	if (syscall_id >= _nr_syscalls) {
+	if (syscall_id >= NR_SYSCALLS) {
 		DEBUG(DL_WRN, ("invalid syscall(%d)", syscall_id));
 		return;
 	}

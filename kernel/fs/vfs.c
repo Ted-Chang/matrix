@@ -164,15 +164,20 @@ int vfs_create(const char *path, uint32_t type, struct vfs_node **np)
 		goto out;
 	}
 
+	ASSERT(n != NULL);
 	DEBUG(DL_DBG, ("create(%s) node(%p).\n", path, n));
 
 	if (np) {
 		*np = n;
+		n = NULL;
 	}
 
  out:
-	if (rc != 0) {
-		;
+	if (parent) {
+		vfs_node_deref(n);
+	}
+	if (n) {
+		vfs_node_deref(n);
 	}
 	if (dir) {
 		kfree(dir);

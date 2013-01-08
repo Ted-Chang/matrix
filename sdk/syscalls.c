@@ -37,6 +37,7 @@ DEFN_SYSCALL1(unit_test, 24, uint32_t)
 DEFN_SYSCALL0(clear, 25)
 DEFN_SYSCALL0(shutdown, 26)
 DEFN_SYSCALL2(syslog, 27, char *, size_t)
+DEFN_SYSCALL5(mount, 28, const char *, const char *, const char *, int, const void *)
 
 int null()
 {
@@ -176,4 +177,10 @@ int shutdown()
 int syslog(char *buf, size_t len)
 {
 	return mtx_syslog(buf, len);
+}
+
+int mount(const char *src, const char *target, const char *fstype,
+	  int flags, const void *data)
+{
+	return mtx_mount(src, target, fstype, flags, data);
 }

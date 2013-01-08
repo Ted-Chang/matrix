@@ -1,10 +1,12 @@
 #include <types.h>
 #include <stddef.h>
+#include <sys/stat.h>
 #include <syscall.h>
 #include <errno.h>
 #include "matrix/matrix.h"
 
 static void announce();
+static void load_devfs();
 static void start_crond();
 static void start_unit_test();
 
@@ -14,6 +16,9 @@ int main(int argc, char **argv)
 	char buf[256];
 	uid_t uid;
 	gid_t gid;
+
+	/* Load device file system */
+	load_devfs();
 
 	printf("init: process started.\n");
 
@@ -43,6 +48,22 @@ int main(int argc, char **argv)
 	}
 
 	return rc;
+}
+
+void load_devfs()
+{
+	int rc;
+
+	rc = mkdir("/dev", S_IRWXU, S_IRWXG, S_IROTH);
+	if (rc == -1) {
+		printf("init: mkdir(/dev) for device fs failed.\n");
+		goto out;
+	}
+
+	/* Mount devfs to /dev */
+
+ out:
+	return;
 }
 
 void start_crond()

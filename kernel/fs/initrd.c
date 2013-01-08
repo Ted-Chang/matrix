@@ -38,11 +38,13 @@ static int initrd_create(struct vfs_node *parent, const char *name,
 			 uint32_t type, struct vfs_node **np)
 {
 	int rc = -1;
-	struct vfs_node *n;
+	struct vfs_node *n = NULL;
 
+	ASSERT(parent->type == VFS_DIRECTORY);
+	
 	DEBUG(DL_DBG, ("create(%s), type(%d).\n", name, type));
 
-	if (type != VFS_DIRECTORY) {	// Only support create directory now
+	if (!np || type != VFS_DIRECTORY) {	// Only support create directory now
 		goto out;
 	}
 
@@ -50,11 +52,23 @@ static int initrd_create(struct vfs_node *parent, const char *name,
 		goto out;
 	}
 
-	strcpy(_initrd_nodes[_nr_initrd_nodes].name, name);
+	n = vfs_node_alloc(parent->mount, VFS_DIRECTORY, parent->ops, NULL);
+	if (!n) {
+		goto out;
+	}
+
+	strncpy(_initrd_nodes[_nr_initrd_nodes].name, name, 127);
 	_initrd_nodes[_nr_initrd_nodes].inode = _nr_initrd_nodes;
 	_initrd_nodes[_nr_initrd_nodes].type = type;
 	_initrd_nodes[_nr_initrd_nodes].length = 0;
 	_nr_initrd_nodes++;
+
+	/* Initialize the vfs_node which we created */
+	strncpy(n->name, name, 127);
+	n->inode = _nr_initrd_nodes;
+	n->length = 0;
+
+	*np = n;
 
 	rc = 0;
 
@@ -96,6 +110,9 @@ static struct dirent *initrd_readdir(struct vfs_node *node, uint32_t index)
 		return NULL;
 	}
 
+	/* FixMe: return the address of a global variable doesn't work when
+	 * it comes to a concurrent system.
+	 */
 	strcpy(dirent.name, _initrd_nodes[index - 1].name);
 	dirent.name[strlen(_initrd_nodes[index - 1].name)] = 0;
 	dirent.ino = _initrd_nodes[index - 1].inode;
@@ -146,7 +163,7 @@ void init_initrd(uint32_t location)
 	/* Initialize the file nodes in root directory, we will allocate 10 more
 	 * nodes for creating new nodes.
 	 */
-	_nr_total_initrd_nodes = initrd_hdr->nr_files + 10;
+	_nr_total_initrd_nodes = initrd_hdr->nr_files + 12;
 	_nr_initrd_nodes = initrd_hdr->nr_files;
 
 	size = sizeof(struct ramfs_node) * (_nr_total_initrd_nodes);
