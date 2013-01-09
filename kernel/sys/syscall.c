@@ -412,7 +412,7 @@ int do_create_process(const char *path, const char *args[], int flags, int prior
 	char **arguments = NULL;
 	struct process *p;
 
-	if (!path) {
+	if (!path || !args) {
 		DEBUG(DL_DBG, ("invalid arguments.\n"));
 		goto out;
 	}
@@ -500,7 +500,22 @@ int do_syslog(char *buf, size_t len)
 int do_mount(const char *src, const char *target, const char *fstype,
 	     int flags, const void *data)
 {
-	return -1;
+	int rc = -1;
+
+	if (!src || !target) {
+		goto out;
+	}
+
+	/* Mount src to target with File System type */
+	rc = vfs_mount(src, target, fstype, NULL);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("vfs_mount failed, type(%s), err(%d).\n",
+			       fstype, rc));
+		goto out;
+	}
+
+ out:
+	return rc;
 }
 
 /*

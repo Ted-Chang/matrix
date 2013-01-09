@@ -8,6 +8,7 @@ TARGETOBJ := \
 	$(OBJ)/fd.o \
 	$(OBJ)/initrd.o \
 	$(OBJ)/devfs.o \
+	$(OBJ)/procfs.o \
 
 .PHONY: clean help
 

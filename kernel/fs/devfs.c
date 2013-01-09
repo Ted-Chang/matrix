@@ -43,7 +43,7 @@ int devfs_mount(struct vfs_mount *mnt, size_t cnt)
 
 int devfs_init(void)
 {
-	int rc = 0;
+	int rc = -1;
 
 	rc = vfs_type_register(&_devfs_type);
 	if (rc != 0) {

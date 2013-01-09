@@ -11,6 +11,7 @@ struct ramfs_node {
 	uint32_t type;
 	uint32_t inode;
 	uint32_t length;
+	uint32_t mask;
 };
 
 extern struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
@@ -132,6 +133,7 @@ static struct vfs_node *initrd_finddir(struct vfs_node *node, char *name)
 			n = vfs_node_alloc(node->mount, _initrd_nodes[i].type, node->ops, NULL);
 			n->length = _initrd_nodes[i].length;
 			n->inode = _initrd_nodes[i].inode;
+			n->mask = _initrd_nodes[i].mask;
 			break;
 		}
 	}
@@ -183,6 +185,7 @@ void init_initrd(uint32_t location)
 		_initrd_nodes[i].inode = i;
 		_initrd_nodes[i].type = VFS_FILE;
 		_initrd_nodes[i].length = file_hdrs[i].length;
+		_initrd_nodes[i].mask = 0x755;
 	}
 }
 

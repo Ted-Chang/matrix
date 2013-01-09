@@ -4,9 +4,10 @@
 #include <syscall.h>
 #include <errno.h>
 #include <dirent.h>
+#include <matrix/matrix.h>
 
 static int list_directory(int fd, char *path);
-static char *stat_to_str(struct stat *st, char *str, size_t len);
+static char *mode_to_str(uint32_t mode, char *str, size_t len);
 
 int main(int argc, char **argv)
 {
@@ -56,7 +57,7 @@ int list_directory(int fd, char *path)
 			if (rc == -1) {
 				printf("lstat %s failed.\n", fullname);
 			} else {
-				printf("%s %s\n", stat_to_str(&st, str, BUF_SIZE), d.name);
+				printf("%s %s\n", mode_to_str(st.st_mode, str, BUF_SIZE), d.name);
 			}
 
 			close(fd_tmp);
@@ -68,10 +69,19 @@ int list_directory(int fd, char *path)
 	return rc;
 }
 
-char *stat_to_str(struct stat *st, char *str, size_t len)
+char *mode_to_str(uint32_t mode, char *str, size_t len)
 {
-	snprintf(str, len, "%c.",
-		 S_ISDIR(st->st_mode) ? 'd' : '-');
+	snprintf(str, len, "%c%c%c%c%c%c%c%c%c%c.",
+		 S_ISDIR(mode) ? 'd' : '-',
+		 FLAG_ON(mode, S_IRUSR) ? 'r' : '-',
+		 FLAG_ON(mode, S_IWUSR) ? 'w' : '-',
+		 FLAG_ON(mode, S_IXUSR) ? 'x' : '-',
+		 FLAG_ON(mode, S_IRGRP) ? 'r' : '-',
+		 FLAG_ON(mode, S_IWGRP) ? 'w' : '-',
+		 FLAG_ON(mode, S_IXGRP) ? 'x' : '-',
+		 FLAG_ON(mode, S_IROTH) ? 'r' : '-',
+		 FLAG_ON(mode, S_IWOTH) ? 'w' : '-',
+		 FLAG_ON(mode, S_IXOTH) ? 'x' : '-');
 
 	return str;
 }
