@@ -16,6 +16,6 @@ struct initrd_file_header {
 
 extern struct vfs_type _ramfs_type;
 
-extern void init_initrd(uint32_t location);
+extern int initrd_init(void);
 
 #endif	/* __INITRD_H__ */

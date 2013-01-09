@@ -4,7 +4,7 @@
 #include "fs.h"
 #include "debug.h"
 
-static int procfs_mount(struct vfs_mount *mnt, size_t cnt);
+static int procfs_mount(struct vfs_mount *mnt, int flags, const void *data);
 
 struct vfs_type _procfs_type = {
 	.name = "procfs",
@@ -13,7 +13,7 @@ struct vfs_type _procfs_type = {
 	.mount = procfs_mount
 };
 
-int procfs_mount(struct vfs_mount *mnt, size_t cnt)
+int procfs_mount(struct vfs_mount *mnt, int flags, const void *data)
 {
 	int rc = -1;
 

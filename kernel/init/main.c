@@ -21,7 +21,6 @@
 #include "mm/slab.h"
 #include "timer.h"
 #include "fs.h"
-#include "initrd.h"
 #include "proc/process.h"
 #include "proc/sched.h"
 #include "proc/thread.h"
@@ -239,17 +238,13 @@ void sys_init_thread(void *ctx)
 	
 	/* Mount the ramfs at root if it was not mounted yet */
 	if (!_root_mount) {
-		rc = vfs_mount(NULL, "/", "ramfs", NULL);
+		/* Find the location of our initial ramdisk */
+		initrd_location = *((uint32_t *)_mbi->mods_addr);
+		rc = vfs_mount(NULL, "/", "ramfs", (void *)initrd_location);
 		if (rc != 0) {
 			PANIC("Mount ramfs for root failed");
 		}
-		
-		/* Find the location of our initial ramdisk */
-		initrd_location = *((uint32_t *)_mbi->mods_addr);
-
-		/* Initialize the initial ramdisk and set it as the root filesystem */
-		init_initrd(initrd_location);
-		kprintf("Initial ramdisk mounted, location(0x%x).\n",
+		kprintf("Initial ramdisk mounted, location(0x%p).\n",
 			initrd_location);
 	}
 

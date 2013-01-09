@@ -507,7 +507,7 @@ int do_mount(const char *src, const char *target, const char *fstype,
 	}
 
 	/* Mount src to target with File System type */
-	rc = vfs_mount(src, target, fstype, NULL);
+	rc = vfs_mount(src, target, fstype, data);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("vfs_mount failed, type(%s), err(%d).\n",
 			       fstype, rc));

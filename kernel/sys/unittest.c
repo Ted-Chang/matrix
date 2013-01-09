@@ -11,6 +11,7 @@
 #include "proc/thread.h"
 #include "proc/process.h"
 #include "rtl/bitmap.h"
+#include "rtl/fsrtl.h"
 #include "kstrdup.h"
 
 uint32_t _value = 0;

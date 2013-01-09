@@ -433,7 +433,7 @@ static void process_entry_thread(void *ctx)
 	/* Get the ELF loader to clear BSS and get the entry pointer */
 	entry = elf_finish_binary(info->data);
 
-	CURR_THREAD->ustack = info->ustack;
+	CURR_THREAD->ustack = (void *)info->ustack;
 	CURR_THREAD->ustack_size = USTACK_SIZE;
 
 	DEBUG(DL_DBG, ("ustack(%p), args(%p).\n", ustack, args));

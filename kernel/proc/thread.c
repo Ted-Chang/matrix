@@ -3,6 +3,7 @@
 #include <string.h>
 #include "matrix/matrix.h"
 #include "debug.h"
+#include "mm/mmu.h"
 #include "mm/kmem.h"
 #include "mm/malloc.h"
 #include "mm/slab.h"

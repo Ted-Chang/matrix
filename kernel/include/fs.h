@@ -15,7 +15,7 @@ struct vfs_type {
 	int ref_count;
 
 	/* Mount an instance of this File System */
-	int (*mount)(struct vfs_mount *mnt, size_t cnt);
+	int (*mount)(struct vfs_mount *mnt, int flags, const void *data);
 };
 
 /* Structure contains detail of a mounted File System */
@@ -29,6 +29,7 @@ struct vfs_mount {
 	struct vfs_node *mnt_point;
 
 	struct vfs_type *type;
+	void *data;			// Pointer to private data
 };
 
 /* Structure contains operations can be done on a File System node */
@@ -69,13 +70,18 @@ struct vfs_node {
 
 extern int vfs_type_register(struct vfs_type *type);
 extern int vfs_type_unregister(struct vfs_type *type);
-extern int vfs_mount(const char *dev, const char *path, const char *type, const char *opts);
+extern int vfs_mount(const char *dev, const char *path, const char *type,
+		     const void *data);
 extern int vfs_unmount(const char *path);
+extern struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
+				       struct vfs_node_ops *ops, void *data);
+extern void vfs_node_free(struct vfs_node *node);
 extern int vfs_node_refer(struct vfs_node *node);
 extern int vfs_node_deref(struct vfs_node *node);
-extern void vfs_node_free(struct vfs_node *node);
-extern int vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer);
-extern int vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer);
+extern int vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size,
+		    uint8_t *buffer);
+extern int vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size,
+		     uint8_t *buffer);
 extern int vfs_close(struct vfs_node *node);
 extern int vfs_create(const char *path, uint32_t type, struct vfs_node **node);
 extern struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index);

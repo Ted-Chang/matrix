@@ -454,7 +454,7 @@ int vfs_type_unregister(struct vfs_type *type)
 	return rc;
 }
 
-int vfs_mount(const char *dev, const char *path, const char *type, const char *opts)
+int vfs_mount(const char *dev, const char *path, const char *type, const void *data)
 {
 	int rc = -1, flags = 0;
 	struct vfs_node *n;
@@ -501,6 +501,7 @@ int vfs_mount(const char *dev, const char *path, const char *type, const char *o
 	mnt->mnt_point = n;
 	mnt->root = NULL;
 	mnt->type = NULL;
+	mnt->data = NULL;
 
 	/* If a type is specified, look up it */
 	if (type) {
@@ -514,7 +515,7 @@ int vfs_mount(const char *dev, const char *path, const char *type, const char *o
 
 	/* Call the File System's mount function to do the mount */
 	ASSERT(mnt->type->mount != NULL);
-	rc = mnt->type->mount(mnt, 0);
+	rc = mnt->type->mount(mnt, flags, data);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("mount failed, err(%d).\n", rc));
 		goto out;

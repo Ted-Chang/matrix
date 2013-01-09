@@ -488,8 +488,6 @@ void kmem_free(void *p)
 
 void init_kmem()
 {
-	struct mmu_ctx *ctx;
-	
 	/* Create kernel pool */
 	_kpool = create_pool(KERNEL_KMEM_START, KERNEL_KMEM_START + KERNEL_KMEM_SIZE,
 			     0xCFFFF000, FALSE, FALSE);

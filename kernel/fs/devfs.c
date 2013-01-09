@@ -4,7 +4,7 @@
 #include "fs.h"
 #include "debug.h"
 
-static int devfs_mount(struct vfs_mount *mnt, size_t cnt);
+static int devfs_mount(struct vfs_mount *mnt, int flags, const void *data);
 
 struct vfs_type _devfs_type = {
 	.name = "devfs",
@@ -29,7 +29,7 @@ static struct vfs_node_ops _devfs_node_ops = {
 	.finddir = NULL
 };
 
-int devfs_mount(struct vfs_mount *mnt, size_t cnt)
+int devfs_mount(struct vfs_mount *mnt, int flags, const void *data)
 {
 	int rc = -1;
 

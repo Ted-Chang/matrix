@@ -17,7 +17,7 @@ struct ramfs_node {
 extern struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
 				       struct vfs_node_ops *ops, void *data);
 
-static int initrd_mount(struct vfs_mount *mnt, size_t cnt);
+static int initrd_mount(struct vfs_mount *mnt, int flags, const void *data);
 
 struct vfs_type _ramfs_type = {
 	.name = "ramfs",
@@ -189,13 +189,15 @@ void init_initrd(uint32_t location)
 	}
 }
 
-int initrd_mount(struct vfs_mount *mnt, size_t cnt)
+int initrd_mount(struct vfs_mount *mnt, int flags, const void *data)
 {
 	int rc = -1;
 
 	mnt->root = vfs_node_alloc(mnt, VFS_DIRECTORY, &_ramfs_node_ops, NULL);
 	ASSERT(mnt->root != NULL);
 
+	init_initrd((uint32_t)data);
+	
 	rc = 0;
 
 	return rc;
