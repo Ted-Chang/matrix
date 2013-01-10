@@ -7,6 +7,7 @@
 
 static void announce();
 static void load_devfs();
+static void load_procfs();
 static void set_hostname();
 static void get_uid_gid();
 static void start_crond();
@@ -20,6 +21,9 @@ int main(int argc, char **argv)
 	
 	/* Load device file system */
 	load_devfs();
+
+	/* Load process file system */
+	load_procfs();
 
 	/* Set the host name */
 	set_hostname();
@@ -45,9 +49,9 @@ int main(int argc, char **argv)
 
 void load_devfs()
 {
-	int rc;
+	int rc = -1;
 
-	rc = mkdir("/dev", S_IRWXU, S_IRWXG, S_IROTH);
+	rc = mkdir("/dev", S_IRWXU | S_IRWXG | S_IROTH);
 	if (rc == -1) {
 		printf("init: mkdir(/dev) for device fs failed.\n");
 		goto out;
@@ -61,6 +65,29 @@ void load_devfs()
 	}
 
 	printf("init: mount devfs successfully.\n");
+
+ out:
+	return;
+}
+
+void load_procfs()
+{
+	int rc = -1;
+
+	rc = mkdir("/proc", S_IRWXU | S_IRWXG | S_IROTH);
+	if (rc == -1) {
+		printf("init: mkdir(/proc) for process fs failed.\n");
+		goto out;
+	}
+
+	/* Mount procfs to /proc */
+	rc = mount(NULL, "/proc", "procfs", 0, NULL);
+	if (rc == -1) {
+		printf("init: mount procfs to /proc failed.\n");
+		goto out;
+	}
+
+	printf("init: mount procfs successfully.\n");
 
  out:
 	return;

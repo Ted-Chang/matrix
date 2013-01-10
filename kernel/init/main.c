@@ -29,6 +29,7 @@
 #include "module.h"
 #include "platform.h"
 #include "symbol.h"
+#include "kstrdup.h"
 
 struct boot_module {
 	struct list link;
@@ -173,30 +174,32 @@ void load_modules()
 	/* Populate our module list with the module details */
 	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
 	LIST_INIT(&mod->link);
-	mod->name = kmalloc(MODULE_NAME_MAX, MM_BOOT_F);
-	strncpy(mod->name, "ramfs", MODULE_NAME_MAX);
+	mod->name = kstrdup("ramfs", 0);
 	mod->handle = KMOD_RAMFS;	// TODO: use file handle in the future
 	list_add_tail(&mod->link, &_boot_module_list);
 
 	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
 	LIST_INIT(&mod->link);
-	mod->name = kmalloc(MODULE_NAME_MAX, MM_BOOT_F);
-	strncpy(mod->name, "kbd", MODULE_NAME_MAX);
+	mod->name = kstrdup("kbd", 0);
 	mod->handle = KMOD_KBD;		// TODO: use file handle in the future
 	list_add_tail(&mod->link, &_boot_module_list);
 
 	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
 	LIST_INIT(&mod->link);
-	mod->name = kmalloc(MODULE_NAME_MAX, MM_BOOT_F);
-	strncpy(mod->name, "flpy", MODULE_NAME_MAX);
+	mod->name = kstrdup("flpy", 0);
 	mod->handle = KMOD_FLPY;	// TODO: use file handle in the future
 	list_add_tail(&mod->link, &_boot_module_list);
 
 	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
 	LIST_INIT(&mod->link);
-	mod->name = kmalloc(MODULE_NAME_MAX, MM_BOOT_F);
-	strncpy(mod->name, "devfs", MODULE_NAME_MAX);
+	mod->name = kstrdup("devfs", 0);
 	mod->handle = KMOD_DEVFS;	// TODO: use file handle in the future
+	list_add_tail(&mod->link, &_boot_module_list);
+
+	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
+	LIST_INIT(&mod->link);
+	mod->name = kstrdup("procfs", 0);
+	mod->handle = KMOD_PROCFS;	// TODO: use file handle in the future
 	list_add_tail(&mod->link, &_boot_module_list);
 
 	/* Load all kernel modules */

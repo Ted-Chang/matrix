@@ -1,6 +1,9 @@
 #ifndef __SYS_STAT_H__
 #define __SYS_STAT_H__
 
+#include <types.h>
+#include <sys/time.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif	/* __cplusplus */
@@ -45,14 +48,17 @@ extern "C" {
 
 /* stat structure describe file descriptor */
 struct stat {
-	uint16_t st_dev;
-	uint16_t st_ino;	// Inode number
-	uint32_t st_mode;	// Protection
-	uint16_t st_nlink;	// Number of hard links
-	uint16_t st_uid;
-	uint16_t st_gid;
-	uint16_t st_rdev;	// Device ID (if special file)
-	uint32_t st_size;	// Total size, in bytes
+	dev_t st_dev;		// ID of device containing file
+	ino_t st_ino;		// Inode number
+	mode_t st_mode;		// Protection
+	nlink_t st_nlink;	// Number of hard links
+	uid_t st_uid;		// User ID of the owner
+	gid_t st_gid;		// Group ID of the owner
+	dev_t st_rdev;		// Device ID (if special file)
+	off_t st_size;		// Total size, in bytes
+	time_t st_atime;	// Time of last access
+	time_t st_mtime;	// Time of last modification
+	time_t st_ctime;	// Time of last status change
 };
 
 #ifdef __cplusplus

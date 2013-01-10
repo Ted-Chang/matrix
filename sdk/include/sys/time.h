@@ -6,6 +6,8 @@ extern "C" {
 #endif	/* __cplusplus */
 
 typedef unsigned long clock_t;
+typedef long time_t;
+typedef int64_t suseconds_t;
 
 struct tm {
 	int tm_sec;
@@ -18,9 +20,6 @@ struct tm {
 	int tm_yday;
 	int tm_isdst;
 };
-
-typedef long time_t;
-typedef long suseconds_t;
 
 struct timeval {
 	time_t tv_sec;		/* seconds */
