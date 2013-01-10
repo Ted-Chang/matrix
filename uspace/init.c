@@ -7,32 +7,25 @@
 
 static void announce();
 static void load_devfs();
+static void set_hostname();
+static void get_uid_gid();
 static void start_crond();
 static void start_unit_test();
 
 int main(int argc, char **argv)
 {
 	int rc = 0;
-	char buf[256];
-	uid_t uid;
-	gid_t gid;
 
+	printf("init: process started.\n");
+	
 	/* Load device file system */
 	load_devfs();
 
-	printf("init: process started.\n");
-
-	memset(buf, 0, 256);
-	rc = gethostname(buf, 255);
-	if (rc) {
-		printf("init: gethostname failed.\n");
-	} else {
-		printf("init: hostname: %s\n", buf);
-	}
-
-	uid = getuid();
-	gid = getgid();
-	printf("init: uid(%d), gid(%d)\n", uid, gid);
+	/* Set the host name */
+	set_hostname();
+	
+	/* Get the UID and GID */
+	get_uid_gid();
 
 	/* Print our banner */
 	announce();
@@ -61,9 +54,41 @@ void load_devfs()
 	}
 
 	/* Mount devfs to /dev */
+	rc = mount(NULL, "/dev", "devfs", 0, NULL);
+	if (rc == -1) {
+		printf("init: mount devfs to /dev failed.\n");
+		goto out;
+	}
+
+	printf("init: mount devfs successfully.\n");
 
  out:
 	return;
+}
+
+void set_hostname()
+{
+	int rc = -1;
+	char buf[256];
+	
+	memset(buf, 0, 256);
+	rc = gethostname(buf, 255);
+	if (rc) {
+		printf("init: gethostname failed.\n");
+	} else {
+		printf("init: hostname: %s\n", buf);
+	}
+}
+
+void get_uid_gid()
+{
+	uid_t uid;
+	gid_t gid;
+
+	uid = getuid();
+	gid = getgid();
+	
+	printf("init: uid(%d), gid(%d)\n", uid, gid);
 }
 
 void start_crond()

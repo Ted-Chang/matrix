@@ -530,7 +530,7 @@ int vfs_mount(const char *dev, const char *path, const char *type, const void *d
 		vfs_node_refer(_root_mount->root);
 	}
 
-	DEBUG(DL_DBG, ("mounted on %s.\n", path));
+	DEBUG(DL_DBG, ("mounted on %s, FS type(%s).\n", path, type));
 
  out:
 	if (rc != 0) {

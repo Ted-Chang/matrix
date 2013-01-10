@@ -83,6 +83,7 @@ DECL_SYSCALL0(clear);
 DECL_SYSCALL0(shutdown);
 DECL_SYSCALL2(syslog, char *, size_t);
 DECL_SYSCALL5(mount, const char *, const char *, const char *, int, const void *);
+DECL_SYSCALL1(umount, const char *);
 /* System call declaration end */
 
 #endif	/* __SYSCALL_H__ */

@@ -502,7 +502,7 @@ int do_mount(const char *src, const char *target, const char *fstype,
 {
 	int rc = -1;
 
-	if (!src || !target) {
+	if (!target || (!src && !fstype)) {
 		goto out;
 	}
 
@@ -515,6 +515,13 @@ int do_mount(const char *src, const char *target, const char *fstype,
 	}
 
  out:
+	return rc;
+}
+
+int do_umount(const char *path)
+{
+	int rc = -1;
+
 	return rc;
 }
 
@@ -554,6 +561,7 @@ static void *_syscalls[] = {
 	do_shutdown,
 	do_syslog,
 	do_mount,
+	do_umount,
 	NULL
 };
 

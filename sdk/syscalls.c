@@ -38,6 +38,7 @@ DEFN_SYSCALL0(clear, 25)
 DEFN_SYSCALL0(shutdown, 26)
 DEFN_SYSCALL2(syslog, 27, char *, size_t)
 DEFN_SYSCALL5(mount, 28, const char *, const char *, const char *, int, const void *)
+DEFN_SYSCALL1(umount, 29, const char *)
 
 int null()
 {
@@ -183,4 +184,9 @@ int mount(const char *src, const char *target, const char *fstype,
 	  int flags, const void *data)
 {
 	return mtx_mount(src, target, fstype, flags, data);
+}
+
+int umount(const char *path)
+{
+	return mtx_umount(path);
 }

@@ -1,5 +1,5 @@
-#ifndef __STAT_H__
-#define __STAT_H__
+#ifndef __SYS_STAT_H__
+#define __SYS_STAT_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,4 +59,4 @@ struct stat {
 };
 #endif	/* __cplusplus */
 
-#endif	/* __STAT_H__ */
+#endif	/* __SYS_STAT_H__ */

@@ -1,5 +1,5 @@
-#ifndef __TIME_H__
-#define __TIME_H__
+#ifndef __SYS_TIME_H__
+#define __SYS_TIME_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,4 +36,4 @@ struct timezone {
 }
 #endif	/* __cplusplus */
 
-#endif	/* __TIME_H__ */
+#endif	/* __SYS_TIME_H__ */

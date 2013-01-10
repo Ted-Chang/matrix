@@ -71,8 +71,22 @@ int list_directory(int fd, char *path)
 
 char *mode_to_str(uint32_t mode, char *str, size_t len)
 {
+	char type = '-';
+
+	if (S_ISDIR(mode)) {
+		type = 'd';
+	} else if (S_ISLNK(mode)) {
+		type = 'l';
+	} else if (S_ISBLK(mode)) {
+		type = 'b';
+	} else if (S_ISCHR(mode)) {
+		type = 'c';
+	} else if (S_ISSOCK(mode)) {
+		type = 's';
+	}
+	
 	snprintf(str, len, "%c%c%c%c%c%c%c%c%c%c.",
-		 S_ISDIR(mode) ? 'd' : '-',
+		 type,
 		 FLAG_ON(mode, S_IRUSR) ? 'r' : '-',
 		 FLAG_ON(mode, S_IWUSR) ? 'w' : '-',
 		 FLAG_ON(mode, S_IXUSR) ? 'x' : '-',
