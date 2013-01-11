@@ -33,8 +33,6 @@ struct ramfs_node *_initrd_nodes = NULL;
 int _nr_initrd_nodes = 0;
 int _nr_total_initrd_nodes = 0;
 
-struct dirent dirent;
-
 static int initrd_create(struct vfs_node *parent, const char *name,
 			 uint32_t type, struct vfs_node **np)
 {
@@ -105,20 +103,30 @@ static int initrd_read(struct vfs_node *node, uint32_t offset,
 	return size;
 }
 
+/*
+ * Caller should free the returned dirent by kfree
+ */
 static struct dirent *initrd_readdir(struct vfs_node *node, uint32_t index)
 {
+	struct dirent *dentry = NULL;
+	
 	if (index - 1 >= _nr_initrd_nodes) {
-		return NULL;
+		goto out;
 	}
 
-	/* FixMe: return the address of a global variable doesn't work when
-	 * it comes to a concurrent system.
-	 */
-	strcpy(dirent.name, _initrd_nodes[index - 1].name);
-	dirent.name[strlen(_initrd_nodes[index - 1].name)] = 0;
-	dirent.ino = _initrd_nodes[index - 1].inode;
+	dentry = kmalloc(sizeof(struct dirent), 0);
+	if (!dentry) {
+		DEBUG(DL_INF, ("Allocate dirent failed, node(%s), index(%d).\n",
+			       node->name, index));
+		goto out;
+	}
 
-	return &dirent;
+	memset(dentry, 0, sizeof(struct dirent));
+	strcpy(dentry->d_name, _initrd_nodes[index - 1].name);
+	dentry->d_ino = _initrd_nodes[index - 1].inode;
+
+ out:
+	return dentry;
 }
 
 static struct vfs_node *initrd_finddir(struct vfs_node *node, char *name)

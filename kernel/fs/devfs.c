@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include "matrix/matrix.h"
 #include "fs.h"
+#include "dirent.h"
 #include "debug.h"
 
 static int devfs_mount(struct vfs_mount *mnt, int flags, const void *data);
@@ -36,10 +37,10 @@ int devfs_mount(struct vfs_mount *mnt, int flags, const void *data)
 	mnt->root = vfs_node_alloc(mnt, VFS_DIRECTORY, &_devfs_node_ops, NULL);
 	ASSERT(mnt->root != NULL);
 
+	rc = 0;
+	
 	DEBUG(DL_DBG, ("devfs mounted, flags(%x).\n", flags));
 	
-	rc = 0;
-
 	return rc;
 }
 

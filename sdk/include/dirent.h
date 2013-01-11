@@ -7,8 +7,12 @@ extern "C" {
 
 /* Directory entry */
 struct dirent {
-	uint32_t ino;	// Inode number
-	char name[128];	// File name
+	ino_t d_ino;			// Inode number
+	off_t d_off;			// Offset to the next dirent
+	unsigned short d_reclen;	// length of this record
+	unsigned char d_type;		// Type of file; not supported by
+					// all file system
+	char d_name[256];		// File name
 };
 
 #ifdef __cplusplus

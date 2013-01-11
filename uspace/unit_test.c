@@ -90,24 +90,40 @@ void echo_test()
 void ls_test()
 {
 	int rc, status;
-	char *ls[] = {
+	char *ls_root[] = {
 		"/ls",
+		"-l",
 		"/",
+		NULL
+	};
+	char *ls_proc[] = {
+		"/ls",
+		"/proc",
 		NULL
 	};
 
 	printf("unit_test list directory:\n");
 	
-	rc = create_process(ls[0], ls, 0, 16);
+	rc = create_process(ls_root[0], ls_root, 0, 16);
 	if (rc == -1) {
-		printf("create_process(%s) failed, err(%d).\n", ls[0], rc);
+		printf("create_process(%s) failed, err(%d).\n", ls_root[0], rc);
 		goto out;
 	}
 
 	rc = waitpid(rc, &status, 0);
 	if (rc == -1) {
-		printf("waiting %s failed, err(%d).\n", ls[0], rc);
+		printf("waiting %s failed, err(%d).\n", ls_root[0], rc);
+	}
+
+	rc = create_process(ls_proc[0], ls_proc, 0, 16);
+	if (rc == -1) {
+		printf("create_process(%s) failed, err(%d).\n", ls_proc[0], rc);
 		goto out;
+	}
+
+	rc = waitpid(rc, &status, 0);
+	if (rc == -1) {
+		printf("waiting %s failed, err(%d).\n", ls_proc[0], rc);
 	}
 
  out:

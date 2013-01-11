@@ -175,10 +175,9 @@ int do_readdir(int fd, int index, struct dirent *entry)
 	}
 
 	memcpy(entry, e, sizeof(struct dirent));
+	kfree(e);
 	rc = 0;
 
-	// TODO: Need to make a convention whether the directory entry
-	// will be freed by us.
  out:
 	return rc;
 }
