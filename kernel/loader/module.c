@@ -14,6 +14,7 @@ extern int initrd_init(void);
 extern int keyboard_init(void);
 extern int floppy_init(void);
 extern int devfs_init(void);
+extern int procfs_init(void);
 
 /* List of loaded modules */
 static struct list _module_list = {
@@ -48,7 +49,13 @@ static int load_module_stub(struct module *m)
 		m->desc = "Device File System";
 		m->init = devfs_init;
 		break;
+	case KMOD_PROCFS:
+		m->name = "procfs";
+		m->desc = "Process File System";
+		m->init = procfs_init;
+		break;
 	default:
+		DEBUG(DL_INF, ("unknown module(%s:%d).\n", m->name, m->handle));
 		rc = -1;
 	}
 
@@ -111,12 +118,15 @@ int module_load(int handle)
 
 	/* Check if the module with this name already loaded */
 	if (NULL != module_lookup(m->name)) {
+		DEBUG(DL_INF, ("module(%s) already loaded.\n", m->name));
 		rc = -1;
 		goto out;
 	}
 
+	/* Call the module's init routine */
 	rc = m->init();
 	if (rc != 0) {
+		DEBUG(DL_INF, ("module(%s) init failed.\n", m->name));
 		goto out;
 	}
 

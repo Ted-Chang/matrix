@@ -145,8 +145,8 @@ static void thread_wrapper()
 	 */
 	sched_post_switch(TRUE);
 	
-	DEBUG(DL_DBG, ("entered thread %p on CPU %d.\n",
-		       CURR_THREAD, CURR_CPU->id));
+	DEBUG(DL_DBG, ("entered thread(%s:%p) on CPU %d.\n",
+		       CURR_THREAD->name, CURR_THREAD, CURR_CPU->id));
 
 	/* Run the thread's main function and exit when it returns */
 	CURR_THREAD->entry(CURR_THREAD->args);
@@ -238,6 +238,8 @@ static void thread_timeout(void *ctx)
 	struct thread *t = ctx;
 	struct spinlock *l;
 
+	DEBUG(DL_DBG, ("thread(%s:%p:%d) timed out.\n", t->name, t, t->id));
+
 	l = t->wait_lock;
 	if (l) {
 		spinlock_acquire(l);
@@ -317,6 +319,8 @@ int thread_create(const char *name, struct process *owner, int flags,
 	/* Add the thread to the owner */
 	process_attach(owner, t);
 	rc = 0;
+
+	DEBUG(DL_DBG, ("thread(%s:%p:%d) created.\n", t->name, t, t->id));
 
 	if (tp) {
 		/* Add a reference if the caller wants a pointer to the thread */

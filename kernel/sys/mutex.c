@@ -13,7 +13,7 @@ static INLINE void mutex_recursive_error(struct mutex *m)
 static int mutex_acquire_internal(struct mutex *m, useconds_t timeout, int flags)
 {
 	int rc = -1;
-	
+
 	if (!atomic_tas(&m->value, 0, 1)) {
 		if (m->owner == CURR_THREAD) {
 			mutex_recursive_error(m);
@@ -50,7 +50,7 @@ void mutex_release(struct mutex *m)
 {
 	struct thread *t;
 	struct list *l;
-	
+
 	spinlock_acquire(&m->lock);
 
 	if (!m->value) {

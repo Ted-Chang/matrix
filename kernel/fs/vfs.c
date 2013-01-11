@@ -417,6 +417,7 @@ int vfs_type_register(struct vfs_type *type)
 
 	/* Check whether this File System has been registered */
 	if (NULL != vfs_type_lookup_internal(type->name)) {
+		DEBUG(DL_DBG, ("File system(%s) already registered.\n", type->name));
 		goto out;
 	}
 	

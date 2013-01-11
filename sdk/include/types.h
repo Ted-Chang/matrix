@@ -31,7 +31,7 @@ typedef uint32_t phys_size_t;
 typedef int ptrdiff_t;
 
 /* Micro second type definition */
-typedef uint64_t useconds_t;
+typedef int64_t useconds_t;
 
 /* User id and group id */
 typedef uint32_t uid_t;
