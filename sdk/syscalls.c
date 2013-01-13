@@ -2,8 +2,8 @@
  * syscall.c
  */
 
-#include <syscall.h>
 #include <types.h>
+#include <syscall.h>
 #include <dirent.h>
 #include <sys/time.h>
 #include <sys/stat.h>
@@ -39,6 +39,7 @@ DEFN_SYSCALL0(shutdown, 26)
 DEFN_SYSCALL2(syslog, 27, char *, size_t)
 DEFN_SYSCALL5(mount, 28, const char *, const char *, const char *, int, const void *)
 DEFN_SYSCALL1(umount, 29, const char *)
+DEFN_SYSCALL3(mknod, 30, const char *, mode_t, dev_t)
 
 int null()
 {
@@ -189,4 +190,9 @@ int mount(const char *src, const char *target, const char *fstype,
 int umount(const char *path)
 {
 	return mtx_umount(path);
+}
+
+int mknod(const char *path, mode_t mode, dev_t dev)
+{
+	return mtx_mknod(path, mode, dev);
 }

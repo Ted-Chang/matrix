@@ -521,6 +521,23 @@ int do_umount(const char *path)
 {
 	int rc = -1;
 
+	if (!path) {
+		goto out;
+	}
+
+	rc = vfs_umount(path);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("vfs_umount failed, err(%d).\n", rc));
+		goto out;
+	}
+ out:
+	return rc;
+}
+
+int do_mknod(const char *path, mode_t mode, dev_t dev)
+{
+	int rc = -1;
+
 	return rc;
 }
 
@@ -561,6 +578,7 @@ static void *_syscalls[] = {
 	do_syslog,
 	do_mount,
 	do_umount,
+	do_mknod,
 	NULL
 };
 

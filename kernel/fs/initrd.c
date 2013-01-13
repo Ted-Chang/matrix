@@ -116,7 +116,7 @@ static struct dirent *initrd_readdir(struct vfs_node *node, uint32_t index)
 
 	dentry = kmalloc(sizeof(struct dirent), 0);
 	if (!dentry) {
-		DEBUG(DL_INF, ("Allocate dirent failed, node(%s), index(%d).\n",
+		DEBUG(DL_INF, ("allocate dirent failed, node(%s), index(%d).\n",
 			       node->name, index));
 		goto out;
 	}
@@ -176,7 +176,7 @@ void init_initrd(uint32_t location)
 	_nr_total_initrd_nodes = initrd_hdr->nr_files + 12;
 	_nr_initrd_nodes = initrd_hdr->nr_files;
 
-	size = sizeof(struct ramfs_node) * (_nr_total_initrd_nodes);
+	size = sizeof(struct ramfs_node) * _nr_total_initrd_nodes;
 	_initrd_nodes = (struct ramfs_node *)kmalloc(size, 0);
 	ASSERT(_initrd_nodes != NULL);
 	

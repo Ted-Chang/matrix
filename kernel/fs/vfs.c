@@ -42,6 +42,7 @@ struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
 		n->type = type;
 		n->ops = ops;
 		n->data = data;
+		n->mounted = NULL;
 		n->mount = mnt;
 	}
 
@@ -50,6 +51,7 @@ struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
 
 void vfs_node_free(struct vfs_node *node)
 {
+	DEBUG(DL_DBG, ("node(%s) mount(%p).\n", node->name, node->mount));
 	slab_cache_free(&_vfs_node_cache, node);
 }
 
@@ -213,16 +215,33 @@ int vfs_close(struct vfs_node *node)
 struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index)
 {
 	struct dirent *d = NULL;
+	struct vfs_node *n = NULL;
 
 	if (!node) {
 		goto out;
 	}
-	
-	if (((node->type & 0x07) == VFS_DIRECTORY) && (node->ops->readdir != NULL)) {
-		d = node->ops->readdir(node, index);
+
+	if (node->type != VFS_DIRECTORY) {
+		DEBUG(DL_DBG, ("node(%s:%x) is not directory.\n",
+			       node->name, node->type));
+		goto out;
+	}
+
+	if (node->mounted) {
+		/* This node is a mount point, route the request to the
+		 * mounted fs
+		 */
+		n = node->mounted->root;
 	} else {
-		DEBUG(DL_INF, ("node->type(%x), readdir(%p).\n",
-			       node->type, node->ops->readdir));
+		/* This node is not a mount point, just use this node */
+		n = node;
+	}
+
+	if (n->ops->readdir != NULL) {
+		d = n->ops->readdir(n, index);
+	} else {
+		DEBUG(DL_INF, ("node(%s:%x) readdir not support.\n",
+			       n->name, n->type));
 	}
 
  out:
@@ -231,21 +250,37 @@ struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index)
 
 struct vfs_node *vfs_finddir(struct vfs_node *node, char *name)
 {
-	struct vfs_node *n = NULL;
+	struct vfs_node *n = NULL, *new = NULL;
 
 	if (!node || !name) {
 		goto out;
 	}
-	
-	if (((node->type & 0x07) == VFS_DIRECTORY) && (node->ops->finddir != NULL)) {
-		n = node->ops->finddir(node, name);
+
+	if (node->type != VFS_DIRECTORY) {
+		DEBUG(DL_DBG, ("node(%s:%x) is not directory.\n",
+			       node->name, node->type));
+		goto out;
+	}
+
+	if (node->mounted) {
+		/* This node is a mount point, route the request to the
+		 * mounted fs
+		 */
+		n = node->mounted->root;
 	} else {
-		DEBUG(DL_INF, ("node->type(%x), finddir(%p).\n",
-			       node->type, node->ops->finddir));
+		/* This node is not a mount point, just use this node */
+		n = node;
+	}
+	
+	if (n->ops->finddir != NULL) {
+		new = n->ops->finddir(n, name);
+	} else {
+		DEBUG(DL_INF, ("node(%s:%x) finddir not support.\n",
+			       n->name, n->type));
 	}
 
  out:
-	return n;
+	return new;
 }
 
 struct vfs_node *vfs_clone(struct vfs_node *src)
@@ -266,6 +301,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 {
 	char *tok;
 	struct vfs_node *v;
+	struct vfs_mount *m;
 
 	/* Check whether the path is absolute path */
 	if (path[0] == '/') {
@@ -323,6 +359,23 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 			continue;
 		}
 
+		/* Special handling for descending out of the directory */
+		if (tok[0] == '.' && tok[1] == '.' && !tok[2]) {
+			ASSERT(n != _root_mount->root);
+			if (n == n->mount->root) {
+				ASSERT(n->mount->mnt_point);
+				ASSERT(n->mount->mnt_point->type == VFS_DIRECTORY);
+
+				/* We'are at the root of the mount and the path wants
+				 * to move to the parent.
+				 */
+				v = n;
+				n = v->mount->mnt_point;
+				vfs_node_refer(n);
+				vfs_node_deref(v);
+			}
+		}
+
 		/* Look up this name within the directory */
 		v = vfs_finddir(n, tok);
 		if (!v) {
@@ -331,7 +384,12 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 			return NULL;
 		}
 
+		m = n->mount;
 		n = v;
+
+		DEBUG(DL_DBG, ("looking for node(%s) in (%s)", n->name, tok));
+		/* Call the mount's read node function to load the node */
+		//...
 		vfs_node_refer(n);
 	}
 }
@@ -458,7 +516,7 @@ int vfs_type_unregister(struct vfs_type *type)
 int vfs_mount(const char *dev, const char *path, const char *type, const void *data)
 {
 	int rc = -1, flags = 0;
-	struct vfs_node *n;
+	struct vfs_node *n = NULL;
 	struct vfs_mount *mnt = NULL;
 
 	if (!path || (!dev && !type)) {
@@ -514,7 +572,10 @@ int vfs_mount(const char *dev, const char *path, const char *type, const void *d
 		}
 	}
 
-	/* Call the File System's mount function to do the mount */
+	/* Call the File System's mount function to do the mount, if mount
+	 * function was successfully called, mnt->root will point to the
+	 * new root
+	 */
 	ASSERT(mnt->type->mount != NULL);
 	rc = mnt->type->mount(mnt, flags, data);
 	if (rc != 0) {
@@ -522,6 +583,11 @@ int vfs_mount(const char *dev, const char *path, const char *type, const void *d
 		goto out;
 	} else if (!mnt->root) {
 		PANIC("Mount with root not set");
+	}
+
+	/* Make the mnt_point point to the new mount */
+	if (mnt->mnt_point) {
+		mnt->mnt_point->mounted = mnt;
 	}
 
 	/* Append the mount to the mount list */
@@ -535,14 +601,22 @@ int vfs_mount(const char *dev, const char *path, const char *type, const void *d
 
  out:
 	if (rc != 0) {
-		;
+		if (mnt) {
+			if (mnt->type) {
+				atomic_dec(&mnt->type->ref_count);
+			}
+			kfree(mnt);
+		}
+		if (n) {
+			vfs_node_deref(n);
+		}
 	}
 	mutex_release(&_mount_list_lock);
 
 	return rc;
 }
 
-static int vfs_unmount_internal(struct vfs_mount *mnt, struct vfs_node *n)
+static int vfs_umount_internal(struct vfs_mount *mnt, struct vfs_node *n)
 {
 	int rc = -1;
 
@@ -558,7 +632,7 @@ static int vfs_unmount_internal(struct vfs_mount *mnt, struct vfs_node *n)
 }
 
 /* Unmount a file system */
-int vfs_unmount(const char *path)
+int vfs_umount(const char *path)
 {
 	int rc = -1;
 	struct vfs_node *n;
@@ -572,7 +646,7 @@ int vfs_unmount(const char *path)
 
 	n = vfs_lookup(path, VFS_DIRECTORY);
 	if (n) {
-		rc = vfs_unmount_internal(n->mount, n);
+		rc = vfs_umount_internal(n->mount, n);
 	} else {
 		DEBUG(DL_DBG, ("vfs_lookup(%s) not found.\n", path));
 	}

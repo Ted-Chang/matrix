@@ -56,7 +56,8 @@ struct vfs_node {
 
 	struct vfs_node_ops *ops;	// Node operations
 	void *data;			// Pointer to private data
-	struct vfs_mount *mount;	// Pointer to the File System mounted on this node
+	struct vfs_mount *mounted;	// Pointer to the File System mounted on this node
+	struct vfs_mount *mount;	// Mount that the node resides on
 };
 
 /* Types for vfs_node */
@@ -72,7 +73,7 @@ extern int vfs_type_register(struct vfs_type *type);
 extern int vfs_type_unregister(struct vfs_type *type);
 extern int vfs_mount(const char *dev, const char *path, const char *type,
 		     const void *data);
-extern int vfs_unmount(const char *path);
+extern int vfs_umount(const char *path);
 extern struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
 				       struct vfs_node_ops *ops, void *data);
 extern void vfs_node_free(struct vfs_node *node);

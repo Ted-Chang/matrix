@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <sys/time.h>
 
+extern int gettimeofday(struct timeval *tv, struct timezone *tz);
+
 #define LEAPYEAR(y)	(((y) % 4) == 0 && (((y) % 100) != 0 || ((y) % 400) == 0))
 
 #define DAYS(y)		(LEAPYEAR(y) ? 366 : 365)
