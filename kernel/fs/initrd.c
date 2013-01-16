@@ -193,7 +193,7 @@ void init_initrd(uint32_t location)
 		_initrd_nodes[i].inode = i;
 		_initrd_nodes[i].type = VFS_FILE;
 		_initrd_nodes[i].length = file_hdrs[i].length;
-		_initrd_nodes[i].mask = 0x755;
+		_initrd_nodes[i].mask = 0755;
 	}
 }
 

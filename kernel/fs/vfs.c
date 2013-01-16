@@ -215,7 +215,6 @@ int vfs_close(struct vfs_node *node)
 struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index)
 {
 	struct dirent *d = NULL;
-	struct vfs_node *n = NULL;
 
 	if (!node) {
 		goto out;
@@ -227,21 +226,11 @@ struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index)
 		goto out;
 	}
 
-	if (node->mounted) {
-		/* This node is a mount point, route the request to the
-		 * mounted fs
-		 */
-		n = node->mounted->root;
-	} else {
-		/* This node is not a mount point, just use this node */
-		n = node;
-	}
-
-	if (n->ops->readdir != NULL) {
-		d = n->ops->readdir(n, index);
+	if (node->ops->readdir != NULL) {
+		d = node->ops->readdir(node, index);
 	} else {
 		DEBUG(DL_INF, ("node(%s:%x) readdir not support.\n",
-			       n->name, n->type));
+			       node->name, node->type));
 	}
 
  out:
@@ -250,7 +239,7 @@ struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index)
 
 struct vfs_node *vfs_finddir(struct vfs_node *node, char *name)
 {
-	struct vfs_node *n = NULL, *new = NULL;
+	struct vfs_node *n = NULL;
 
 	if (!node || !name) {
 		goto out;
@@ -262,25 +251,15 @@ struct vfs_node *vfs_finddir(struct vfs_node *node, char *name)
 		goto out;
 	}
 
-	if (node->mounted) {
-		/* This node is a mount point, route the request to the
-		 * mounted fs
-		 */
-		n = node->mounted->root;
-	} else {
-		/* This node is not a mount point, just use this node */
-		n = node;
-	}
-	
-	if (n->ops->finddir != NULL) {
-		new = n->ops->finddir(n, name);
+	if (node->ops->finddir != NULL) {
+		n = node->ops->finddir(node, name);
 	} else {
 		DEBUG(DL_INF, ("node(%s:%x) finddir not support.\n",
-			       n->name, n->type));
+			       node->name, node->type));
 	}
 
  out:
-	return new;
+	return n;
 }
 
 struct vfs_node *vfs_clone(struct vfs_node *src)
@@ -388,9 +367,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 		n = v;
 
 		DEBUG(DL_DBG, ("looking for node(%s) in (%s)", n->name, tok));
-		/* Call the mount's read node function to load the node */
-		//...
-		vfs_node_refer(n);
+		vfs_node_deref(n);
 	}
 }
 
