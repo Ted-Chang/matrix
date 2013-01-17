@@ -63,7 +63,7 @@ struct vfs_node {
 	uint32_t gid;
 	uint32_t length;
 	uint32_t offset;
-	uint32_t inode;
+	uint32_t ino;			// inode number
 
 	struct vfs_node_ops *ops;	// Node operations
 	void *data;			// Pointer to private data

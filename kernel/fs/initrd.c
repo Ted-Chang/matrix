@@ -65,7 +65,7 @@ static int initrd_create(struct vfs_node *parent, const char *name,
 
 	/* Initialize the vfs_node which we created */
 	strncpy(n->name, name, 127);
-	n->inode = _nr_initrd_nodes;
+	n->ino = _nr_initrd_nodes;
 	n->length = 0;
 
 	*np = n;
@@ -80,7 +80,8 @@ static int initrd_close(struct vfs_node *node)
 {
 	int rc = 0;
 
-	DEBUG(DL_DBG, ("close(%s).\n", node->name));
+	DEBUG(DL_DBG, ("close(%s:%d) ref_count(%d).\n",
+		       node->name, node->ino, node->ref_count));
 
 	return rc;
 }
@@ -90,7 +91,7 @@ static int initrd_read(struct vfs_node *node, uint32_t offset,
 {
 	struct initrd_file_header *hdr;
 
-	hdr = &file_hdrs[node->inode];
+	hdr = &file_hdrs[node->ino];
 	
 	if (offset > hdr->length) {
 		DEBUG(DL_DBG, ("offset(%d), length(%d)\n", offset, hdr->length));
@@ -172,7 +173,7 @@ static int initrd_read_node(struct vfs_mount *mnt, ino_t id, struct vfs_node **n
 			if (!node) {
 				break;
 			}
-			node->inode = id;
+			node->ino = id;
 			node->length = _initrd_nodes[i].length;
 			node->mask = _initrd_nodes[i].mask;
 			strncpy(node->name, _initrd_nodes[i].name, 128);
@@ -232,6 +233,7 @@ int initrd_mount(struct vfs_mount *mnt, int flags, const void *data)
 
 	mnt->ops = &_ramfs_mount_ops;
 	mnt->root = vfs_node_alloc(mnt, VFS_DIRECTORY, &_ramfs_node_ops, NULL);
+	strncpy(mnt->root->name, "initrd-root", 128);
 	ASSERT(mnt->root != NULL);
 
 	init_initrd((uint32_t)data);

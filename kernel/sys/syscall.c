@@ -246,7 +246,7 @@ int do_lstat(int fd, void *stat)
 		flags = S_IFLNK;
 
 	s->st_dev = 0;
-	s->st_ino = n->inode;
+	s->st_ino = n->ino;
 	s->st_mode = n->mask | flags;
 	s->st_nlink = 0;
 	s->st_uid = n->uid;

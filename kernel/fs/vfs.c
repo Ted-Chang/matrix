@@ -51,7 +51,15 @@ struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
 
 void vfs_node_free(struct vfs_node *node)
 {
+	ASSERT(node->ref_count == 0);
+
 	DEBUG(DL_DBG, ("node(%s) mount(%p).\n", node->name, node->mount));
+
+	/* If the node has a mount, remove it from the node cache */
+	if (node->mount) {
+		avl_tree_remove(&node->mount->nodes, node->ino);
+	}
+	
 	slab_cache_free(&_vfs_node_cache, node);
 }
 
@@ -62,6 +70,7 @@ int vfs_node_refer(struct vfs_node *node)
 	ref_count = node->ref_count;
 	node->ref_count++;
 	if (node->ref_count == 0) {
+		DEBUG(DL_ERR, ("node(%s:%d) corrupted.\n", node->name, node->ino));
 		PANIC("vfs_node_refer: ref_count is corrupted!");
 	}
 	
@@ -73,6 +82,7 @@ int vfs_node_deref(struct vfs_node *node)
 	int ref_count;
 
 	ref_count = node->ref_count;
+	ASSERT(ref_count != 0);
 	node->ref_count--;
 	if (!node->ref_count) {
 		vfs_node_free(node);
@@ -353,7 +363,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 		mutex_acquire(&m->lock);
 		v = n;
 
-		DEBUG(DL_DBG, ("looking for node(%s) in (%s)", n->name, tok));
+		DEBUG(DL_DBG, ("looking for %s in node(%s).\n", tok, n->name));
 		/* Lookup the node in cached tree first */
 		n = avl_tree_lookup(&m->nodes, ino);
 		if (n) {
@@ -369,6 +379,8 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 			 * file system
 			 */
 			if (!m->ops->read_node) {
+				DEBUG(DL_DBG, ("read_node not supported by mount(%s).\n",
+					       m->type->name));
 				mutex_release(&m->lock);
 				vfs_node_deref(v);
 				return NULL;
@@ -376,6 +388,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 
 			rc = m->ops->read_node(m, ino, &n);
 			if (rc != 0) {
+				DEBUG(DL_INF, ("read_node failed, mount(%s).\n", m->type->name));
 				mutex_release(&m->lock);
 				vfs_node_deref(v);
 				return NULL;
@@ -384,6 +397,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 			ASSERT(n->ops != NULL);
 			/* Insert the node into the node cache */
 			avl_tree_insert(&m->nodes, ino, n);
+			vfs_node_refer(n);
 		}
 
 		mutex_release(&m->lock);
