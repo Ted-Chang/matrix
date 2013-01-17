@@ -18,6 +18,7 @@ extern struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
 				       struct vfs_node_ops *ops, void *data);
 
 static int initrd_mount(struct vfs_mount *mnt, int flags, const void *data);
+static int initrd_read_node(struct vfs_mount *mnt, ino_t id, struct vfs_node **np);
 
 struct vfs_type _ramfs_type = {
 	.name = "ramfs",
@@ -26,12 +27,12 @@ struct vfs_type _ramfs_type = {
 	.mount = initrd_mount,
 };
 
-struct initrd_header *initrd_hdr = NULL;
-struct initrd_file_header *file_hdrs = NULL;
-struct ramfs_node *_initrd_nodes = NULL;
+static struct initrd_header *initrd_hdr = NULL;
+static struct initrd_file_header *file_hdrs = NULL;
+static struct ramfs_node *_initrd_nodes = NULL;
 
-int _nr_initrd_nodes = 0;
-int _nr_total_initrd_nodes = 0;
+static int _nr_initrd_nodes = 0;
+static int _nr_total_initrd_nodes = 0;
 
 static int initrd_create(struct vfs_node *parent, const char *name,
 			 uint32_t type, struct vfs_node **np)
@@ -129,28 +130,23 @@ static struct dirent *initrd_readdir(struct vfs_node *node, uint32_t index)
 	return dentry;
 }
 
-static struct vfs_node *initrd_finddir(struct vfs_node *node, char *name)
+static int initrd_finddir(struct vfs_node *node, const char *name, ino_t *id)
 {
-	int i;
-	struct vfs_node *n;
-
-	n = NULL;
+	int rc = -1, i;
 	
 	for (i = 0; i < _nr_initrd_nodes; i++) {
-		if (!strcmp(name, _initrd_nodes[i].name)) {
-			n = vfs_node_alloc(node->mount, _initrd_nodes[i].type, node->ops, NULL);
-			n->length = _initrd_nodes[i].length;
-			n->inode = _initrd_nodes[i].inode;
-			n->mask = _initrd_nodes[i].mask;
+		if (strcmp(name, _initrd_nodes[i].name) == 0) {
+			*id = _initrd_nodes[i].inode;
+			rc = 0;
 			break;
 		}
 	}
 
-	if (!n) {
-		DEBUG(DL_DBG, ("%s not found.\n", name));
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("node(%s), name(%s), not found.\n", node->name, name));
 	}
 
-	return n;
+	return rc;
 }
 
 static struct vfs_node_ops _ramfs_node_ops = {
@@ -159,8 +155,35 @@ static struct vfs_node_ops _ramfs_node_ops = {
 	.create = initrd_create,
 	.close = initrd_close,
 	.readdir = initrd_readdir,
-	.finddir = initrd_finddir
+	.finddir = initrd_finddir,
 };
+
+static int initrd_read_node(struct vfs_mount *mnt, ino_t id, struct vfs_node **np)
+{
+	int rc = -1, i;
+	struct vfs_node *node;
+
+	ASSERT(np != NULL);
+	
+	for (i = 0; i < _nr_initrd_nodes; i++) {
+		if (_initrd_nodes[i].inode == id) {
+			node = vfs_node_alloc(mnt, _initrd_nodes[i].type,
+					      &_ramfs_node_ops, NULL);
+			if (!node) {
+				break;
+			}
+			node->inode = id;
+			node->length = _initrd_nodes[i].length;
+			node->mask = _initrd_nodes[i].mask;
+			strncpy(node->name, _initrd_nodes[i].name, 128);
+			*np = node;
+			rc = 0;
+			break;
+		}
+	}
+
+	return rc;
+}
 
 void init_initrd(uint32_t location)
 {
@@ -197,10 +220,17 @@ void init_initrd(uint32_t location)
 	}
 }
 
+static struct vfs_mount_ops _ramfs_mount_ops = {
+	.umount = NULL,
+	.flush = NULL,
+	.read_node = initrd_read_node,
+};
+
 int initrd_mount(struct vfs_mount *mnt, int flags, const void *data)
 {
 	int rc = -1;
 
+	mnt->ops = &_ramfs_mount_ops;
 	mnt->root = vfs_node_alloc(mnt, VFS_DIRECTORY, &_ramfs_node_ops, NULL);
 	ASSERT(mnt->root != NULL);
 

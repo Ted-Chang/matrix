@@ -27,7 +27,7 @@ static struct vfs_node_ops _devfs_node_ops = {
 	.create = NULL,
 	.close = NULL,
 	.readdir = devfs_readdir,
-	.finddir = NULL
+	.finddir = NULL,
 };
 
 int devfs_mount(struct vfs_mount *mnt, int flags, const void *data)

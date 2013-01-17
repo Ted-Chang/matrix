@@ -47,7 +47,7 @@ static struct vfs_node_ops _procfs_node_ops = {
 	.create = NULL,
 	.close = NULL,
 	.readdir = procfs_readdir,
-	.finddir = NULL
+	.finddir = NULL,
 };
 
 int procfs_mount(struct vfs_mount *mnt, int flags, const void *data)

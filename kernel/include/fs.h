@@ -3,8 +3,10 @@
 
 #include <types.h>
 #include "mutex.h"
+#include "rtl/avltree.h"
 
 struct vfs_mount;
+struct vfs_node;
 
 /* Structure contains File System type description */
 struct vfs_type {
@@ -18,28 +20,37 @@ struct vfs_type {
 	int (*mount)(struct vfs_mount *mnt, int flags, const void *data);
 };
 
+struct vfs_mount_ops {
+	int (*umount)(struct vfs_mount *mnt);
+	int (*flush)(struct vfs_mount *mnt);
+	int (*read_node)(struct vfs_mount *mnt, ino_t ino, struct vfs_node **np);
+};
+
 /* Structure contains detail of a mounted File System */
 struct vfs_mount {
 	struct list link;
 	struct mutex lock;
 
-	int flags;
-	
-	struct vfs_node *root;
-	struct vfs_node *mnt_point;
+	struct avl_tree nodes;		// Tree mapping node IDs to node structure
 
-	struct vfs_type *type;
+	int flags;
+	struct vfs_mount_ops *ops;	// Mount operations
+	
+	struct vfs_node *root;		// Root node of the mount
+	struct vfs_node *mnt_point;	// Directory that the mount is mounted
+
+	struct vfs_type *type;		// File system type
 	void *data;			// Pointer to private data
 };
 
 /* Structure contains operations can be done on a File System node */
 struct vfs_node_ops {
+	int (*create)(struct vfs_node *, const char *, uint32_t, struct vfs_node **);
 	int (*read)(struct vfs_node *, uint32_t, uint32_t, uint8_t *);
 	int (*write)(struct vfs_node *, uint32_t, uint32_t, uint8_t *);
-	int (*create)(struct vfs_node *, const char *, uint32_t, struct vfs_node **);
+	int (*finddir)(struct vfs_node *, const char *, ino_t *id);
 	int (*close)(struct vfs_node *);
 	struct dirent *(*readdir)(struct vfs_node *, uint32_t);
-	struct vfs_node *(*finddir)(struct vfs_node *, char *);
 };
 
 /* Structure contains detail of a File System node */
@@ -56,6 +67,7 @@ struct vfs_node {
 
 	struct vfs_node_ops *ops;	// Node operations
 	void *data;			// Pointer to private data
+	
 	struct vfs_mount *mounted;	// Pointer to the File System mounted on this node
 	struct vfs_mount *mount;	// Mount that the node resides on
 };
@@ -83,10 +95,10 @@ extern int vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size,
 		    uint8_t *buffer);
 extern int vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size,
 		     uint8_t *buffer);
-extern int vfs_close(struct vfs_node *node);
+extern int vfs_finddir(struct vfs_node *node, const char *name, ino_t *id);
 extern int vfs_create(const char *path, uint32_t type, struct vfs_node **node);
+extern int vfs_close(struct vfs_node *node);
 extern struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index);
-extern struct vfs_node *vfs_finddir(struct vfs_node *node, char *name);
 extern struct vfs_node *vfs_clone(struct vfs_node *src);
 extern struct vfs_node *vfs_lookup(const char *path, int flags);
 extern void init_fs();

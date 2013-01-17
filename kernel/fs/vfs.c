@@ -5,8 +5,8 @@
 #include "mm/slab.h"
 #include "mutex.h"
 #include "proc/process.h"
-#include "fs.h"
 #include "rtl/fsrtl.h"
+#include "fs.h"
 #include "kstrdup.h"
 #include "debug.h"
 
@@ -237,9 +237,9 @@ struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index)
 	return d;
 }
 
-struct vfs_node *vfs_finddir(struct vfs_node *node, char *name)
+int vfs_finddir(struct vfs_node *node, const char *name, ino_t *id)
 {
-	struct vfs_node *n = NULL;
+	int rc = -1;
 
 	if (!node || !name) {
 		goto out;
@@ -252,14 +252,14 @@ struct vfs_node *vfs_finddir(struct vfs_node *node, char *name)
 	}
 
 	if (node->ops->finddir != NULL) {
-		n = node->ops->finddir(node, name);
+		rc = node->ops->finddir(node, name, id);
 	} else {
 		DEBUG(DL_INF, ("node(%s:%x) finddir not support.\n",
 			       node->name, node->type));
 	}
 
  out:
-	return n;
+	return rc;
 }
 
 struct vfs_node *vfs_clone(struct vfs_node *src)
@@ -278,7 +278,9 @@ struct vfs_node *vfs_clone(struct vfs_node *src)
 
 static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 {
-	char *tok;
+	int rc = -1;
+	char *tok = NULL;
+	ino_t ino = 0;
 	struct vfs_node *v;
 	struct vfs_mount *m;
 
@@ -332,42 +334,60 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 			 */
 			DEBUG(DL_DBG, ("component(%s) type(0x%x)\n",
 				       n->name, n->type));
+			vfs_node_deref(n);
 			return NULL;
 		} else if (!tok[0]) {
 			/* Zero-length path component, do nothing */
 			continue;
 		}
 
-		/* Special handling for descending out of the directory */
-		if (tok[0] == '.' && tok[1] == '.' && !tok[2]) {
-			ASSERT(n != _root_mount->root);
-			if (n == n->mount->root) {
-				ASSERT(n->mount->mnt_point);
-				ASSERT(n->mount->mnt_point->type == VFS_DIRECTORY);
-
-				/* We'are at the root of the mount and the path wants
-				 * to move to the parent.
-				 */
-				v = n;
-				n = v->mount->mnt_point;
-				vfs_node_refer(n);
-				vfs_node_deref(v);
-			}
-		}
-
 		/* Look up this name within the directory */
-		v = vfs_finddir(n, tok);
-		if (!v) {
-			DEBUG(DL_DBG, ("%s not found.\n", tok));
+		rc = vfs_finddir(n, tok, &ino);
+		if (rc != 0) {
+			DEBUG(DL_DBG, ("vfs_finddir(%s) failed, err(%d).\n", tok, rc));
 			vfs_node_deref(n);
 			return NULL;
 		}
 
 		m = n->mount;
-		n = v;
+		mutex_acquire(&m->lock);
+		v = n;
 
 		DEBUG(DL_DBG, ("looking for node(%s) in (%s)", n->name, tok));
-		vfs_node_deref(n);
+		/* Lookup the node in cached tree first */
+		n = avl_tree_lookup(&m->nodes, ino);
+		if (n) {
+			ASSERT(n->mount == m);
+			if (n->mounted) {
+				n = n->mounted->root;
+				vfs_node_refer(n);
+			} else {
+				vfs_node_refer(n);
+			}
+		} else {
+			/* The node is not in the cache tree. Load it from the
+			 * file system
+			 */
+			if (!m->ops->read_node) {
+				mutex_release(&m->lock);
+				vfs_node_deref(v);
+				return NULL;
+			}
+
+			rc = m->ops->read_node(m, ino, &n);
+			if (rc != 0) {
+				mutex_release(&m->lock);
+				vfs_node_deref(v);
+				return NULL;
+			}
+
+			ASSERT(n->ops != NULL);
+			/* Insert the node into the node cache */
+			avl_tree_insert(&m->nodes, ino, n);
+		}
+
+		mutex_release(&m->lock);
+		vfs_node_deref(v);
 	}
 }
 
@@ -396,9 +416,14 @@ struct vfs_node *vfs_lookup(const char *path, int type)
 	n = vfs_lookup_internal(c, dup);
 	if (n) {
 		if ((type >= 0) && (n->type != type)) {
+			DEBUG(DL_DBG, ("node(%s) type mismatch, n->type(%d), type(%d).\n",
+				       n->name, n->type, type));
 			vfs_node_deref(n);
 			n = NULL;
 		}
+	} else {
+		DEBUG(DL_DBG, ("current node(%s), path(%s) not found.\n",
+			       c->name, dup));
 	}
 
 out:
@@ -533,6 +558,7 @@ int vfs_mount(const char *dev, const char *path, const char *type, const void *d
 	}
 	LIST_INIT(&mnt->link);
 	mutex_init(&mnt->lock, "fs-mnt-mutex", 0);
+	avl_tree_init(&mnt->nodes);
 	mnt->flags = flags;
 	mnt->mnt_point = n;
 	mnt->root = NULL;
