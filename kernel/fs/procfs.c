@@ -18,27 +18,32 @@ struct vfs_type _procfs_type = {
 	.mount = procfs_mount
 };
 
-static struct dirent *procfs_readdir(struct vfs_node *node, uint32_t index)
+static int procfs_readdir(struct vfs_node *node, uint32_t index, struct dirent **dentry)
 {
-	struct dirent *dentry = NULL;
-	
-	if (index -1 > _nr_procfs_nodes) {
+	int rc = -1;
+	struct dirent *new_dentry = NULL;
+
+	ASSERT(dentry != NULL);
+		
+	if (index >= _nr_procfs_nodes) {
 		goto out;
 	}
 
-	dentry = kmalloc(sizeof(struct dirent), 0);
-	if (!dentry) {
+	new_dentry = kmalloc(sizeof(struct dirent), 0);
+	if (!new_dentry) {
 		DEBUG(DL_INF, ("Allocate dirent failed, node(%s), index(%d)",
 			       node->name, index));
 		goto out;
 	}
 
-	memset(dentry, 0, sizeof(struct dirent));
-	strcpy(dentry->d_name, "cmdline");
-	dentry->d_ino = 0;
+	memset(new_dentry, 0, sizeof(struct dirent));
+	strncpy(new_dentry->d_name, "cmdline", 128);
+	new_dentry->d_ino = index;
+	*dentry = new_dentry;
+	rc = 0;
 
  out:
-	return dentry;
+	return rc;
 }
 
 static struct vfs_node_ops _procfs_node_ops = {

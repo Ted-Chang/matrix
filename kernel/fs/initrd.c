@@ -108,27 +108,32 @@ static int initrd_read(struct vfs_node *node, uint32_t offset,
 /*
  * Caller should free the returned dirent by kfree
  */
-static struct dirent *initrd_readdir(struct vfs_node *node, uint32_t index)
+static int initrd_readdir(struct vfs_node *node, uint32_t index, struct dirent **dentry)
 {
-	struct dirent *dentry = NULL;
+	int rc = -1;
+	struct dirent *new_dentry = NULL;
+
+	ASSERT(dentry != NULL);
 	
-	if (index - 1 >= _nr_initrd_nodes) {
+	if (index >= _nr_initrd_nodes) {
 		goto out;
 	}
 
-	dentry = kmalloc(sizeof(struct dirent), 0);
-	if (!dentry) {
+	new_dentry = kmalloc(sizeof(struct dirent), 0);
+	if (!new_dentry) {
 		DEBUG(DL_INF, ("allocate dirent failed, node(%s), index(%d).\n",
 			       node->name, index));
 		goto out;
 	}
 
-	memset(dentry, 0, sizeof(struct dirent));
-	strcpy(dentry->d_name, _initrd_nodes[index - 1].name);
-	dentry->d_ino = _initrd_nodes[index - 1].inode;
+	memset(new_dentry, 0, sizeof(struct dirent));
+	strncpy(new_dentry->d_name, _initrd_nodes[index].name, 128);
+	new_dentry->d_ino = _initrd_nodes[index].inode;
+	*dentry = new_dentry;
+	rc = 0;
 
  out:
-	return dentry;
+	return rc;
 }
 
 static int initrd_finddir(struct vfs_node *node, const char *name, ino_t *id)

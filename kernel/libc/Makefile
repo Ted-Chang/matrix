@@ -10,7 +10,6 @@ TARGETOBJ := \
 	$(OBJ)/vsprintf.o \
 	$(OBJ)/sprintf.o \
 	$(OBJ)/format.o \
-	$(OBJ)/kstrdup.o \
 
 .PHONY: clean help
 

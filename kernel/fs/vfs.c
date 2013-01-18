@@ -222,9 +222,9 @@ int vfs_close(struct vfs_node *node)
 	return rc;
 }
 
-struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index)
+int vfs_readdir(struct vfs_node *node, uint32_t index, struct dirent **dentry)
 {
-	struct dirent *d = NULL;
+	int rc = -1;
 
 	if (!node) {
 		goto out;
@@ -237,14 +237,14 @@ struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index)
 	}
 
 	if (node->ops->readdir != NULL) {
-		d = node->ops->readdir(node, index);
+		rc = node->ops->readdir(node, index, dentry);
 	} else {
 		DEBUG(DL_INF, ("node(%s:%x) readdir not support.\n",
 			       node->name, node->type));
 	}
 
  out:
-	return d;
+	return rc;
 }
 
 int vfs_finddir(struct vfs_node *node, const char *name, ino_t *id)

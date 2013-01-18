@@ -168,9 +168,10 @@ int do_readdir(int fd, int index, struct dirent *entry)
 		goto out;
 	}
 
-	e = vfs_readdir(n, index);
-	if (!e) {
-		DEBUG(DL_DBG, ("fd(%d), no entry\n", fd));
+	rc = vfs_readdir(n, index, &e);
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("read dir failed, node(%s), index(%d), err(%d)\n",
+			       n->name, index, rc));
 		goto out;
 	}
 

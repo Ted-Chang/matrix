@@ -10,6 +10,7 @@ TARGETOBJ := \
 	$(OBJ)/object.o \
 	$(OBJ)/bitmap.o \
 	$(OBJ)/name.o \
+	$(OBJ)/kstrdup.o \
 
 .PHONY: clean help
 

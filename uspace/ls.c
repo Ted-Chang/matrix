@@ -61,7 +61,7 @@ int list_directory(int fd, char *path, enum ls_option opt)
 	struct stat st;
 	char str[BUF_SIZE];
 
-	i = 1;
+	i = 0;
 	while (TRUE) {
 		rc = readdir(fd, i, &d);
 		if (rc == -1) {

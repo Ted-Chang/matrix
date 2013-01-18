@@ -45,7 +45,7 @@ int do_unit_test(uint32_t round)
 	size_t size;
 	struct bitmap bm;
 	u_long *bm_buf;
-	char *pch, *dir = NULL, *name = NULL;
+	char *dir = NULL, *name = NULL;
 	char *path = "/dev";
 
 	/* Kernel memory pool test */

@@ -1,5 +1,6 @@
 #include <types.h>
 #include <stddef.h>
+#include <string.h>
 #include "mm/malloc.h"
 #include "kstrdup.h"
 

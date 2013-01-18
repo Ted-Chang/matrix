@@ -1,5 +1,6 @@
 #include <types.h>
 #include <stddef.h>
+#include <string.h>
 #include "kstrdup.h"
 #include "rtl/fsrtl.h"
 

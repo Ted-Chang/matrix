@@ -14,11 +14,13 @@ struct vfs_type _devfs_type = {
 	.mount = devfs_mount,
 };
 
-static struct dirent *devfs_readdir(struct vfs_node *n, uint32_t index)
+static int devfs_readdir(struct vfs_node *n, uint32_t index, struct dirent **dentry)
 {
+	int rc = -1;
+	
 	DEBUG(DL_DBG, ("read directory(%s).\n", n->name));
 	
-	return NULL;
+	return rc;
 }
 
 static struct vfs_node_ops _devfs_node_ops = {

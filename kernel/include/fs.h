@@ -3,6 +3,7 @@
 
 #include <types.h>
 #include "mutex.h"
+#include "dirent.h"
 #include "rtl/avltree.h"
 
 struct vfs_mount;
@@ -49,8 +50,8 @@ struct vfs_node_ops {
 	int (*read)(struct vfs_node *, uint32_t, uint32_t, uint8_t *);
 	int (*write)(struct vfs_node *, uint32_t, uint32_t, uint8_t *);
 	int (*finddir)(struct vfs_node *, const char *, ino_t *id);
+	int (*readdir)(struct vfs_node *, uint32_t, struct dirent **);
 	int (*close)(struct vfs_node *);
-	struct dirent *(*readdir)(struct vfs_node *, uint32_t);
 };
 
 /* Structure contains detail of a File System node */
@@ -98,7 +99,7 @@ extern int vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size,
 extern int vfs_finddir(struct vfs_node *node, const char *name, ino_t *id);
 extern int vfs_create(const char *path, uint32_t type, struct vfs_node **node);
 extern int vfs_close(struct vfs_node *node);
-extern struct dirent *vfs_readdir(struct vfs_node *node, uint32_t index);
+extern int vfs_readdir(struct vfs_node *node, uint32_t index, struct dirent **dentry);
 extern struct vfs_node *vfs_clone(struct vfs_node *src);
 extern struct vfs_node *vfs_lookup(const char *path, int flags);
 extern void init_fs();
