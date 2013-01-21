@@ -38,7 +38,7 @@ static int _nr_total_initrd_nodes = 0;
 static int initrd_create(struct vfs_node *parent, const char *name,
 			 uint32_t type, struct vfs_node **np)
 {
-	int rc = -1;
+	int rc = -1, pos;
 	struct vfs_node *n = NULL;
 
 	ASSERT(parent->type == VFS_DIRECTORY);
@@ -58,16 +58,19 @@ static int initrd_create(struct vfs_node *parent, const char *name,
 		goto out;
 	}
 
-	strncpy(_initrd_nodes[_nr_initrd_nodes].name, name, 127);
-	_initrd_nodes[_nr_initrd_nodes].inode = _nr_initrd_nodes;
-	_initrd_nodes[_nr_initrd_nodes].type = type;
-	_initrd_nodes[_nr_initrd_nodes].length = 0;
+	/* Get the position we should add the new node to */
+	pos = _nr_initrd_nodes;
+	
+	strncpy(_initrd_nodes[pos].name, name, 127);
+	_initrd_nodes[pos].inode = _nr_initrd_nodes + 1;
+	_initrd_nodes[pos].type = type;
+	_initrd_nodes[pos].length = 0;
 	_nr_initrd_nodes++;
 
 	/* Initialize the vfs_node which we created */
 	strncpy(n->name, name, 127);
-	n->ino = _nr_initrd_nodes;
-	n->length = 0;
+	n->ino = _initrd_nodes[pos].inode;
+	n->length = _initrd_nodes[pos].length;
 
 	*np = n;
 
@@ -119,7 +122,7 @@ static int initrd_read(struct vfs_node *node, uint32_t offset,
  */
 static int initrd_readdir(struct vfs_node *node, uint32_t index, struct dirent **dentry)
 {
-	int rc = -1;
+	int rc = -1, pos;
 	struct dirent *new_dentry = NULL;
 
 	ASSERT(dentry != NULL);
@@ -127,6 +130,9 @@ static int initrd_readdir(struct vfs_node *node, uint32_t index, struct dirent *
 	if (index >= _nr_initrd_nodes) {
 		goto out;
 	}
+
+	/* Get the position from the index, currently we just use index */
+	pos = index;
 
 	new_dentry = kmalloc(sizeof(struct dirent), 0);
 	if (!new_dentry) {
@@ -136,8 +142,8 @@ static int initrd_readdir(struct vfs_node *node, uint32_t index, struct dirent *
 	}
 
 	memset(new_dentry, 0, sizeof(struct dirent));
-	strncpy(new_dentry->d_name, _initrd_nodes[index].name, 128);
-	new_dentry->d_ino = _initrd_nodes[index].inode;
+	strncpy(new_dentry->d_name, _initrd_nodes[pos].name, 128);
+	new_dentry->d_ino = _initrd_nodes[pos].inode;
 	*dentry = new_dentry;
 	rc = 0;
 
@@ -231,7 +237,7 @@ void init_initrd(uint32_t location)
 
 		/* Create a new file node */
 		strcpy(_initrd_nodes[i].name, file_hdrs[i].name);
-		_initrd_nodes[i].inode = i;
+		_initrd_nodes[i].inode = i + 1;
 		_initrd_nodes[i].type = VFS_FILE;
 		_initrd_nodes[i].length = file_hdrs[i].length;
 		_initrd_nodes[i].mask = 0755;
