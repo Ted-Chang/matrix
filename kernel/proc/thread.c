@@ -457,7 +457,7 @@ void thread_release(struct thread *t)
 
 void thread_exit()
 {
-	int rc;
+	int rc = -1;
 	boolean_t state;
 
 	/* Unmap the user stack */

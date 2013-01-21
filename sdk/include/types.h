@@ -44,6 +44,7 @@ typedef int tid_t;
 /* Ptr type definition */
 typedef unsigned long ptr_t;
 
+
 /* File stat definition */
 typedef uint32_t dev_t;
 
@@ -61,5 +62,10 @@ typedef uint32_t off_t;
 #else
 typedef uint64_t off_t;
 #endif	/* __USE_FILE_OFFSET64 */
+
+
+/* File system stat definition */
+typedef uint64_t fsblkcnt_t;
+typedef uint64_t fsfilcnt_t;
 
 #endif	/* __TYPES_H__ */

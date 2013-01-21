@@ -18,7 +18,7 @@ static int devfs_readdir(struct vfs_node *n, uint32_t index, struct dirent **den
 {
 	int rc = -1;
 	
-	DEBUG(DL_DBG, ("read directory(%s).\n", n->name));
+	ASSERT(dentry != NULL);
 	
 	return rc;
 }
@@ -53,9 +53,11 @@ int devfs_init(void)
 	rc = vfs_type_register(&_devfs_type);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("module devfs initialize failed.\n"));
+		goto out;
 	} else {
 		DEBUG(DL_DBG, ("module devfs initialize successfully.\n"));
 	}
-	
+
+ out:
 	return rc;
 }

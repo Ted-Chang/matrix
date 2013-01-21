@@ -196,3 +196,10 @@ int mknod(const char *path, mode_t mode, dev_t dev)
 {
 	return mtx_mknod(path, mode, dev);
 }
+
+int fcntl(int fd, int cmd, ...)
+{
+	int rc = -1;
+
+	return rc;
+}

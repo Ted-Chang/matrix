@@ -12,6 +12,7 @@ struct ramfs_node {
 	uint32_t inode;
 	uint32_t length;
 	uint32_t mask;
+	uint8_t *data;
 };
 
 extern struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
@@ -89,18 +90,26 @@ static int initrd_close(struct vfs_node *node)
 static int initrd_read(struct vfs_node *node, uint32_t offset,
 		       uint32_t size, uint8_t *buffer)
 {
-	struct initrd_file_header *hdr;
+	int i;
 
-	hdr = &file_hdrs[node->ino];
+	/* Find the coresponding initrd node */
+	for (i = 0; i < _nr_initrd_nodes; i++) {
+		if (_initrd_nodes[i].inode == node->ino) {
+			break;
+		}
+	}
 	
-	if (offset > hdr->length) {
-		DEBUG(DL_DBG, ("offset(%d), length(%d)\n", offset, hdr->length));
+	if (offset > _initrd_nodes[i].length) {
+		DEBUG(DL_DBG, ("offset(%d), length(%d)\n",
+			       offset, _initrd_nodes[i].length));
 		return 0;
 	}
-	if (offset + size > hdr->length) {
-		size = hdr->length - offset;
+	
+	if (offset + size > _initrd_nodes[i].length) {
+		size = _initrd_nodes[i].length - offset;
 	}
-	memcpy(buffer, (uint8_t *)(hdr->offset + offset), size);
+	
+	memcpy(buffer, _initrd_nodes[i].data + offset, size);
 
 	return size;
 }
@@ -149,7 +158,8 @@ static int initrd_finddir(struct vfs_node *node, const char *name, ino_t *id)
 	}
 
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("node(%s), name(%s), not found.\n", node->name, name));
+		DEBUG(DL_DBG, ("node(%s), name(%s), not found.\n",
+			       node->name, name));
 	}
 
 	return rc;
@@ -178,10 +188,12 @@ static int initrd_read_node(struct vfs_mount *mnt, ino_t id, struct vfs_node **n
 			if (!node) {
 				break;
 			}
+			
 			node->ino = id;
 			node->length = _initrd_nodes[i].length;
 			node->mask = _initrd_nodes[i].mask;
 			strncpy(node->name, _initrd_nodes[i].name, 128);
+			
 			*np = node;
 			rc = 0;
 			break;
@@ -199,7 +211,7 @@ void init_initrd(uint32_t location)
 	initrd_hdr = (struct initrd_header *)location;
 	file_hdrs = (struct initrd_file_header *)(location + sizeof(struct initrd_header));
 
-	/* Initialize the file nodes in root directory, we will allocate 10 more
+	/* Initialize the file nodes in root directory, we will allocate 12 more
 	 * nodes for creating new nodes.
 	 */
 	_nr_total_initrd_nodes = initrd_hdr->nr_files + 12;
@@ -223,6 +235,7 @@ void init_initrd(uint32_t location)
 		_initrd_nodes[i].type = VFS_FILE;
 		_initrd_nodes[i].length = file_hdrs[i].length;
 		_initrd_nodes[i].mask = 0755;
+		_initrd_nodes[i].data = file_hdrs[i].offset;
 	}
 }
 
