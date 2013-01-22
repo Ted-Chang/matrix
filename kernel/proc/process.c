@@ -442,6 +442,7 @@ static void process_entry_thread(void *ctx)
 	
 	/* Switch to user space */
 	arch_thread_enter_uspace(entry, ustack, args);
+	
 	PANIC("Failed to enter user space");
 }
 
@@ -635,7 +636,7 @@ int process_getid()
  */
 void init_process()
 {
-	int rc;
+	int rc = -1;
 	
 	/* Relocate the stack so we know where it is, the stack size is 8KB. Note
 	 * that this was done in the context of kernel mmu.

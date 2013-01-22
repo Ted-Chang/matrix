@@ -6,9 +6,9 @@
 #include "matrix/const.h"
 #include "matrix/matrix.h"
 #include "list.h"
+#include "mm/mlayout.h"		// For memory layout
 #include "rtl/avltree.h"
 #include "rtl/notifier.h"
-#include "mm/mlayout.h"		// For memory layout
 #include "proc/thread.h"
 #include "fs.h"
 #include "fd.h"			// File descriptors
@@ -46,6 +46,7 @@ struct process {
 	} state;
 
 	struct fd_table *fds;			// File descriptor table
+	struct vfs_node *cwd;			// Current working directory
 
 	/* Other process information */
 	struct avl_tree_node tree_link;		// Link to the process tree

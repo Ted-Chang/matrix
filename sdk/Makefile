@@ -4,7 +4,7 @@ CFLAGS := -Wall -nostdlib -nostdinc -fno-builtin -fno-stack-protector
 
 ASFLAGS := -felf
 
-OBJ := ../bin/lib
+OBJ := ../bin/sdk
 
 TARGETOBJ := \
 	$(OBJ)/crt1.o \

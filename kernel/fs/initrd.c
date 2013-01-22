@@ -154,6 +154,8 @@ static int initrd_readdir(struct vfs_node *node, uint32_t index, struct dirent *
 static int initrd_finddir(struct vfs_node *node, const char *name, ino_t *id)
 {
 	int rc = -1, i;
+
+	ASSERT(id != NULL);
 	
 	for (i = 0; i < _nr_initrd_nodes; i++) {
 		if (strcmp(name, _initrd_nodes[i].name) == 0) {
@@ -241,7 +243,7 @@ void init_initrd(uint32_t location)
 		_initrd_nodes[i].type = VFS_FILE;
 		_initrd_nodes[i].length = file_hdrs[i].length;
 		_initrd_nodes[i].mask = 0755;
-		_initrd_nodes[i].data = file_hdrs[i].offset;
+		_initrd_nodes[i].data = (uint8_t *)file_hdrs[i].offset;
 	}
 }
 

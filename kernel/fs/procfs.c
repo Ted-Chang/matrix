@@ -46,19 +46,44 @@ static int procfs_readdir(struct vfs_node *node, uint32_t index, struct dirent *
 	return rc;
 }
 
+static int procfs_finddir(struct vfs_node *node, const char *name, ino_t *id)
+{
+	int rc = -1;
+
+	ASSERT(id != NULL);
+
+	return rc;
+}
+
 static struct vfs_node_ops _procfs_node_ops = {
 	.read = NULL,
 	.write = NULL,
 	.create = NULL,
 	.close = NULL,
 	.readdir = procfs_readdir,
-	.finddir = NULL,
+	.finddir = procfs_finddir,
+};
+
+static int procfs_read_node(struct vfs_mount *mnt, ino_t id, struct vfs_node **np)
+{
+	int rc = -1;
+
+	ASSERT(np != NULL);
+
+	return rc;
+}
+
+static struct vfs_mount_ops _procfs_mount_ops = {
+	.umount = NULL,
+	.flush = NULL,
+	.read_node = procfs_read_node,
 };
 
 int procfs_mount(struct vfs_mount *mnt, int flags, const void *data)
 {
 	int rc = -1;
 
+	mnt->ops = &_procfs_mount_ops;
 	mnt->root = vfs_node_alloc(mnt, VFS_DIRECTORY, &_procfs_node_ops, NULL);
 	if (mnt->root == NULL) {
 		DEBUG(DL_WRN, ("failed to allocate procfs root node.\n"));
