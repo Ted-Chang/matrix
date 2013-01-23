@@ -13,6 +13,7 @@ TARGETOBJ := \
 	$(OBJ)/terminal.o \
 	$(OBJ)/unittest.o \
 	$(OBJ)/platform.o \
+	$(OBJ)/ioctx.o \
 
 .PHONY: clean help
 

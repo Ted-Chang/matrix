@@ -7,6 +7,13 @@
 #include "debug.h"
 #include "devfs.h"
 
+static ino_t _next_ino = 1;
+
+static ino_t id_alloc()
+{
+	return _next_ino++;
+}
+
 static int devfs_mount(struct vfs_mount *mnt, int flags, const void *data);
 
 struct vfs_type _devfs_type = {
@@ -93,7 +100,8 @@ int devfs_register(devfs_handle_t dir, const char *name, int flags, void *ops,
 		   void *info, devfs_handle_t *handle)
 {
 	int rc = -1;
-	struct vfs_node *n;
+	uint32_t type;
+	struct vfs_node *n, *dev;
 
 	ASSERT(handle != NULL);
 
@@ -105,10 +113,26 @@ int devfs_register(devfs_handle_t dir, const char *name, int flags, void *ops,
 	}
 
 	if (strcmp(n->mount->type->name, "devfs") != 0) {
-		DEBUG(DL_INF, ("register device on non-devfs, fstype(%s).\n",
-			       n->mount->type->name));
+		DEBUG(DL_INF, ("register device on non-devfs, node(%s), fstype(%s).\n",
+			       n->name, n->mount->type->name));
 		goto out;
 	}
+
+	type = VFS_BLOCKDEVICE;
+	dev = vfs_node_alloc(n->mount, type, ops, NULL);
+	if (!dev) {
+		DEBUG(DL_INF, ("allocate node failed.\n"));
+		goto out;
+	}
+	
+	strncpy(dev->name, name, 128);
+	dev->ino = id_alloc();
+	dev->mask = 0755;
+
+	vfs_node_refer(dev);	// Reference the node
+	
+	*handle = dev;
+	rc = 0;
 
  out:
 	return rc;
@@ -117,6 +141,27 @@ int devfs_register(devfs_handle_t dir, const char *name, int flags, void *ops,
 int devfs_unregister(devfs_handle_t handle)
 {
 	int rc = -1;
+	struct vfs_node *n;
 
+	if (handle == INVALID_HANDLE) {
+		goto out;
+	}
+
+	n = (struct vfs_node *)handle;
+	if (n->type == VFS_DIRECTORY) {
+		DEBUG(DL_INF, ("unregister directory node(%s).\n", n->name));
+		goto out;
+	}
+
+	if (strcmp(n->mount->type->name, "devfs") != 0) {
+		DEBUG(DL_INF, ("unregister directory node(%s), fstype(%s).\n",
+			       n->name, n->mount->type->name));
+	}
+
+	vfs_node_deref(n);	// Dereference the node
+	
+	rc = 0;
+
+ out:
 	return rc;
 }

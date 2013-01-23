@@ -10,6 +10,7 @@
 #include "matrix/process.h"
 #include "hal/hal.h"
 #include "hal/cpu.h"
+#include "mm/mlayout.h"
 #include "mm/page.h"
 #include "mm/mmu.h"
 #include "mm/malloc.h"
@@ -166,6 +167,7 @@ static void process_cleanup(struct process *p)
 	if (p->fds) {
 		fd_table_destroy(p->fds);
 		p->fds = NULL;
+		io_destroy_ctx(&p->ioctx);
 	}
 }
 
@@ -203,6 +205,8 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 	p->priority = priority;
 	p->flags = flags;
 	p->status = 0;
+	
+	io_init_ctx(&p->ioctx, parent ? &parent->ioctx : NULL);
 	
 	/* Initialize the file descriptor table */
 	if (!fds) {

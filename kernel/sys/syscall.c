@@ -270,6 +270,17 @@ int do_chdir(const char *path)
 		goto out;
 	}
 
+	n = vfs_lookup(path, VFS_DIRECTORY);
+	if (!n) {
+		goto out;
+	}
+
+	/* Deference the current working directory */
+	vfs_node_deref(n);
+
+	/* Set the new working directory */
+	//...
+
  out:
 	return rc;
 }

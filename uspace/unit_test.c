@@ -6,6 +6,7 @@
 static void usage();
 static void echo_test();
 static void ls_test();
+static void cd_test();
 static void cat_test();
 static void mkdir_test();
 static void date_test();
@@ -48,6 +49,8 @@ int main(int argc, char **argv)
 	mkdir_test();
 
 	ls_test();
+
+	cd_test();
 
 	cat_test();
 
@@ -130,6 +133,32 @@ void ls_test()
 	return;
 }
 
+void cd_test()
+{
+	int rc, status;
+	char *cd[] = {
+		"/cd",
+		"--help",
+		NULL
+	};
+
+	printf("unit_test cd:\n");
+
+	rc = create_process(cd[0], cd, 0, 16);
+	if (rc == -1) {
+		printf("create_process(%s) failed, err(%d).\n", cd[0], rc);
+		goto out;
+	}
+
+	rc = waitpid(rc, &status, 0);
+	if (rc == -1) {
+		printf("waiting %s failed, err(%d).\n", cd[0], rc);
+	}
+
+ out:
+	return;
+}
+
 void cat_test()
 {
 	int rc, status;
@@ -150,7 +179,6 @@ void cat_test()
 	rc = waitpid(rc, &status, 0);
 	if (rc == -1) {
 		printf("waiting %s failed, err(%d).\n", cat[0], rc);
-		goto out;
 	}
 
  out:
@@ -177,7 +205,6 @@ void mkdir_test()
 	rc = waitpid(rc, &status, 0);
 	if (rc == -1) {
 		printf("waiting %s failed, err(%d).\n", mkdir[0], rc);
-		goto out;
 	}
 
  out:
@@ -203,7 +230,6 @@ void date_test()
 	rc = waitpid(rc, &status, 0);
 	if (rc == -1) {
 		printf("waiting %s failed, err(%d).\n", date[0], rc);
-		goto out;
 	}
 
  out:
@@ -229,7 +255,6 @@ void clear_test()
 	rc = waitpid(rc, &status, 0);
 	if (rc == -1) {
 		printf("waiting %s failed, err(%d).\n", clear[0], rc);
-		goto out;
 	}
 
  out:
