@@ -307,7 +307,8 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 		}
 
 		/* Get the root node of the current process. */
-		n = _root_mount->root;
+		ASSERT(CURR_PROC->ioctx.rd);
+		n = CURR_PROC->ioctx.rd;
 		vfs_node_refer(n);
 
 		ASSERT(n->type == VFS_DIRECTORY);
@@ -416,7 +417,8 @@ struct vfs_node *vfs_lookup(const char *path, int type)
 
 	/* Start from the current directory if the path is relative */
 	if (path[0] != '/'); {
-		c = _root_mount->root;
+		ASSERT(CURR_PROC->ioctx.rd);
+		c = CURR_PROC->ioctx.rd;
 		vfs_node_refer(c);
 	}
 

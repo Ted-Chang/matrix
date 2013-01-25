@@ -275,12 +275,11 @@ int do_chdir(const char *path)
 		goto out;
 	}
 
-	/* Deference the current working directory */
+	rc = io_setcwd(&CURR_PROC->ioctx, n);
+	
+	/* The node will be referenced by io_setcwd, so dereference it */
 	vfs_node_deref(n);
-
-	/* Set the new working directory */
-	//...
-
+	
  out:
 	return rc;
 }

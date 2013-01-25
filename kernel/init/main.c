@@ -249,6 +249,9 @@ void sys_init_thread(void *ctx)
 		}
 		kprintf("Initial ramdisk mounted, location(0x%p).\n",
 			initrd_location);
+
+		/* Initialize the io context of kernel process */
+		io_init_ctx(&_kernel_proc->ioctx, NULL);
 	}
 
 	/* Run init process from executable file init */

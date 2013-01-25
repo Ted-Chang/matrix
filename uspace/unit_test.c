@@ -135,24 +135,16 @@ void ls_test()
 
 void cd_test()
 {
-	int rc, status;
-	char *cd[] = {
-		"/cd",
-		"--help",
-		NULL
-	};
+	int rc;
 
 	printf("unit_test cd:\n");
 
-	rc = create_process(cd[0], cd, 0, 16);
-	if (rc == -1) {
-		printf("create_process(%s) failed, err(%d).\n", cd[0], rc);
+	rc = chdir("/test");
+	if (rc != 0) {
+		printf("change directory failed, err(%d).\n", rc);
 		goto out;
-	}
-
-	rc = waitpid(rc, &status, 0);
-	if (rc == -1) {
-		printf("waiting %s failed, err(%d).\n", cd[0], rc);
+	} else {
+		printf("change directory successfully.\n");
 	}
 
  out:

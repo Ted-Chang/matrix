@@ -21,7 +21,6 @@ TARGETS := \
 	$(TARGETDIR)/mount \
 	$(TARGETDIR)/umount \
 	$(TARGETDIR)/dd \
-	$(TARGETDIR)/cd \
 
 OBJ := ./obji386
 
@@ -68,9 +67,6 @@ $(TARGETDIR)/umount: $(OBJ)/umount.o
 
 $(TARGETDIR)/dd: $(OBJ)/dd.o
 	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/dd.map -o $(TARGETDIR)/dd $(OBJ)/dd.o
-
-$(TARGETDIR)/cd: $(OBJ)/cd.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/cd.map -o $(TARGETDIR)/cd $(OBJ)/cd.o
 
 $(OBJ)/%.o: %.c
 	$(CC) $(CFLAGS) -m32 -g -I../sdk/include -c -o $@ $<
