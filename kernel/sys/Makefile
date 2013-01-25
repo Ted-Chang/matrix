@@ -14,6 +14,7 @@ TARGETOBJ := \
 	$(OBJ)/unittest.o \
 	$(OBJ)/platform.o \
 	$(OBJ)/ioctx.o \
+	$(OBJ)/device.o \
 
 .PHONY: clean help
 

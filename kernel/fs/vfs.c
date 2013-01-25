@@ -91,6 +91,26 @@ int vfs_node_deref(struct vfs_node *node)
 	return ref_count;
 }
 
+struct vfs_node *vfs_node_clone(struct vfs_node *src)
+{
+	struct vfs_node *n;
+
+	n = NULL;
+
+	if (!src) {
+		goto out;
+	}
+
+	/* VFS node should never be allocated by kmalloc */
+	n = (struct vfs_node *)slab_cache_alloc(&_vfs_node_cache);
+	if (n) {
+		memcpy(n, src, sizeof(struct vfs_node));
+	}
+
+ out:
+	return n;
+}
+
 int vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer)
 {
 	int rc = -1;
@@ -270,20 +290,6 @@ int vfs_finddir(struct vfs_node *node, const char *name, ino_t *id)
 
  out:
 	return rc;
-}
-
-struct vfs_node *vfs_clone(struct vfs_node *src)
-{
-	struct vfs_node *node;
-	
-	if (!src) {
-		return NULL;
-	}
-
-	node = (struct vfs_node *)kmalloc(sizeof(struct vfs_node), 0);
-	memcpy(node, src, sizeof(struct vfs_node));
-
-	return node;
 }
 
 static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)

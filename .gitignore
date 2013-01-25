@@ -1,6 +1,5 @@
 bin/obji386/*
 bin/sdk/*
-bin/ddk/*
 bin/*.map
 uspace/obji386/*
 !.gitignore

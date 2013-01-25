@@ -30,6 +30,7 @@
 #include "platform.h"
 #include "symbol.h"
 #include "kstrdup.h"
+#include "device.h"
 
 struct boot_module {
 	struct list link;
@@ -226,6 +227,10 @@ void sys_init_thread(void *ctx)
 		c = LIST_ENTRY(l, struct cpu, link);
 		dump_cpu(c);
 	}
+
+	/* Bring up the device manager */
+	init_dev();
+	kprintf("Device manager initialization... done.\n");
 
 	/* Bring up the file system manager */
 	init_fs();

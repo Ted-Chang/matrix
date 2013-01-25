@@ -132,11 +132,11 @@ fd_table_t *fd_table_clone(fd_table_t *src)
 				continue;
 			}
 			
-			t->nodes[i] = vfs_clone(src->nodes[i]);
+			t->nodes[i] = vfs_node_clone(src->nodes[i]);
 		}
 	}
 
-	DEBUG(DL_DBG, ("src(%p).\n", src));
+	DEBUG(DL_DBG, ("src(%p), i(%d).\n", src, i));
 
 out:
 	return t;
