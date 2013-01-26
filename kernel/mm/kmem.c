@@ -41,7 +41,9 @@ void *alloc(struct kmem_pool *pool, size_t size, boolean_t page_align);
 void *kmem_alloc_int(size_t size, boolean_t align, phys_addr_t *phys)
 {
 	if (_kpool) {	// The pool manager was initialized
-		void *addr = alloc(_kpool, size, (uint8_t)align);
+		void *addr;
+
+		addr = alloc(_kpool, size, (uint8_t)align);
 		if (phys) {
 			struct page *page;
 

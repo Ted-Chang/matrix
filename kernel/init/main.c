@@ -181,18 +181,6 @@ void load_modules()
 
 	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
 	LIST_INIT(&mod->link);
-	mod->name = kstrdup("kbd", 0);
-	mod->handle = KMOD_KBD;		// TODO: use file handle in the future
-	list_add_tail(&mod->link, &_boot_module_list);
-
-	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
-	LIST_INIT(&mod->link);
-	mod->name = kstrdup("flpy", 0);
-	mod->handle = KMOD_FLPY;	// TODO: use file handle in the future
-	list_add_tail(&mod->link, &_boot_module_list);
-
-	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
-	LIST_INIT(&mod->link);
 	mod->name = kstrdup("devfs", 0);
 	mod->handle = KMOD_DEVFS;	// TODO: use file handle in the future
 	list_add_tail(&mod->link, &_boot_module_list);

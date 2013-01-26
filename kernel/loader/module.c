@@ -34,16 +34,6 @@ static int load_module_stub(struct module *m)
 		m->desc = "Ram File System";
 		m->init = initrd_init;
 		break;
-	case KMOD_KBD:
-		m->name = "kbd";
-		m->desc = "Keyboard driver";
-		m->init = keyboard_init;
-		break;
-	case KMOD_FLPY:
-		m->name = "flpy";
-		m->desc = "Floppy driver";
-		m->init = floppy_init;
-		break;
 	case KMOD_DEVFS:
 		m->name = "devfs";
 		m->desc = "Device File System";

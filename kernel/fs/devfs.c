@@ -2,10 +2,20 @@
 #include <stddef.h>
 #include <string.h>
 #include "matrix/matrix.h"
+#include "debug.h"
+#include "mm/malloc.h"
 #include "fs.h"
 #include "dirent.h"
-#include "debug.h"
 #include "devfs.h"
+
+#define MAX_DEVFS_NODES	64
+
+struct devfs_node {
+	char name[128];
+	uint32_t ino;
+};
+static struct devfs_node _devfs_nodes[MAX_DEVFS_NODES];
+static int _nr_devfs_nodes = 0;
 
 static ino_t _next_ino = 1;
 
@@ -26,13 +36,37 @@ struct vfs_type _devfs_type = {
 static int devfs_readdir(struct vfs_node *n, uint32_t index, struct dirent **dentry)
 {
 	int rc = -1;
+	struct devfs_node *dn;
+	struct dirent *new_dentry = NULL;
 	
 	ASSERT(dentry != NULL);
+
+	if (index >= _nr_devfs_nodes) {
+		goto out;
+	}
+
+	new_dentry = (struct dirent *)kmalloc(sizeof(struct dirent), 0);
+	if (!new_dentry) {
+		DEBUG(DL_INF, ("Allocate dirent failed, node(%s), index(%d).\n",
+			       n->name, index));
+		goto out;
+	}
+
+	memset(new_dentry, 0, sizeof(struct dirent));
+
+	dn = &_devfs_nodes[index];
 	
+	strncpy(new_dentry->d_name, dn->name, 128);
+	new_dentry->d_ino = dn->ino;
+	
+	*dentry = new_dentry;
+	rc = 0;
+
+ out:
 	return rc;
 }
 
-static int devfs_finddir(struct vfs_node *node, const char *name, ino_t *id)
+static int devfs_finddir(struct vfs_node *n, const char *name, ino_t *id)
 {
 	int rc = -1;
 
@@ -50,19 +84,10 @@ static struct vfs_node_ops _devfs_node_ops = {
 	.finddir = devfs_finddir,
 };
 
-static int devfs_read_node(struct vfs_mount *mnt, ino_t id, struct vfs_node **np)
-{
-	int rc = -1;
-
-	ASSERT(np != NULL);
-
-	return rc;
-}
-
 static struct vfs_mount_ops _devfs_mount_ops = {
 	.umount = NULL,
 	.flush = NULL,
-	.read_node = devfs_read_node,
+	.read_node = NULL,
 };
 
 int devfs_mount(struct vfs_mount *mnt, int flags, const void *data)
@@ -84,6 +109,8 @@ int devfs_init(void)
 {
 	int rc = -1;
 
+	memset(_devfs_nodes, 0, sizeof(struct devfs_node) * MAX_DEVFS_NODES);
+	
 	rc = vfs_type_register(&_devfs_type);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("module devfs initialize failed.\n"));
@@ -101,6 +128,7 @@ int devfs_register(devfs_handle_t dir, const char *name, int flags, void *ops,
 {
 	int rc = -1;
 	uint32_t type;
+	struct devfs_node *dn;
 	struct vfs_node *n, *dev;
 
 	ASSERT(handle != NULL);
@@ -118,6 +146,12 @@ int devfs_register(devfs_handle_t dir, const char *name, int flags, void *ops,
 		goto out;
 	}
 
+	if (_nr_devfs_nodes > MAX_DEVFS_NODES) {
+		DEBUG(DL_INF, ("too much devices in devfs.\n"));
+		goto out;
+	}
+
+	// TODO: type should be retrieved from parameter
 	type = VFS_BLOCKDEVICE;
 	dev = vfs_node_alloc(n->mount, type, ops, NULL);
 	if (!dev) {
@@ -130,6 +164,16 @@ int devfs_register(devfs_handle_t dir, const char *name, int flags, void *ops,
 	dev->mask = 0755;
 
 	vfs_node_refer(dev);	// Reference the node
+
+	/* Insert into our cache tree. Since we don't have read_node function
+	 * so only registered device can be exported by devfs.
+	 */
+	avl_tree_insert(&n->mount->nodes, dev->ino, dev);
+
+	dn = &_devfs_nodes[_nr_devfs_nodes];
+	strncpy(dn->name, name, 128);
+	dn->ino = dev->ino;
+	_nr_devfs_nodes++;
 	
 	*handle = dev;
 	rc = 0;
@@ -158,8 +202,11 @@ int devfs_unregister(devfs_handle_t handle)
 			       n->name, n->mount->type->name));
 	}
 
-	vfs_node_deref(n);	// Dereference the node
+	/* Remove from our cache tree */
+	avl_tree_remove(&n->mount->nodes, n->ino);
 	
+	vfs_node_deref(n);	// Dereference the node
+
 	rc = 0;
 
  out:

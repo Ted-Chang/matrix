@@ -31,14 +31,14 @@ static int procfs_readdir(struct vfs_node *node, uint32_t index, struct dirent *
 
 	new_dentry = kmalloc(sizeof(struct dirent), 0);
 	if (!new_dentry) {
-		DEBUG(DL_INF, ("Allocate dirent failed, node(%s), index(%d)",
+		DEBUG(DL_INF, ("Allocate dirent failed, node(%s), index(%d).\n",
 			       node->name, index));
 		goto out;
 	}
 
 	memset(new_dentry, 0, sizeof(struct dirent));
 	strncpy(new_dentry->d_name, "cmdline", 128);
-	new_dentry->d_ino = index;
+	new_dentry->d_ino = 1;
 	*dentry = new_dentry;
 	rc = 0;
 

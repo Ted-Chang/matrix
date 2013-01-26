@@ -9,7 +9,7 @@
 struct ramfs_node {
 	char name[128];
 	uint32_t type;
-	uint32_t inode;
+	uint32_t ino;
 	uint32_t length;
 	uint32_t mask;
 	uint8_t *data;
@@ -62,14 +62,14 @@ static int initrd_create(struct vfs_node *parent, const char *name,
 	pos = _nr_initrd_nodes;
 	
 	strncpy(_initrd_nodes[pos].name, name, 127);
-	_initrd_nodes[pos].inode = _nr_initrd_nodes + 1;
+	_initrd_nodes[pos].ino = _nr_initrd_nodes + 1;
 	_initrd_nodes[pos].type = type;
 	_initrd_nodes[pos].length = 0;
 	_nr_initrd_nodes++;
 
 	/* Initialize the vfs_node which we created */
 	strncpy(n->name, name, 127);
-	n->ino = _initrd_nodes[pos].inode;
+	n->ino = _initrd_nodes[pos].ino;
 	n->length = _initrd_nodes[pos].length;
 
 	*np = n;
@@ -97,7 +97,7 @@ static int initrd_read(struct vfs_node *node, uint32_t offset,
 
 	/* Find the coresponding initrd node */
 	for (i = 0; i < _nr_initrd_nodes; i++) {
-		if (_initrd_nodes[i].inode == node->ino) {
+		if (_initrd_nodes[i].ino == node->ino) {
 			break;
 		}
 	}
@@ -122,7 +122,8 @@ static int initrd_read(struct vfs_node *node, uint32_t offset,
  */
 static int initrd_readdir(struct vfs_node *node, uint32_t index, struct dirent **dentry)
 {
-	int rc = -1, pos;
+	int rc = -1;
+	struct ramfs_node *rn;
 	struct dirent *new_dentry = NULL;
 
 	ASSERT(dentry != NULL);
@@ -130,9 +131,6 @@ static int initrd_readdir(struct vfs_node *node, uint32_t index, struct dirent *
 	if (index >= _nr_initrd_nodes) {
 		goto out;
 	}
-
-	/* Get the position from the index, currently we just use index */
-	pos = index;
 
 	new_dentry = kmalloc(sizeof(struct dirent), 0);
 	if (!new_dentry) {
@@ -142,8 +140,12 @@ static int initrd_readdir(struct vfs_node *node, uint32_t index, struct dirent *
 	}
 
 	memset(new_dentry, 0, sizeof(struct dirent));
-	strncpy(new_dentry->d_name, _initrd_nodes[pos].name, 128);
-	new_dentry->d_ino = _initrd_nodes[pos].inode;
+
+	rn = &_initrd_nodes[index];
+	
+	strncpy(new_dentry->d_name, rn->name, 128);
+	new_dentry->d_ino = rn->ino;
+
 	*dentry = new_dentry;
 	rc = 0;
 
@@ -159,7 +161,7 @@ static int initrd_finddir(struct vfs_node *node, const char *name, ino_t *id)
 	
 	for (i = 0; i < _nr_initrd_nodes; i++) {
 		if (strcmp(name, _initrd_nodes[i].name) == 0) {
-			*id = _initrd_nodes[i].inode;
+			*id = _initrd_nodes[i].ino;
 			rc = 0;
 			break;
 		}
@@ -190,7 +192,7 @@ static int initrd_read_node(struct vfs_mount *mnt, ino_t id, struct vfs_node **n
 	ASSERT(np != NULL);
 	
 	for (i = 0; i < _nr_initrd_nodes; i++) {
-		if (_initrd_nodes[i].inode == id) {
+		if (_initrd_nodes[i].ino == id) {
 			node = vfs_node_alloc(mnt, _initrd_nodes[i].type,
 					      &_ramfs_node_ops, NULL);
 			if (!node) {
@@ -239,7 +241,7 @@ void init_initrd(uint32_t location)
 
 		/* Create a new file node */
 		strcpy(_initrd_nodes[i].name, file_hdrs[i].name);
-		_initrd_nodes[i].inode = i + 1;
+		_initrd_nodes[i].ino = i + 1;
 		_initrd_nodes[i].type = VFS_FILE;
 		_initrd_nodes[i].length = file_hdrs[i].length;
 		_initrd_nodes[i].mask = 0755;

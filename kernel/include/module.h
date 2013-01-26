@@ -2,10 +2,8 @@
 #define __MODULE_H__
 
 #define KMOD_RAMFS	1
-#define KMOD_KBD	2
-#define KMOD_FLPY	3
-#define KMOD_DEVFS	4
-#define KMOD_PROCFS	5
+#define KMOD_DEVFS	2
+#define KMOD_PROCFS	3
 
 typedef int (*module_init_func_t)(void);
 

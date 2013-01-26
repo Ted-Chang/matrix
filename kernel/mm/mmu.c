@@ -50,8 +50,6 @@ static struct irq_hook _pf_hook;
 
 extern uint32_t _placement_addr;
 
-extern struct heap *_kheap;
-
 extern void copy_page_physical(uint32_t dst, uint32_t src);
 
 static struct ptbl *clone_ptbl(struct ptbl *src, phys_addr_t *phys_addr)
@@ -89,16 +87,6 @@ static struct ptbl *clone_ptbl(struct ptbl *src, phys_addr_t *phys_addr)
 	return ptbl;
 }
 
-void mmu_acquire_ctx(struct mmu_ctx *ctx)
-{
-	;
-}
-
-void mmu_release_ctx(struct mmu_ctx *ctx)
-{
-	;
-}
-
 /**
  * Get a page from the specified mmu context
  * @ctx		- mmu context
@@ -113,13 +101,13 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, ptr_t virt, boolean_t make, int m
 	struct pdir *pdir;
 
 	ASSERT(ctx != NULL);
-	
-	/* Get the page directory from the context */
-	pdir = ctx->pdir;
 
 	/* Calculate the page table index and page directory index */
 	tbl_idx = (virt / PAGE_SIZE) % 1024;
 	dir_idx = (virt / PAGE_SIZE) / 1024;
+
+	/* Get the page directory from the context */
+	pdir = ctx->pdir;
 
 	if (pdir->ptbl[dir_idx]) {	// The page table already assigned
 		page = &pdir->ptbl[dir_idx]->pte[tbl_idx];
@@ -383,7 +371,7 @@ void init_mmu()
 	DEBUG(DL_DBG, ("kernel mmu ctx(%p), pdbr(%p)\n",
 		       &_kernel_mmu_ctx, _kernel_mmu_ctx.pdbr));
 
-	/* Allocate some pages in the kernel heap area. Here we call mmu_get_page
+	/* Allocate some pages in the kernel pool area. Here we call mmu_get_page
 	 * but not page_alloc. this cause the page tables to be created when necessary.
 	 * We can't allocate page yet because they need to be identity mapped first.
 	 */

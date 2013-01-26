@@ -84,20 +84,16 @@ struct vfs_node {
 
 extern int vfs_type_register(struct vfs_type *type);
 extern int vfs_type_unregister(struct vfs_type *type);
-extern int vfs_mount(const char *dev, const char *path, const char *type,
-		     const void *data);
+extern int vfs_mount(const char *dev, const char *path, const char *type, const void *data);
 extern int vfs_umount(const char *path);
-extern struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
-				       struct vfs_node_ops *ops, void *data);
+extern struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type, struct vfs_node_ops *ops, void *data);
 extern void vfs_node_free(struct vfs_node *node);
 extern int vfs_node_refer(struct vfs_node *node);
 extern int vfs_node_deref(struct vfs_node *node);
 extern struct vfs_node *vfs_node_clone(struct vfs_node *src);
 extern struct vfs_node *vfs_lookup(const char *path, int flags);
-extern int vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size,
-		    uint8_t *buffer);
-extern int vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size,
-		     uint8_t *buffer);
+extern int vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer);
+extern int vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer);
 extern int vfs_finddir(struct vfs_node *node, const char *name, ino_t *id);
 extern int vfs_create(const char *path, uint32_t type, struct vfs_node **node);
 extern int vfs_close(struct vfs_node *node);
