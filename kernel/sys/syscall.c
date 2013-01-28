@@ -552,6 +552,27 @@ int do_mknod(const char *path, mode_t mode, dev_t dev)
 	return rc;
 }
 
+int do_create_module(const char *name, size_t size)
+{
+	int rc = -1;
+
+	return rc;
+}
+
+int do_delete_module(const char *name)
+{
+	int rc = -1;
+
+	return rc;
+}
+
+int do_init_module(const char *name, void *image)
+{
+	int rc = -1;
+
+	return rc;
+}
+
 /*
  * NOTE: When adding a system call, please add the following items:
  *   [1] _syscalls - the array which contains pointers to the system calls
@@ -590,6 +611,9 @@ static void *_syscalls[] = {
 	do_mount,
 	do_umount,
 	do_mknod,
+	do_create_module,
+	do_delete_module,
+	do_init_module,
 	NULL
 };
 

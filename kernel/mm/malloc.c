@@ -2,12 +2,6 @@
 #include "mm/malloc.h"
 #include "mm/kmem.h"
 
-/* Information structure prepended to allocations */
-typedef struct alloc_tag {
-	size_t size;	// Size of the allocation
-	void *cache;	// Pointer to the cache for allocation
-} alloc_tag_t;
-
 void *kmalloc(size_t size, int mmflag)
 {
 	void *addr;
@@ -44,9 +38,10 @@ void *krealloc(void *addr, size_t size, int mmflag)
 	}
 
 	/* Copy the block data using the smallest of the two sizes */
-	//memcpy(mem, addr, MIN());
+	//...
 
 	/* Zero any new space if needed */
+	//...
 
 	/* Free the original allocation */
 	kfree(addr);

@@ -8,6 +8,7 @@
 static void announce();
 static void load_devfs();
 static void load_procfs();
+static void load_modules();
 static void set_hostname();
 static void get_uid_gid();
 static void start_crond();
@@ -24,6 +25,9 @@ int main(int argc, char **argv)
 
 	/* Load process file system */
 	load_procfs();
+
+	/* Load modules */
+	load_modules();
 
 	/* Set the host name */
 	set_hostname();
@@ -91,6 +95,11 @@ void load_procfs()
 
  out:
 	return;
+}
+
+void load_modules()
+{
+	;
 }
 
 void set_hostname()

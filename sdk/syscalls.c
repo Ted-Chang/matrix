@@ -40,6 +40,9 @@ DEFN_SYSCALL2(syslog, 27, char *, size_t)
 DEFN_SYSCALL5(mount, 28, const char *, const char *, const char *, int, const void *)
 DEFN_SYSCALL1(umount, 29, const char *)
 DEFN_SYSCALL3(mknod, 30, const char *, mode_t, dev_t)
+DEFN_SYSCALL2(create_module, 31, const char *, size_t)
+DEFN_SYSCALL1(delete_module, 32, const char *)
+DEFN_SYSCALL2(init_module, 33, const char *, void *)
 
 int null()
 {
@@ -202,4 +205,19 @@ int fcntl(int fd, int cmd, ...)
 	int rc = -1;
 
 	return rc;
+}
+
+int create_module(const char *name, size_t size)
+{
+	return mtx_create_module(name, size);
+}
+
+int delete_module(const char *name)
+{
+	return mtx_delete_module(name);
+}
+
+int init_module(const char *name, void *image)
+{
+	return mtx_init_module(name, image);
 }

@@ -11,8 +11,6 @@
 
 // TODO: The following functions should be get from the driver files
 extern int initrd_init(void);
-extern int keyboard_init(void);
-extern int floppy_init(void);
 extern int devfs_init(void);
 extern int procfs_init(void);
 
@@ -95,6 +93,10 @@ int module_load(int handle)
 	mutex_acquire(&_module_lock);
 
 	m = module_alloc(handle);
+	if (!m) {
+		goto out;
+	}
+	
 	rc = load_module_stub(m);
 	if (rc != 0) {
 		goto out;

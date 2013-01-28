@@ -35,6 +35,7 @@ struct kmem_pool {
 };
 
 struct kmem_pool *_kpool = NULL;
+struct mutex _kmem_lock;	// Lock for the kernel memory pool
 
 void *alloc(struct kmem_pool *pool, size_t size, boolean_t page_align);
 
@@ -50,6 +51,7 @@ void *kmem_alloc_int(size_t size, boolean_t align, phys_addr_t *phys)
 			page = mmu_get_page(&_kernel_mmu_ctx, (uint32_t)addr, FALSE, 0);
 			*phys = page->frame * 0x1000 + ((uint32_t)addr & 0xFFF);
 		}
+
 		if (align) {
 			ASSERT(((uint32_t)addr % PAGE_SIZE) == 0);
 		}
@@ -490,6 +492,9 @@ void kmem_free(void *p)
 
 void init_kmem()
 {
+	/* Initialize the kernel memory pool lock */
+	mutex_init(&_kmem_lock, "kmem-mutex", 0);
+	
 	/* Create kernel pool */
 	_kpool = create_pool(KERNEL_KMEM_START, KERNEL_KMEM_START + KERNEL_KMEM_SIZE,
 			     0xCFFFF000, FALSE, FALSE);

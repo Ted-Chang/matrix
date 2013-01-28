@@ -16,7 +16,8 @@ phys_addr_t _placement_addr = 0;
 static page_num_t _nr_total_pages = 0;
 
 /* Bitmap for all pages */
-uint32_t *_pages = NULL;
+static uint32_t *_pages = NULL;
+static struct spinlock _pages_lock;
 
 static void set_frame(uint32_t frame_addr)
 {
@@ -24,7 +25,11 @@ static void set_frame(uint32_t frame_addr)
 	uint32_t idx = INDEX_FROM_BIT(frame);
 	uint32_t off = OFFSET_FROM_BIT(frame);
 
+	spinlock_acquire(&_pages_lock);
+	
 	_pages[idx] |= (0x1 << off);
+	
+	spinlock_release(&_pages_lock);
 }
 
 static void clear_frame(uint32_t frame_addr)
@@ -33,7 +38,11 @@ static void clear_frame(uint32_t frame_addr)
 	uint32_t idx = INDEX_FROM_BIT(frame);
 	uint32_t off = OFFSET_FROM_BIT(frame);
 
+	spinlock_acquire(&_pages_lock);
+
 	_pages[idx] &= ~(0x1 << off);
+	
+	spinlock_release(&_pages_lock);
 }
 
 static uint32_t first_frame()
@@ -42,6 +51,8 @@ static uint32_t first_frame()
 
 	frame = 0;
 
+	spinlock_acquire(&_pages_lock);
+	
 	for (i = 0; i < INDEX_FROM_BIT(_nr_total_pages); i++) {
 		if (_pages[i] != 0xFFFFFFFF) {
 			for (j = 0; j < 32; j++) {
@@ -55,6 +66,8 @@ static uint32_t first_frame()
 	}
 
  out:
+	spinlock_release(&_pages_lock);
+	
 	return frame;
 }
 
@@ -130,6 +143,8 @@ void init_page()
 	}
 
 	DEBUG(DL_DBG, ("Detected physical memory size: %uMB.\n", mem_size/(1024*1024)));
+
+	spinlock_init(&_pages_lock, "pages-lock");
 
 	/* Calculate how many pages we have in the system */
 	_nr_total_pages = mem_size / PAGE_SIZE;
