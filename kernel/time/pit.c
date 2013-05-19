@@ -5,7 +5,7 @@
 #include "matrix/const.h"
 #include "hal/isr.h"
 #include "hal/hal.h"
-#include "hal/cpu.h"
+#include "hal/core.h"
 #include "timer.h"
 #include "proc/process.h"
 #include "proc/sched.h"
@@ -74,9 +74,9 @@ useconds_t sys_time()
 {
 	useconds_t value;
 
-	value = (x86_rdtsc() - CURR_CPU->arch.sys_time_offset);
+	value = (x86_rdtsc() - CURR_CORE->arch.sys_time_offset);
 	
-	do_div(value, CURR_CPU->arch.cycles_per_us);
+	do_div(value, CURR_CORE->arch.cycles_per_us);
 
 	return value;
 }
@@ -96,10 +96,10 @@ static void clock_callback(struct registers *regs)
 void tsc_init_target()
 {
 	/* Calculate the offset to subtract from the TSC when calculating the
-	 * system time. For the boot CPU, this is the current value of the TSC.
+	 * system time. For the boot CORE, this is the current value of the TSC.
 	 */
-	if (CURR_CPU == &_boot_cpu) {
-		CURR_CPU->arch.sys_time_offset = x86_rdtsc();
+	if (CURR_CORE == &_boot_core) {
+		CURR_CORE->arch.sys_time_offset = x86_rdtsc();
 	} else {
 		ASSERT(FALSE);
 	}
@@ -165,6 +165,6 @@ void pit_delay(uint32_t msec)
 		if (_real_time >= when) {
 			break;
 		}
-		cpu_idle();
+		core_idle();
 	}
 }

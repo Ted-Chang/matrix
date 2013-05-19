@@ -5,7 +5,7 @@
 #include <types.h>
 #include <stddef.h>
 #include "hal/hal.h"
-#include "hal/cpu.h"
+#include "hal/core.h"
 #include "string.h"	// memset
 #include "debug.h"
 
@@ -241,9 +241,9 @@ static void write_tss(struct gdt *g, struct tss *t)
 }
 
 /**
- * Per CPU gdt initialization.
+ * Per CORE gdt initialization.
  */
-void init_gdt(struct cpu *c)
+void init_gdt(struct core *c)
 {
 	struct gdt_ptr ptr;
 	struct gdt *d = c->arch.gdt;
@@ -265,17 +265,17 @@ void init_gdt(struct cpu *c)
 	gdt_flush((uint32_t)&ptr);
 
 	/* Although once the thread system is up the OS base is pointed at the
-	 * architecture thread data, we need _curr_cpu to work before that. Our
-	 * CPU data has a pointer at the start which we can use, so point the GS
-	 * base at that for later use by cpu_get_pointer()
+	 * architecture thread data, we need _curr_core to work before that. Our
+	 * CORE data has a pointer at the start which we can use, so point the GS
+	 * base at that for later use by core_get_pointer()
 	 */
 	c->arch.parent = c;
 	x86_write_msr(X86_MSR_GS_BASE, (uint64_t)c);	// FixMe: the GS register will be overridden
 	x86_write_msr(X86_MSR_K_GS_BASE, 0);
-	ASSERT(CURR_CPU == c);
+	ASSERT(CURR_CORE == c);
 }
 
-void init_tss(struct cpu *c)
+void init_tss(struct core *c)
 {
 	/* Ensure the descriptor is initially zero */
 	memset(&c->arch.tss, 0, sizeof(struct tss));
@@ -308,5 +308,5 @@ void init_tss(struct cpu *c)
 
 void set_kernel_stack(void *stack)
 {
-	CURR_CPU->arch.tss.esp0 = (uint32_t)stack;
+	CURR_CORE->arch.tss.esp0 = (uint32_t)stack;
 }

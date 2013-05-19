@@ -9,7 +9,6 @@
 #include "matrix/const.h"
 #include "matrix/process.h"
 #include "hal/hal.h"
-#include "hal/cpu.h"
 #include "mm/mlayout.h"
 #include "mm/page.h"
 #include "mm/mmu.h"

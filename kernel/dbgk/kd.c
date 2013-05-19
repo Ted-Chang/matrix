@@ -7,7 +7,7 @@
 #include "debug.h"
 #include "list.h"
 #include "atomic.h"
-#include "hal/cpu.h"
+#include "hal/core.h"
 #include "hal/spinlock.h"
 #include "hal/isr.h"
 #include "mm/page.h"
@@ -53,7 +53,7 @@ int kd_main(int reason, struct registers *regs, u_long index);
 /* Debug interrupt handler */
 struct irq_hook _kd_hook;
 
-/* Whether KD is currently running on any CPU */
+/* Whether KD is currently running on any CORE */
 atomic_t _kd_running = 0;
 
 /* Interrupt context that KD was entered with */
@@ -189,7 +189,7 @@ void *kd_malloc(size_t size)
 	if (!ret) {
 		if (_kd_running) {
 			kd_printf("Exhausted KD heap");
-			cpu_halt();
+			core_halt();
 		} else {
 			PANIC("Exhausted KD heap");
 		}
@@ -281,8 +281,8 @@ int kd_main(int reason, struct registers *regs, u_long index)
 	/* Print information about why we entered the debugger and where from */
 	kd_printf("Entered debugger, reason:%d\n", reason);
 
-	kd_printf("Thread(%d:%s) on CPU(%d)\n", (CURR_THREAD) ? CURR_THREAD->id : -1,
-		  (CURR_THREAD) ? CURR_THREAD->name : "<none>", cpu_id());
+	kd_printf("Thread(%d:%s) on CORE(%d)\n", (CURR_THREAD) ? CURR_THREAD->id : -1,
+		  (CURR_THREAD) ? CURR_THREAD->name : "<none>", core_id());
 
 	/* Main loop, get and process the input */
 	while (TRUE) {

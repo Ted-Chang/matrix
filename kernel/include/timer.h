@@ -12,7 +12,7 @@ typedef void (*timer_func_t)(void *ctx);
 
 struct timer {
 	struct list link;		// Link to timers list
-	struct cpu *cpu;		// CPU that the timer was started on
+	struct core *core;		// CORE that the timer was started on
 	useconds_t expire_time;		// Time at which the timer will fire
 	timer_func_t func;		// Function to call when the timer expires
 	void *data;			// Argument to pass to timer handler

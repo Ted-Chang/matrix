@@ -7,88 +7,101 @@
 
 
 [Build mkinitrd tools]
+$ gcc -o mkinitrd make_initrd.c
 
-gcc -o mkinitrd make_initrd.c
+
+[Build matrix kernel]
+$ ./build.sh
+
+
+[Install the kernel to the image]
+$ sudo losetup /dev/loop0 ~/vm/matrix/matrix.img
+$ ./update_img.sh
+
+
+[Run the kernel in bochs]
+$ ./run_bochs.sh
 
 
 [Check the ELF Format]
+$ objdump -xfh bin/crond
 
-objdump -xfh bin/crond
 
 [disasm the ELF file]
+$ objdump -xfhd bin/matrix
 
-objdump -xfhd bin/matrix
 
-
-[Debugging tips]
-
+[Debugging with bochs debugger]
 * list the break points
-blist
+<bochs:1> blist
 
 * trace the registers after each command
-trace-reg on
-trace-reg off
+<bochs:1> trace-reg on
+<bochs:1> trace-reg off
 
 * translate linear address to physical address
-page 0xC00ab000
+<bochs:1> page 0xC00ab000
 
 * set a write break point
-watch w 0x1d8000
+<bochs:1> watch w 0x1d8000
 
 * set a lenear address executive break point
-lb 0x1040ea
+<bochs:1> lb 0x1040ea
 
 * delete a break point by break point number
-d 1
+<bochs:1> d 1
 
 * next statement, not step in
-p
+<bochs:1> p
 
 * calculate an expression
-? 0x1000+0x10
+<bochs:1> ? 0x1000+0x10
 NOTE: no space between the expression
 
 * disassemble the instruction at give address
-u /10
+<bochs:1> u /10
 
 * logging 
 edit the bochsrc.bxrc, set the log option to a file
 
 * print infomation
-info tss
+<bochs:1> info tss
 
 * Debugging process:
-lb 0x104008
-c
-s
+<bochs:1> lb 0x104008
+<bochs:1> c
+<bochs:1> s
 (step into irq_common_stub)
-u /20
-s
+<bochs:1> u /20
+<bochs:1> s
 (step into irq_handler)
-u /10
-vb 0x08:0x1015f9
+<bochs:1> u /10
+<bochs:1> vb 0x08:0x1015f9
 (step into switch_task)
-lb 0x101d23
+<bochs:1> lb 0x101d23
 (print the stack when you got a panic)
-print-stack 10
+<bochs:1> print-stack 10
 (check the value control registers)
-creg
+<bochs:1> creg
 (check the page by the virtual address)
-page 0xe007ffff
+<bochs:1> page 0xe007ffff
 
 * Debugging APIC
 boot your operating system and press the config button in bochs emulator
-9. Log options for individual devices
-then
-28. [APIC0]
-choose
-ask
-for all the actions
 
+---------------------
+Bochs Runtime Options
+---------------------
+...
+9. Log options for individual devices
+...
+
+Please choose one: [13] 9
+Enter the ID of the device to edit, or -1 to return: [-1] 28
+Enter action for DEBUG event: [ignore] ask
 
 
 [Debugging with GDB+QEMU]
-
 usage: qemu [options] [disk_image]
 
 Note that if you are using GDB of x86_64 platform, you should change the qemu to qemu-system-x86_64.

@@ -14,7 +14,7 @@
 #include "multiboot.h"
 #include "hal/hal.h"
 #include "hal/isr.h"
-#include "hal/cpu.h"
+#include "hal/core.h"
 #include "mm/kmem.h"
 #include "mm/mmu.h"
 #include "mm/malloc.h"
@@ -79,10 +79,10 @@ int kmain(u_long addr, uint32_t initial_stack)
 
 	_initial_esp = initial_stack;
 
-	/* Initialize the CPU */
-	preinit_cpu();
-	preinit_cpu_percpu(&_boot_cpu);
-	kprintf("CPU preinitialization... done.\n");
+	/* Initialize the CORE */
+	preinit_core();
+	preinit_core_percore(&_boot_core);
+	kprintf("CORE preinitialization... done.\n");
 
 	/* Enable interrupt so our timer can work */
 	irq_enable();
@@ -107,19 +107,19 @@ int kmain(u_long addr, uint32_t initial_stack)
 	init_terminal();
 	kprintf("Terminal initialization... done.\n");
 
-	/* Perform more per-CPU initialization that can be done after the
+	/* Perform more per-CORE initialization that can be done after the
 	 * memory management subsystem was up
 	 */
-	init_cpu_percpu();
-	kprintf("Per-CPU CPU initialization... done.\n");
+	init_core_percore();
+	kprintf("Per-CORE CORE initialization... done.\n");
 
 	/* Initialize the platform */
 	init_platform();
 	kprintf("Platform initialization... done.\n");
 
-	/* Properly initialize the CPU and detect other CPUs */
-	init_cpu();
-	kprintf("CPU initialization... done.\n");
+	/* Properly initialize the CORE and detect other COREs */
+	init_core();
+	kprintf("CORE initialization... done.\n");
 
 	/* Initialize symbol of our kernel */
 	init_symbol();
@@ -134,8 +134,8 @@ int kmain(u_long addr, uint32_t initial_stack)
 	kprintf("Thread initialization... done.\n");
 
 	/* Initialize the scheduler */
-	init_sched_percpu();
-	kprintf("Per-CPU scheduler initialization... done.\n");
+	init_sched_percore();
+	kprintf("Per-CORE scheduler initialization... done.\n");
 	
 	init_sched();
 	kprintf("Scheduler initialization... done.\n");
@@ -203,17 +203,17 @@ void sys_init_thread(void *ctx)
 {
 	int rc = -1;
 	struct list *l;
-	struct cpu *c;
+	struct core *c;
 	uint32_t initrd_location;
 	const char *init_argv[] = {
 		"/init",
 		NULL
 	};
 
-	/* Dump all the CPU in the system */
-	LIST_FOR_EACH(l, &_running_cpus) {
-		c = LIST_ENTRY(l, struct cpu, link);
-		dump_cpu(c);
+	/* Dump all the CORE in the system */
+	LIST_FOR_EACH(l, &_running_cores) {
+		c = LIST_ENTRY(l, struct core, link);
+		dump_core(c);
 	}
 
 	/* Bring up the device manager */

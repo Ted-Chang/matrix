@@ -3,7 +3,7 @@
 #include "atomic.h"
 #include "barrier.h"
 #include "hal/hal.h"
-#include "hal/cpu.h"
+#include "hal/core.h"
 #include "hal/spinlock.h"
 #include "debug.h"
 
@@ -14,11 +14,11 @@ static INLINE void spinlock_lock_internal(struct spinlock *lock)
 		/* When running on a UP system we don't need to spin as there should
 		 * only be on thing at any time, so just die.
 		 */
-		if (_nr_cpus > 1) {
+		if (_nr_cores > 1) {
 			while (TRUE) {
 				/* Wait for the lock to be released */
 				while (lock->value != 1) {
-					cpu_spin_hint();
+					core_spin_hint();
 				}
 
 				/* Try to acquire it */
@@ -40,7 +40,7 @@ void spinlock_acquire(struct spinlock *lock)
 	boolean_t state;
 
 	/* Disable interrupts while locked to ensure that nothing else will
-	 * run on the current CPU for the duration of the lock.
+	 * run on the current CORE for the duration of the lock.
 	 */
 	state = irq_disable();
 
@@ -61,7 +61,7 @@ void spinlock_release(struct spinlock *lock)
 	}
 
 	/* Save state before unlocking in case it is overwritten by another
-	 * waiting CPU.
+	 * waiting CORE.
 	 */
 	state = lock->state;
 

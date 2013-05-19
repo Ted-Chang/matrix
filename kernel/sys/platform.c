@@ -1,7 +1,7 @@
 #include <types.h>
 #include <stddef.h>
 #include "hal/hal.h"
-#include "hal/cpu.h"
+#include "hal/core.h"
 #include "platform.h"
 
 void init_platform()
@@ -27,5 +27,5 @@ void platform_reboot()
 
 void platform_shutdown()
 {
-	cpu_halt();
+	core_halt();
 }

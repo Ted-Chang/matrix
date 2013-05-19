@@ -1,5 +1,5 @@
-#ifndef __CPU_H__
-#define __CPU_H__
+#ifndef __CORE_H__
+#define __CORE_H__
 
 #include <types.h>
 #include <stddef.h>
@@ -22,35 +22,35 @@
 #define X86_MSR_GS_BASE		0xC0000101	// GS segment base register
 #define X86_MSR_K_GS_BASE	0xC0000102	// GS base switch to with SWAPGS
 
-/* Standard CPUID function definitions */
-#define X86_CPUID_VENDOR_ID	0x00000000
-#define X86_CPUID_FEATURE_INFO	0x00000001
-#define X86_CPUID_CACHE_DESC	0x00000002
-#define X86_CPUID_SERIAL_NUM	0x00000003
-#define X86_CPUID_CACHE_PARMS	0x00000004
-#define X86_CPUID_MONITOR_MWAIT	0x00000005
-#define X86_CPUID_DTS_POWER	0x00000006
-#define X86_CPUID_DCA		0x00000009
-#define X86_CPUID_PERFMON	0x0000000A
-#define X86_CPUID_X2APIC	0x0000000B
-#define X86_CPUID_XSAVE		0x0000000D
+/* Standard COREID function definitions */
+#define X86_COREID_VENDOR_ID	0x00000000
+#define X86_COREID_FEATURE_INFO	0x00000001
+#define X86_COREID_CACHE_DESC	0x00000002
+#define X86_COREID_SERIAL_NUM	0x00000003
+#define X86_COREID_CACHE_PARMS	0x00000004
+#define X86_COREID_MONITOR_MWAIT 0x00000005
+#define X86_COREID_DTS_POWER	0x00000006
+#define X86_COREID_DCA		0x00000009
+#define X86_COREID_PERFMON	0x0000000A
+#define X86_COREID_X2APIC	0x0000000B
+#define X86_COREID_XSAVE	0x0000000D
 
-/* Extended CPUID function definitions */
-#define X86_CPUID_EXT_MAX	0x80000000
-#define X86_CPUID_EXT_FEATURE	0x80000001
-#define X86_CPUID_BRAND_STRING1	0x80000002
-#define X86_CPUID_BRAND_STRING2	0x80000003
-#define X86_CPUID_BRAND_STRING3	0x80000004
-#define X86_CPUID_L2_CACHE	0x80000006
-#define X86_CPUID_ADVANCED_PM	0x80000007
-#define X86_CPUID_ADDRESS_SIZE	0x80000008
+/* Extended COREID function definitions */
+#define X86_COREID_EXT_MAX	0x80000000
+#define X86_COREID_EXT_FEATURE	0x80000001
+#define X86_COREID_BRAND_STRING1 0x80000002
+#define X86_COREID_BRAND_STRING2 0x80000003
+#define X86_COREID_BRAND_STRING3 0x80000004
+#define X86_COREID_L2_CACHE	0x80000006
+#define X86_COREID_ADVANCED_PM	0x80000007
+#define X86_COREID_ADDRESS_SIZE	0x80000008
 
-/* Features the CPU supported */
-struct cpu_features {
+/* Features the CORE supported */
+struct core_features {
 	uint32_t highest_standard;		// Highest standard function
 	uint32_t highest_extended;		// Highest extended function
 
-	/* Standard CPUID features (EDX) */
+	/* Standard COREID features (EDX) */
 	union {
 		struct {
 			unsigned fpu:1;
@@ -89,7 +89,7 @@ struct cpu_features {
 		uint32_t standard_edx;
 	};
 
-	/* Standard CPUID features (ECX) */
+	/* Standard COREID features (ECX) */
 	union {
 		struct {
 			unsigned sse3:1;
@@ -126,7 +126,7 @@ struct cpu_features {
 		uint32_t standard_ecx;
 	};
 
-	/* Extended CPUID Features (EDX) */
+	/* Extended COREID Features (EDX) */
 	union {
 		struct {
 			unsigned :11;
@@ -139,7 +139,7 @@ struct cpu_features {
 		uint32_t extended_edx;
 	};
 
-	/* Extended CPUID Features (ECX) */
+	/* Extended COREID Features (ECX) */
 	union {
 		struct {
 			unsigned lahf:1;
@@ -148,62 +148,62 @@ struct cpu_features {
 		uint32_t extended_ecx;
 	};
 };
-typedef struct cpu_features cpu_features_t;
+typedef struct core_features core_features_t;
 
-struct cpu;
+struct core;
 
-/* Architecture specific CPU structure */
-struct arch_cpu {
-	struct cpu *parent;
+/* Architecture specific CORE structure */
+struct arch_core {
+	struct core *parent;
 
-	/* Per CPU structures */
+	/* Per CORE structures */
 	struct gdt gdt[NR_GDT_ENTRIES];	// Array of GDT descriptors
 	struct tss tss;			// Task State Segment
 	void *double_fault_stack;	// Pointer to the stack for double faults
 
 	/* Time conversion factors */
-	uint64_t cycles_per_us;		// CPU cycles per us
+	uint64_t cycles_per_us;		// CORE cycles per us
 	int64_t sys_time_offset;	// Value to subtract from TSC value for sys_time()
 	
-	/* CPU information */
-	uint64_t cpu_freq;		// CPU frequency in Hz
+	/* CORE information */
+	uint64_t core_freq;		// CORE frequency in Hz
 	char vendor_str[64];		// Vendor string
-	uint8_t cpu_step;		// CPU step
+	uint8_t core_step;		// CORE step
 	uint8_t max_phys_bits;		// Maximum physical address bits
 	uint8_t max_virt_bits;		// Maximum virtual address bits
 };
 
-/* CPU ID */
-typedef uint32_t cpu_id_t;
+/* CORE ID */
+typedef uint32_t core_id_t;
 
-struct cpu {
-	struct list link;		// Link to running CPUs list
+struct core {
+	struct list link;		// Link to running COREs list
 
-	cpu_id_t id;			// ID of this CPU
-	struct arch_cpu arch;		// Architecture specific information
+	core_id_t id;			// ID of this CORE
+	struct arch_core arch;		// Architecture specific information
 	
-	/* Current state of the CPU */
+	/* Current state of the CORE */
 	enum {
-		CPU_OFFLINE,
-		CPU_RUNNING,
+		CORE_OFFLINE,
+		CORE_RUNNING,
 	} state;
 
 	/* Scheduler information */
-	struct sched_cpu *sched;	// Scheduler run queues/timers
+	struct sched_core *sched;	// Scheduler run queues/timers
 	struct thread *thread;		// Currently executing thread
 	struct mmu_ctx *aspace;		// Address space currently in use
 	struct list timers;		// List of active timers
-	boolean_t timer_enabled;	// Whether timer is enabled on this CPU
+	boolean_t timer_enabled;	// Whether timer is enabled on this CORE
 };
-typedef struct cpu cpu_t;
+typedef struct core core_t;
 
-/* Expands to a pointer to the CPU structure of the current CPU */
-#define CURR_CPU	((struct cpu *)cpu_get_pointer())
+/* Expands to a pointer to the CORE structure of the current CORE */
+#define CURR_CORE	((struct core *)core_get_pointer())
 
-extern struct cpu _boot_cpu;
-extern size_t _nr_cpus;
-extern size_t _highest_cpu_id;
-extern struct list _running_cpus;
+extern struct core _boot_core;
+extern size_t _nr_cores;
+extern size_t _highest_core_id;
+extern struct list _running_cores;
 
 /* Read DR0 */
 static INLINE uint32_t x86_read_dr0()
@@ -310,8 +310,8 @@ static INLINE void x86_write_msr(uint32_t msr, uint64_t value)
 	asm volatile("wrmsr" :: "a"((uint32_t)value), "d"((uint32_t)(value >> 32)), "c"(msr));
 }
 
-/* Execute the CPUID instruction */
-static INLINE void x86_cpuid(uint32_t level, uint32_t *a, uint32_t *b, uint32_t *c, uint32_t *d)
+/* Execute the COREID instruction */
+static INLINE void x86_coreid(uint32_t level, uint32_t *a, uint32_t *b, uint32_t *c, uint32_t *d)
 {
 	asm volatile("cpuid" : "=a"(*a), "=b"(*b), "=c"(*c), "=d"(*d) : "0"(level));
 }
@@ -331,43 +331,43 @@ static INLINE uint64_t x86_rdtsc()
 	return ((uint64_t)high << 32) | low;
 }
 
-/* Get the current CPU pointer, the pointer was set when we initialize
- * the GDT for the CPU
+/* Get the current CORE pointer, the pointer was set when we initialize
+ * the GDT for the CORE
  */
-static INLINE struct cpu *cpu_get_pointer()
+static INLINE struct core *core_get_pointer()
 {
 	uint32_t addr;
 	
 	//addr = (uint32_t)x86_read_msr(X86_MSR_GS_BASE);
-	addr = (uint32_t)&_boot_cpu;
-	return (struct cpu *)addr;
+	addr = (uint32_t)&_boot_core;
+	return (struct core *)addr;
 }
 
-/* Halt the CPU */
-static INLINE void cpu_halt()
+/* Halt the CORE */
+static INLINE void core_halt()
 {
 	while (TRUE) {
 		asm volatile("cli;hlt");
 	}
 }
 
-/* Yield the CPU */
-static INLINE void cpu_idle()
+/* Yield the CORE */
+static INLINE void core_idle()
 {
 	asm volatile("sti;hlt;cli");
 }
 
-/* CPU-specific spin loop hint */
-static INLINE void cpu_spin_hint()
+/* CORE-specific spin loop hint */
+static INLINE void core_spin_hint()
 {
 	asm volatile("pause");
 }
 
-extern void dump_cpu(struct cpu *c);
-extern cpu_id_t cpu_id();
-extern void preinit_cpu_percpu();
-extern void preinit_cpu();
-extern void init_cpu_percpu();
-extern void init_cpu();
+extern void dump_core(struct core *c);
+extern core_id_t core_id();
+extern void preinit_core_percore();
+extern void preinit_core();
+extern void init_core_percore();
+extern void init_core();
 
-#endif	/* __CPU_H__ */
+#endif	/* __CORE_H__ */

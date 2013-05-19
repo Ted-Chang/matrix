@@ -7,7 +7,7 @@
 #include "hal/isr.h"
 #include "hal/hal.h"
 #include "hal/spinlock.h"
-#include "hal/cpu.h"
+#include "hal/core.h"
 #include "util.h"
 #include "debug.h"
 
@@ -131,11 +131,11 @@ void unregister_irq_handler(struct irq_hook *hook)
 
 void dump_registers(struct registers *regs)
 {
-	kprintf("\nFaulting CPU%d:\n"
+	kprintf("\nFaulting CORE%d:\n"
 		"  eip:0x%08x esp:0x%08x ebp:0x%08x uesp:0x%08x\n"
 		"  cs:0x%04x ss:0x%04x ds:0x%04x es:0x%04x gs:0x%04x\n"
 		"  err_code:0x%08x int_no:0x%08x eflags:0x%08x\n\n",
-		CURR_CPU->id, regs->eip, regs->esp, regs->ebp, regs->user_esp,
+		CURR_CORE->id, regs->eip, regs->esp, regs->ebp, regs->user_esp,
 		regs->cs, regs->ss, regs->ds, regs->es, regs->gs,
 		regs->int_no, regs->err_code, regs->eflags);
 }

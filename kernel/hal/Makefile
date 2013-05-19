@@ -9,7 +9,7 @@ TARGETOBJ := $(OBJ)/hal.o \
 	$(OBJ)/interrupt.o \
 	$(OBJ)/isr.o \
 	$(OBJ)/spinlock.o \
-	$(OBJ)/cpu.o \
+	$(OBJ)/core.o \
 
 .PHONY: clean help
 

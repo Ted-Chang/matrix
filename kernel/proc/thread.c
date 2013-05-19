@@ -3,6 +3,7 @@
 #include <string.h>
 #include "matrix/matrix.h"
 #include "debug.h"
+#include "hal/core.h"
 #include "mm/mlayout.h"
 #include "mm/mmu.h"
 #include "mm/kmem.h"
@@ -147,7 +148,7 @@ static void thread_wrapper()
 	sched_post_switch(TRUE);
 	
 	DEBUG(DL_DBG, ("entered thread(%s:%p) on CPU %d.\n",
-		       CURR_THREAD->name, CURR_THREAD, CURR_CPU->id));
+		       CURR_THREAD->name, CURR_THREAD, CURR_CORE->id));
 
 	/* Run the thread's main function and exit when it returns */
 	CURR_THREAD->entry(CURR_THREAD->args);
@@ -297,7 +298,7 @@ int thread_create(const char *name, struct process *owner, int flags,
 	/* Initially set the CPU to NULL - the thread will be assigned to a
 	 * CPU when thread_run() is called on it.
 	 */
-	t->cpu = NULL;
+	t->core = NULL;
 
 	t->state = THREAD_CREATED;
 	t->flags = flags;

@@ -6,7 +6,7 @@
 #include <string.h>	// memset
 #include "hal/hal.h"
 #include "hal/isr.h"	// register interrupt handler
-#include "hal/cpu.h"
+#include "hal/core.h"
 #include "mm/mm.h"
 #include "mm/mlayout.h"
 #include "mm/mmu.h"

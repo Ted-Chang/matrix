@@ -28,7 +28,7 @@ struct mmu_ctx {
 extern struct mmu_ctx _kernel_mmu_ctx;
 
 /* Macro that expands to a pointer to the current address space */
-#define CURR_ASPACE	(CURR_CPU->aspace)
+#define CURR_ASPACE	(CURR_CORE->aspace)
 
 /* Map flags for map */
 #define MAP_READ_F	(1<<0)

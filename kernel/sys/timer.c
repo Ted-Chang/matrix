@@ -3,7 +3,7 @@
 #include <string.h>
 #include "sys/time.h"
 #include "debug.h"
-#include "hal/cpu.h"
+#include "hal/core.h"
 #include "pit.h"
 #include "timer.h"
 #include "proc/thread.h"
@@ -125,9 +125,9 @@ void set_timer(struct timer *t, useconds_t expire_time, timer_func_t callback)
 {
 	ASSERT(t != NULL);
 
-	t->cpu = CURR_CPU;
+	t->core = CURR_CORE;
 	
-	tmrs_settimer(&CURR_CPU->timers, t, expire_time, callback);
+	tmrs_settimer(&CURR_CORE->timers, t, expire_time, callback);
 
 #ifdef _DEBUG_SCHED
 	DEBUG(DL_DBG, ("name(%s), expire_time(%lld).\n", t->name, t->expire_time));
@@ -142,7 +142,7 @@ void cancel_timer(struct timer *t)
 	 * timer list. Always update the next timeout time by setting it to the front
 	 * of the active timer list.
 	 */
-	tmrs_clrtimer(&CURR_CPU->timers, t);
+	tmrs_clrtimer(&CURR_CORE->timers, t);
 }
 
 void timer_delay(uint32_t usec)
@@ -155,13 +155,13 @@ void timer_tick()
 	useconds_t now;
 	boolean_t prempt = FALSE;
 
-	if (!CURR_CPU->timer_enabled) {
+	if (!CURR_CORE->timer_enabled) {
 		return;
 	}
 
 	now = sys_time();
 	
-	prempt = tmrs_exptimers(&CURR_CPU->timers, now);
+	prempt = tmrs_exptimers(&CURR_CORE->timers, now);
 	if (prempt) {
 		spinlock_acquire_noirq(&CURR_THREAD->lock);
 		sched_reschedule(FALSE);
