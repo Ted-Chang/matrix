@@ -1,7 +1,8 @@
 #include <types.h>
 #include <string.h>
-#include "hal/core.h"
 #include "hal/hal.h"
+#include "hal/lapic.h"
+#include "hal/core.h"
 #include "pit.h"
 #include "debug.h"
 #include "mm/mlayout.h"
@@ -240,8 +241,7 @@ static void arch_preinit_core_percore(struct core *c)
 
 static void arch_init_core_percore()
 {
-	/* TODO: Initialize LAPIC */
-	;
+	init_lapic();
 }
 
 void preinit_core_percore(struct core *c)

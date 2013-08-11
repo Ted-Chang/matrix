@@ -151,6 +151,8 @@ struct core_features {
 };
 typedef struct core_features core_features_t;
 
+extern struct core_features _core_features;
+
 struct core;
 
 /* Architecture specific CORE structure */

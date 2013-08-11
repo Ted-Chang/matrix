@@ -10,6 +10,7 @@ TARGETOBJ := $(OBJ)/hal.o \
 	$(OBJ)/isr.o \
 	$(OBJ)/spinlock.o \
 	$(OBJ)/core.o \
+	$(OBJ)/lapic.o \
 
 .PHONY: clean help
 

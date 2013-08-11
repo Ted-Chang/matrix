@@ -179,7 +179,7 @@ void announce()
 {
 	/* Display the Matrix startup banner */
 	printf("\nMatrix %d.%d "
-	       "Copyright(c) 2012, Ted Chang, Beijing, China.\n"
+	       "Copyright(c) 2012, Ted Zhang, Beijing, China.\n"
 	       "Build date and time: %s, %s\n\n",
 	       MATRIX_VERSION, MATRIX_RELEASE, __TIME__, __DATE__);
 }
