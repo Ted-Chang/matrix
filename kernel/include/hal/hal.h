@@ -1,9 +1,9 @@
 #ifndef __HAL_H__
 #define __HAL_H__
 
+#include "matrix/matrix.h"
 #include "hal/isr.h"
 #include "hal/spinlock.h"
-#include "matrix/matrix.h"
 
 #define PIC1		0x20		// IO base address for master PIC
 #define PIC2		0xA0		// IO base address for slave PIC

@@ -212,6 +212,8 @@ void init_idt()
 	idt_set_gate(128, (uint32_t)isr128, 0x08, 0x8E);
 
 	idt_flush((uint32_t)&_idt_ptr);
+
+	kprintf("Interrupt descriptor table initialized.\n");
 }
 
 static void gdt_set_gate(struct gdt *g, uint32_t base, uint32_t limit,
@@ -273,6 +275,8 @@ void init_gdt(struct core *c)
 	x86_write_msr(X86_MSR_GS_BASE, (uint64_t)c);	// FixMe: the GS register will be overridden
 	x86_write_msr(X86_MSR_K_GS_BASE, 0);
 	ASSERT(CURR_CORE == c);
+	
+	kprintf("core:%d gdt initialized.\n", c->id);
 }
 
 void init_tss(struct core *c)
@@ -286,8 +290,8 @@ void init_tss(struct core *c)
 	/* 0 is the value the stack-pointer shall get at a system call */
 	c->arch.tss.esp0 = 0;	// Set the kernel stack pointer
 
-	/* Here we set the cs, ss, ds, es, fs and gs entries in the TSS. These specify
-	 * what segments should be laoded when the processor switches to kernel mode.
+	/* Here we set the cs, ss, ds, es and fs entries in the TSS. These specify
+	 * what segments should be loaded when the processor switches to kernel mode.
 	 * Therefore they are just our normal kernel code/data segments - 0x08 and 0x10
 	 * respectively, but with the last two bits set, making 0x0b and 0x13. The setting
 	 * of these bits sets the RPL (requested privilege level) to 3, meaning that TSS
@@ -297,13 +301,14 @@ void init_tss(struct core *c)
 	c->arch.tss.ss = c->arch.tss.ds =
 		c->arch.tss.es =
 		c->arch.tss.fs =
-		c->arch.tss.gs =
 		0x13;
 
 	/* 104 is the size of TSS */
 	c->arch.tss.iomap_base = 104;
 
 	tss_flush();
+
+	kprintf("core:%d tss initialized.\n", c->id);
 }
 
 void set_kernel_stack(void *stack)

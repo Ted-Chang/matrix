@@ -96,7 +96,6 @@ isr_common_stub:
 	push ds
 	push es
 	push fs
-	push gs
 
 	mov ax, 0x10  		; load the kernel data segment descriptor
 	mov ds, ax
@@ -105,7 +104,6 @@ isr_common_stub:
 
 	call isr_handler
 
-	pop gs
 	pop fs
 	pop es
 	pop ds
@@ -125,7 +123,6 @@ irq_common_stub:
 	push ds
 	push es
 	push fs
-	push gs
 
 	mov ax, 0x10		; Load the kernel data segment
 	mov ds, ax
@@ -134,7 +131,6 @@ irq_common_stub:
 
 	call irq_handler
 
-	pop gs
 	pop fs
 	pop es
 	pop ds

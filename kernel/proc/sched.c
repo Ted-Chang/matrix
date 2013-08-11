@@ -72,6 +72,7 @@ static struct core *sched_alloc_core(struct thread *t)
 	 * are adding.
 	 */
 	total = _nr_running_threads + 1;
+	ASSERT(_nr_cores != 0);
 	average = total / _nr_cores;
 
 	LIST_FOR_EACH(l, &_running_cores) {

@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include "matrix/matrix.h"	// For INLINE
 #include "list.h"
+#include "debug.h"
 #include "hal/hal.h"
 
 /* Model Specific Register */
@@ -337,9 +338,9 @@ static INLINE uint64_t x86_rdtsc()
 static INLINE struct core *core_get_pointer()
 {
 	uint32_t addr;
-	
-	//addr = (uint32_t)x86_read_msr(X86_MSR_GS_BASE);
-	addr = (uint32_t)&_boot_core;
+
+	addr = (uint32_t)x86_read_msr(X86_MSR_GS_BASE);
+	ASSERT(addr == (uint32_t)&_boot_core);
 	return (struct core *)addr;
 }
 

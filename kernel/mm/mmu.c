@@ -231,7 +231,8 @@ void mmu_switch_ctx(struct mmu_ctx *ctx)
 		
 		ASSERT((ctx->pdbr % PAGE_SIZE) == 0);
 
-		DEBUG(DL_DBG, ("ctx(%p), CURR_ASPACE(%p).\n", ctx, CURR_ASPACE));
+		DEBUG(DL_DBG, ("ctx(%p), aspace(%p), core(%p).\n", ctx,
+			       CURR_ASPACE, CURR_CORE));
 
 		state = irq_disable();
 
@@ -368,8 +369,8 @@ void init_mmu()
 	_kernel_mmu_ctx.pdbr = pdbr;
 	memset(_kernel_mmu_ctx.pdir, 0, sizeof(struct pdir));
 	
-	DEBUG(DL_DBG, ("kernel mmu ctx(%p), pdbr(%p)\n",
-		       &_kernel_mmu_ctx, _kernel_mmu_ctx.pdbr));
+	DEBUG(DL_DBG, ("kernel mmu ctx(%p), pdbr(%p), core(%p)\n",
+		       &_kernel_mmu_ctx, _kernel_mmu_ctx.pdbr, CURR_CORE));
 
 	/* Allocate some pages in the kernel pool area. Here we call mmu_get_page
 	 * but not page_alloc. this cause the page tables to be created when necessary.

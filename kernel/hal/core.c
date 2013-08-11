@@ -158,6 +158,7 @@ static uint64_t calculate_core_freq()
 
 	/* Calculate frequency */
 	ASSERT(PIT_BASE_FREQ > ticks);
+	ASSERT(ticks != 0);
 
 	return cycles * (PIT_BASE_FREQ / ticks);
 }

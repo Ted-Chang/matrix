@@ -4,7 +4,6 @@
 #include "hal/hal.h"
 #include "util.h"
 #include "kd.h"
-#include "proc/thread.h"
 
 /* Compiler macro to get function name */
 #ifndef __FUNC__

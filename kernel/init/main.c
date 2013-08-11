@@ -79,13 +79,14 @@ int kmain(u_long addr, uint32_t initial_stack)
 
 	_initial_esp = initial_stack;
 
-	/* Initialize the CORE */
+	/* Initialize the CPU CORE */
 	preinit_core();
 	preinit_core_percore(&_boot_core);
 	kprintf("CORE preinitialization... done.\n");
 
 	/* Enable interrupt so our timer can work */
 	irq_enable();
+	kprintf("Interrupt enabled.\n");
 
 	/* Initialize our timer */
 	init_clock();
@@ -94,12 +95,16 @@ int kmain(u_long addr, uint32_t initial_stack)
 	/* Initialize our memory manager */
 	init_page();
 	kprintf("Page initialization... done.\n");
+
 	init_mmu();
 	kprintf("MMU initialization... done.\n");
+	
 	init_kmem();
 	kprintf("Kernel memory manager initialization... done.\n");
+	
 	init_slab();
 	kprintf("Slab memory cache initialization... done.\n");
+	
 	init_malloc();
 	kprintf("Kernel memory allocator initialization... done.\n");
 
@@ -107,8 +112,8 @@ int kmain(u_long addr, uint32_t initial_stack)
 	init_terminal();
 	kprintf("Terminal initialization... done.\n");
 
-	/* Perform more per-CORE initialization that can be done after the
-	 * memory management subsystem was up
+	/* Since the memory manager subsystem was bring up so perform
+	 * per-CORE  core initialization now
 	 */
 	init_core_percore();
 	kprintf("Per-CORE CORE initialization... done.\n");

@@ -133,11 +133,11 @@ void dump_registers(struct registers *regs)
 {
 	kprintf("\nFaulting CORE%d:\n"
 		"  eip:0x%08x esp:0x%08x ebp:0x%08x uesp:0x%08x\n"
-		"  cs:0x%04x ss:0x%04x ds:0x%04x es:0x%04x gs:0x%04x\n"
+		"  cs:0x%04x ss:0x%04x ds:0x%04x es:0x%04x\n"
 		"  err_code:0x%08x int_no:0x%08x eflags:0x%08x\n\n",
 		CURR_CORE->id, regs->eip, regs->esp, regs->ebp, regs->user_esp,
-		regs->cs, regs->ss, regs->ds, regs->es, regs->gs,
-		regs->int_no, regs->err_code, regs->eflags);
+		regs->cs, regs->ss, regs->ds, regs->es, regs->int_no,
+		regs->err_code, regs->eflags);
 }
 
 void divide_by_zero_fault(struct registers *regs)
@@ -278,4 +278,6 @@ void init_irqs()
 
 	/* Install the serial IRQ handler */
 	register_irq_handler(IRQ4, &_kd_hook, kd_callback);
+
+	kprintf("IRQ dispatch table initialied.\n");
 }
