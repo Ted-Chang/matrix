@@ -73,16 +73,16 @@ static uint32_t first_frame()
 
 void page_alloc(struct page *p, int flags)
 {
-	ASSERT(p != NULL);
+	uint32_t idx;
 	
+	ASSERT(p != NULL);
+
 	if (p->frame != 0) {
 		DEBUG(DL_WRN, ("page(%p), frame(%x), flags(%d)\n",
 			       p, p->frame, flags));
 		PANIC("alloc page in use");
-		return;
 	} else {
 		/* Get the first free frame from our global frame set */
-		uint32_t idx;
 
 		idx = first_frame();
 		if (idx == (uint32_t)(-1)) {
@@ -114,7 +114,6 @@ void page_free(struct page *p)
 	if (!(frame = p->frame)) {
 		DEBUG(DL_WRN, ("free page(%p) not allocated.\n", p));
 		PANIC("free page not allocated");
-		return;
 	} else {
 		clear_frame(frame);
 		p->frame = 0;

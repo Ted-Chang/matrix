@@ -382,6 +382,13 @@ void init_mmu()
 		mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
 	}
 
+	/* Allocate some pages in the physical map area. */
+	for (i = KERNEL_PMAP_START;
+	     (i < (KERNEL_PMAP_START + KERNEL_PMAP_SIZE)) && (i != 0);
+	     i += PAGE_SIZE) {
+		mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
+	}
+
 	/* Do identity map (physical addr == virtual addr) for the memory we used. */
 	for (i = 0; i < (_placement_addr + PAGE_SIZE); i += PAGE_SIZE) {
 		/* Kernel code is readable but not writable from user-mode */
@@ -391,9 +398,19 @@ void init_mmu()
 		page->rw = FALSE;
 	}
 
-	/* Allocate those pages we mapped earlier */
+	/* Allocate those pages we mapped for kernel pool area */
 	for (i = KERNEL_KMEM_START;
 	     i < (KERNEL_KMEM_START + KERNEL_KMEM_SIZE);
+	     i += PAGE_SIZE) {
+		page = mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
+		page_alloc(page, 0);
+		page->user = FALSE;
+		page->rw = FALSE;
+	}
+
+	/* Allocate those pages we mapped for physical map area */
+	for (i = KERNEL_PMAP_START;
+	     (i < (KERNEL_PMAP_START + KERNEL_PMAP_SIZE)) && (i != 0);
 	     i += PAGE_SIZE) {
 		page = mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
 		page_alloc(page, 0);

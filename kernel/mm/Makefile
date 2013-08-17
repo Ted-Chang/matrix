@@ -10,6 +10,7 @@ TARGETOBJ := $(OBJ)/vector.o \
 	$(OBJ)/page.o \
 	$(OBJ)/malloc.o \
 	$(OBJ)/slab.o \
+	$(OBJ)/phys.o \
 
 
 .PHONY: clean help
