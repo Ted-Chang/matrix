@@ -8,6 +8,8 @@
 #define LAPIC_REG_APR			36	// Arbitration Priority Register (APR)
 #define LAPIC_REG_PPR			40	// Processor Priority Register (PPR)
 #define LAPIC_REG_EOI			44	// EOI
+#define LAPIC_REG_LOGICAL_DEST		52	// Logical Destination
+#define LAPIC_REG_DEST_FORMAT		56	// Destination Format
 #define LAPIC_REG_LVT_TIMER		200	// LVT Timer
 #define LAPIC_REG_SPURIOUS		60	// Spurious Interrupt Vector
 #define LAPIC_REG_TIMER_INITIAL		224	// Timer Initial Count

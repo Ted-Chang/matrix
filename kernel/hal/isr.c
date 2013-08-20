@@ -46,13 +46,13 @@ void isr_handler(struct registers regs)
 		isr_t handler = hook->handler;
 		if (handler) {
 			handler(&regs);
+			processed = TRUE;
 		}
 		hook = hook->next;
-		processed = TRUE;
 	}
 
 	if (!processed) {
-		kprintf("unhandled interrupt: %d\n", int_no);
+		kprintf("ISR %d not handled\n", int_no);
 		for (; ; ) ;
 	}
 }
@@ -62,8 +62,9 @@ void isr_handler(struct registers regs)
  */
 void irq_handler(struct registers regs)
 {
-	struct irq_hook *hook;
 	uint8_t int_no;
+	struct irq_hook *hook;
+	boolean_t processed = FALSE;
 
 	ASSERT(regs.int_no <= 0xFF);
 
@@ -80,8 +81,13 @@ void irq_handler(struct registers regs)
 		isr_t handler = hook->handler;
 		if (handler) {
 			handler(&regs);
+			processed = TRUE;
 		}
 		hook = hook->next;
+	}
+
+	if (!processed) {
+		DEBUG(DL_INF, ("IRQ %d not handled\n", int_no));
 	}
 }
 

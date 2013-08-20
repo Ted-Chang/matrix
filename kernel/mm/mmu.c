@@ -274,11 +274,6 @@ void page_fault(struct registers *regs)
 
 	dump_registers(regs);
 
-	/* Print current thread */
-	kprintf("Faulting process(%s:%d) pdir(%p) thread(%s:%d)\n",
-		CURR_PROC->name, CURR_PROC->id, CURR_PROC->mmu_ctx->pdir,
-		CURR_THREAD->name, CURR_THREAD->id);
-
 	/* Print an error message */
 	kprintf("Page fault(%s%s%s%s) at 0x%x - EIP: 0x%x\n\n", 
 		present ? "present " : "non-present ",
@@ -287,6 +282,11 @@ void page_fault(struct registers *regs)
 		reserved ? "reserved " : "",
 		faulting_addr,
 		regs->eip);
+
+	/* Print current thread */
+	//kprintf("Faulting process(%s:%d) pdir(%p) thread(%s:%d)\n",
+	//	CURR_PROC->name, CURR_PROC->id, CURR_PROC->mmu_ctx->pdir,
+	//	CURR_THREAD->name, CURR_THREAD->id);
 
 	PANIC("Page fault");
 }

@@ -105,8 +105,8 @@ void init_lapic()
 	/* Enable the local APIC (bit 8) and set spurious interrupt handler
 	 * in the Spurious Interrupt Vector Register.
 	 */
-	//lapic_write(LAPIC_REG_SPURIOUS, LAPIC_VECT_SPURIOUS | (1<<8));
-	//lapic_write(LAPIC_REG_TIMER_DIVIDER, LAPIC_TIMER_DIV8);
+	lapic_write(LAPIC_REG_SPURIOUS, LAPIC_VECT_SPURIOUS | (1<<8));
+	lapic_write(LAPIC_REG_TIMER_DIVIDER, LAPIC_TIMER_DIV8);
 
 	/* Sanity check */
 	if (CURR_CORE != &_boot_core) {

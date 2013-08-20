@@ -23,7 +23,7 @@ void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 	 * information please refer to the memory layout of our system.
 	 */
 	if (PMAP_CONTAINS(addr, size)) {
-		return (void *)(KERNEL_PMAP_START + addr);
+		return (void *)addr;
 	}
 
 	/* Not in range of physical map area. Must allocate memory pages and
