@@ -71,9 +71,12 @@ void init_lapic()
 	 */
 	base = x86_read_msr(X86_MSR_APIC_BASE);
 	if (!(base & (1 << 11))) {
+		kprintf("lapic: *** local APIC disabled ***\n");
 		return;
 	} else if (_core_features.x2apic && (base & (1 << 11))) {
 		PANIC("Cannot handle core in x2APIC mode");
+	} else {
+		DEBUG(DL_INF, ("lapic: base -> 0x%llx\n", base));
 	}
 
 	base &= 0xFFFFF000;
@@ -90,7 +93,7 @@ void init_lapic()
 		 */
 		_lapic_base = base;
 		_lapic_mapping = phys_map(base, PAGE_SIZE, 0);
-		kprintf("lapic: physical location 0x%x mapped to %p\n",
+		kprintf("lapic: physical location 0x%llx mapped to %p\n",
 			base, _lapic_mapping);
 
 		/* Register interrupt handlers */
@@ -113,12 +116,14 @@ void init_lapic()
 		if (CURR_CORE->id != lapic_id()) {
 			PANIC("Core ID mismatch");
 		}
+	} else {
+		DEBUG(DL_INF, ("lapic: lapic_id() returns %d\n", lapic_id()));
 	}
 
 	/* Accept all interrupts */
-	//lapic_write(LAPIC_REG_TPR, lapic_read(LAPIC_REG_TPR) & 0xFFFFFF00);
+	lapic_write(LAPIC_REG_TPR, lapic_read(LAPIC_REG_TPR) & 0xFFFFFF00);
 
-	/* Enable the timer: interrupt vector, no extra bits = Unmasked/One-shot  */
-	//lapic_write(LAPIC_REG_TIMER_INITIAL, 0);
-	//lapic_write(LAPIC_REG_LVT_TIMER, LAPIC_VECT_TIMER);
+	/* Enable the timer: interrupt vector, no extra bits = Unmasked/One-shot */
+	lapic_write(LAPIC_REG_TIMER_INITIAL, 0);
+	lapic_write(LAPIC_REG_LVT_TIMER, LAPIC_VECT_TIMER);
 }

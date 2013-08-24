@@ -15,7 +15,7 @@ void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 {
 	phys_addr_t base, end;
 
-	if (!size) {
+	if (size == 0) {
 		return NULL;
 	}
 
@@ -33,7 +33,7 @@ void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 	end = ROUND_UP(addr + size, PAGE_SIZE);
 
 	// TODO: Implement this
-	ASSERT(0);
+	PANIC("To be done...");
 
 	return NULL;
 }

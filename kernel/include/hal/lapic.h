@@ -10,8 +10,8 @@
 #define LAPIC_REG_EOI			44	// EOI
 #define LAPIC_REG_LOGICAL_DEST		52	// Logical Destination
 #define LAPIC_REG_DEST_FORMAT		56	// Destination Format
-#define LAPIC_REG_LVT_TIMER		200	// LVT Timer
 #define LAPIC_REG_SPURIOUS		60	// Spurious Interrupt Vector
+#define LAPIC_REG_LVT_TIMER		200	// LVT Timer
 #define LAPIC_REG_TIMER_INITIAL		224	// Timer Initial Count
 #define LAPIC_REG_TIMER_CURRENT		228	// Timer Current Count
 #define LAPIC_REG_TIMER_DIVIDER		248	// Timer Divide Configuration

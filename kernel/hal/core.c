@@ -9,6 +9,8 @@
 #include "mm/page.h"
 #include "div64.h"
 
+#define FREQ_ATTEMPTS	9
+
 extern struct idt_ptr _idt_ptr;
 extern void init_idt();
 extern void idt_flush();
@@ -164,6 +166,24 @@ static uint64_t calculate_core_freq()
 	return cycles * (PIT_BASE_FREQ / ticks);
 }
 
+static uint64_t calculate_freq(uint64_t (*func)())
+{
+	size_t i;
+	uint64_t ret = 0;
+	uint64_t results[FREQ_ATTEMPTS];
+
+	/* Get the frequencies */
+	for (i = 0; i < FREQ_ATTEMPTS; i++) {
+		results[i] = func();
+	}
+
+	for (i = 0; i < FREQ_ATTEMPTS; i++) {
+		ret = ret > results[i] ? ret : results[i];
+	}
+
+	return ret;
+}
+
 static void arch_preinit_core()
 {
 	/* Initialize the global IDT and interrupt handler table */
@@ -199,6 +219,19 @@ static void arch_preinit_core_percore(struct core *c)
 	 */
 	if (c == &_boot_core) {
 		memcpy(&_core_features, &features, sizeof(_core_features));
+
+		/* Check the required features. Enable them when you need to use these
+		 * features.
+		 */
+		if (features.highest_standard < X86_COREID_FEATURE_INFO) {
+			PANIC("COREID feature information not supported");
+		} else if (!_core_features.fpu || !_core_features.fxsr) {
+			PANIC("CORE does not support FPU/FXSR");
+		} else if (!_core_features.tsc) {
+			PANIC("CORE does not support TSC");
+		} else if (!_core_features.pge) {
+			PANIC("CORE does not support PGE");
+		}
 	} else {
 		if ((_core_features.highest_standard != features.highest_standard) ||
 		    (_core_features.highest_extended != features.highest_extended) ||
@@ -210,22 +243,10 @@ static void arch_preinit_core_percore(struct core *c)
 		}
 	}
 
-	/* Check for the required features. Enable them when you need to use these
-	 * features.
-	 */
-	if (features.highest_standard < X86_COREID_FEATURE_INFO) {
-		PANIC("COREID feature information not supported");
-	} else if (!_core_features.fpu || !_core_features.fxsr) {
-		PANIC("CORE does not support FPU/FXSR");
-	} else if (!_core_features.tsc) {
-		PANIC("CORE does not support TSC");
-	} else if (!_core_features.pge) {
-		PANIC("CORE does not support PGE");
-	}
-
 	/* Get the CORE frequency */
 	if (c == &_boot_core) {
-		c->arch.core_freq = calculate_core_freq();
+		c->arch.core_freq = calculate_freq(calculate_core_freq);
+		kprintf("core:%d core freq(%lld)", c->id, c->arch.core_freq);
 	} else {
 		c->arch.core_freq = _boot_core.arch.core_freq;
 	}
