@@ -15,6 +15,7 @@ TARGETOBJ := \
 	$(OBJ)/platform.o \
 	$(OBJ)/ioctx.o \
 	$(OBJ)/device.o \
+	$(OBJ)/smp.o \
 
 .PHONY: clean help
 

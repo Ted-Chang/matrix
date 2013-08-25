@@ -32,12 +32,14 @@ struct list _running_cores = {
 	.next = &_running_cores,
 };
 
+struct core **_cores = NULL;
+
 /* Double fault handler stack for the boot CORE */
 static u_char _boot_double_fault_stack[KSTACK_SIZE]__attribute__((aligned(PAGE_SIZE)));
 
 core_id_t core_id()
 {
-	return 0;
+	return (core_id_t)lapic_id();
 }
 
 static void init_descriptor(struct core *c)
@@ -268,6 +270,9 @@ static void arch_init_core_percore()
 void preinit_core_percore(struct core *c)
 {
 	arch_preinit_core_percore(c);
+
+	/* Add the core to the running CORE list */
+	list_add_tail(&CURR_CORE->link, &_running_cores);
 }
 
 void preinit_core()
@@ -276,12 +281,14 @@ void preinit_core()
 	 * once we have the ability to get the read ID.
 	 */
 	core_ctor(&_boot_core, 0, CORE_RUNNING);
-	list_add_tail(&_boot_core.link, &_running_cores);
 
 	/* Perform architecture specific initialization. This initialize some
 	 * state shared between all COREs
 	 */
 	arch_preinit_core();
+
+	/* Initialize boot CORE */
+	preinit_core_percore(&_boot_core);
 }
 
 void init_core_percore()
@@ -294,4 +301,7 @@ void init_core()
 	/* Get the ID of the boot CORE */
 	_boot_core.id = _highest_core_id = core_id();
 	_nr_cores = 1;
+
+	/* We are called on boot CORE */
+	init_core_percore();
 }

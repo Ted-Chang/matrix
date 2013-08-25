@@ -5,7 +5,7 @@
 #include "mm/mm.h"
 #include "mm/mlayout.h"
 #include "mm/page.h"
-#include "mm/kmem.h"
+#include "mm/mmu.h"
 
 #define PMAP_CONTAINS(addr, size)					\
 	((addr >= KERNEL_PMAP_START) &&					\
@@ -13,39 +13,57 @@
 
 void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 {
-	phys_addr_t base, end;
+	int rc;
+	phys_addr_t base;
+	void *ptr;
 
 	if (size == 0) {
-		return NULL;
+		/* What do you want to do??? */
+		ASSERT(0);
+		ptr = NULL;
+		goto out;
 	}
 
 	/* Use the physical map area if the range lies within it. For more
 	 * information please refer to the memory layout of our system.
 	 */
 	if (PMAP_CONTAINS(addr, size)) {
-		return (void *)addr;
+		ptr = (void *)addr;
+		goto out;
 	}
 
 	/* Not in range of physical map area. Must allocate memory pages and
 	 * map there.
 	 */
 	base = ROUND_DOWN(addr, PAGE_SIZE);
-	end = ROUND_UP(addr + size, PAGE_SIZE);
 
-	// TODO: Implement this
-	PANIC("To be done...");
+	/* Map pages from kernel MMU context */
+	rc = mmu_map(&_kernel_mmu_ctx, base, size,
+		     MAP_READ_F | MAP_WRITE_F | MAP_FIXED_F,
+		     NULL);
+	if (rc != 0) {
+		DEBUG(DL_ERR, ("mmu_map failed, base(%llx), size(%x)\n",
+			       base, size));
+		ptr = NULL;
+		goto out;
+	}
 
-	return NULL;
+	ptr = (void *)addr;
+
+ out:
+
+	return ptr;
 }
 
 void phys_unmap(void *addr, size_t size, boolean_t shared)
 {
+	int rc;
+	
 	/* If the memory range lies within the physical map area, we don't
 	 * need to do anything. Otherwise, unmap and free the kernel memory.
 	 */
-	if ((addr < KERNEL_PMAP_START) ||
-	    (addr > (KERNEL_PMAP_START + KERNEL_PMAP_SIZE))) {
+	if (((uint32_t)addr < KERNEL_PMAP_START) ||
+	    ((uint32_t)addr > (KERNEL_PMAP_START + KERNEL_PMAP_SIZE))) {
 		// TODO: Implement this.
-		ASSERT(0);
 	}
 }

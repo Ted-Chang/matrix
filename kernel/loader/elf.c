@@ -154,7 +154,9 @@ int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **datap)
 	 * in the link script.
 	 */
 	load_cnt = 0;
-	for (i = 0, virt = 0; virt < (ehdr->e_shentsize * ehdr->e_shnum); virt += ehdr->e_shentsize, i++) {
+	for (i = 0, virt = 0;
+	     virt < (ehdr->e_shentsize * ehdr->e_shnum);
+	     virt += ehdr->e_shentsize, i++) {
 
 		/* Read a section header */
 		shdr = (elf_shdr_t *)(((uint8_t *)ehdr) + (ehdr->e_shoff + virt));

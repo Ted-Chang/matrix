@@ -20,6 +20,7 @@
 #include "mm/malloc.h"
 #include "mm/slab.h"
 #include "timer.h"
+#include "smp.h"
 #include "proc/process.h"
 #include "proc/sched.h"
 #include "proc/thread.h"
@@ -81,7 +82,6 @@ int kmain(u_long addr, uint32_t initial_stack)
 
 	/* Initialize the CPU CORE */
 	preinit_core();
-	preinit_core_percore(&_boot_core);
 	kprintf("CORE preinitialization... done.\n");
 
 	/* Enable interrupt so our timer can work */
@@ -112,19 +112,17 @@ int kmain(u_long addr, uint32_t initial_stack)
 	init_terminal();
 	kprintf("Terminal initialization... done.\n");
 
-	/* Since the memory manager subsystem was bring up so perform
-	 * per-CORE  core initialization now
-	 */
-	init_core_percore();
-	kprintf("Per-CORE CORE initialization... done.\n");
+	/* Properly initialize the CORE and detect other COREs */
+	init_core();
+	kprintf("CORE initialization... done.\n");
 
 	/* Initialize the platform */
 	init_platform();
 	kprintf("Platform initialization... done.\n");
 
-	/* Properly initialize the CORE and detect other COREs */
-	init_core();
-	kprintf("CORE initialization... done.\n");
+	/* Initialize Symmetric Multi Processing */
+	init_smp();
+	kprintf("Symmetric Multi Processing initialization... done.\n");
 
 	/* Initialize symbol of our kernel */
 	init_symbol();
