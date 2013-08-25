@@ -30,11 +30,12 @@ extern struct mmu_ctx _kernel_mmu_ctx;
 /* Macro that expands to a pointer to the current address space */
 #define CURR_ASPACE	(CURR_CORE->aspace)
 
-/* Map flags for map */
+/* Map flags for mmu_map */
 #define MAP_READ_F	(1<<0)
 #define MAP_WRITE_F	(1<<1)
 #define MAP_EXEC_F	(1<<2)
 #define MAP_FIXED_F	(1<<3)
+#define MAP_SHARE_F	(1<<4)
 
 extern void page_fault(struct registers *regs);
 extern struct mmu_ctx *mmu_create_ctx();

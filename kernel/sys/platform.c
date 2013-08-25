@@ -5,6 +5,7 @@
 #include "hal/hal.h"
 #include "hal/core.h"
 #include "hal/lapic.h"
+#include "mm/mmu.h"
 #include "mm/phys.h"
 #include "acpi.h"
 #include "platform.h"
@@ -15,11 +16,16 @@ boolean_t _acpi_supported = FALSE;
 static struct acpi_rsdp *acpi_find_rsdp(phys_addr_t start, size_t size)
 {
 	size_t i;
+	int mflags = 0;
 	struct acpi_rsdp *rsdp;
 
 	ASSERT(!(start % 16) && !(size % 16));
 
-	rsdp = phys_map(start, size, 0);
+	/* Map the pages to the specified address, we don't modify the content,
+	 * so it's OK to share content.
+	 */
+	mflags = (MAP_READ_F | MAP_FIXED_F | MAP_SHARE_F);
+	rsdp = phys_map(start, size, mflags);
 	
 	/* Search through the range on 16-byte boundaries */
 	for (i = 0; i < size; i+= 16) {
@@ -27,8 +33,14 @@ static struct acpi_rsdp *acpi_find_rsdp(phys_addr_t start, size_t size)
 		/* Check if the signature and checksum are correct */
 		if (strncmp((char *)rsdp->signature, ACPI_RSDP_SIGNATURE, 8) != 0) {
 			continue;
-		} else if (verify_chksum(rsdp, 20)) {
+		} else {
+			DEBUG(DL_INF, ("acpi: ACPI_RSDP_SIGNATURE found.\n"));
+		}
+
+		if (verify_chksum(rsdp, 20)) {
 			continue;
+		} else {
+			DEBUG(DL_INF, ("acpi: RSDP checksum pass.\n"));
 		}
 
 		/* If the revision is 2 or higher, then check the extended
@@ -36,6 +48,9 @@ static struct acpi_rsdp *acpi_find_rsdp(phys_addr_t start, size_t size)
 		 */
 		if (rsdp->revision >= 2) {
 			if (verify_chksum(rsdp, rsdp->length)) {
+				DEBUG(DL_WRN,
+				      ("acpi: RSDP revision(%d) checksum failed.\n",
+				       rsdp->revision));
 				continue;
 			}
 		}
@@ -67,12 +82,12 @@ void acpi_init()
 	kprintf("acpi: Extended BIOS Data Area at %p\n", ebda);
 
 	/* Search for the RSDP */
-	/* if (!(rsdp = acpi_find_rsdp(ebda, 0x400))) { */
-	/* 	if (!(rsdp = acpi_find_rsdp(0xE0000, 0x20000))) { */
-	/* 		kprintf("acpi: *** RSDP not found ***\n"); */
-	/* 		return; */
-	/* 	} */
-	/* } */
+	if (!(rsdp = acpi_find_rsdp(ebda, 0x400))) {
+		if (!(rsdp = acpi_find_rsdp(0xE0000, 0x20000))) {
+			kprintf("acpi: *** RSDP not found ***\n");
+			return;
+		}
+	}
 }
 
 void init_platform()

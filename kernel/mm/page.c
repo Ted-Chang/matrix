@@ -80,7 +80,9 @@ void page_alloc(struct page *p, int flags)
 	if (p->frame != 0) {
 		DEBUG(DL_WRN, ("page(%p), frame(%x), flags(%d)\n",
 			       p, p->frame, flags));
-		PANIC("alloc page in use");
+		if (!(flags & PAGE_SHARE_F)) {
+			PANIC("alloc page in use");
+		}
 	} else {
 		/* Get the first free frame from our global frame set */
 

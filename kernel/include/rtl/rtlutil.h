@@ -15,7 +15,7 @@ static INLINE boolean_t verify_chksum(void *start, size_t size)
 		chksum += range[i];
 	}
 
-	return chksum == 0;
+	return (chksum == 0);
 }
 
 #endif	/* __RTLUTIL_H__ */

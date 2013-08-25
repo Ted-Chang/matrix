@@ -22,6 +22,9 @@ struct page {
 
 extern phys_addr_t _placement_addr;
 
+/* Page flags for page_alloc */
+#define PAGE_SHARE_F	(1<<0)
+
 extern void page_alloc(struct page *p, int flags);
 extern void page_free(struct page *p);
 extern void init_page();

@@ -35,9 +35,9 @@ struct ptbl {
  * Each page directory has 1024 pointers to its page table entry
  */
 struct pdir {
-	/* Page directory entry for the page table below, this must be the
-	 * first member of pdir structure because we use the physical address
-	 * of this structure as the PDBR.
+	/* Page directory entry for the page table below, this must be
+	 * the first member of pdir structure because we use the physical
+	 * address of this structure as the PDBR.
 	 */
 	uint32_t pde[1024];
 
@@ -137,6 +137,7 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, ptr_t virt, boolean_t make, int m
 int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *addrp)
 {
 	int rc;
+	int pflag = 0;
 	struct page *p;
 	ptr_t virt;
 
@@ -144,15 +145,11 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *add
 		DEBUG(DL_DBG, ("size (%x) invalid.\n", size));
 		rc = -1;
 		goto out;
-	} else if (!(flags & (MAP_READ_F | MAP_WRITE_F | MAP_EXEC_F))) {
-		DEBUG(DL_DBG, ("flags (%x) invalid.\n", flags));
-		rc = -1;
-		goto out;
 	}
-
+	
 	if (flags & MAP_FIXED_F) {
 		if (start % PAGE_SIZE) {
-			DEBUG(DL_DBG, ("parameter start(%p) not aligned.\n", start));
+			DEBUG(DL_DBG, ("start(%p) not aligned.\n", start));
 			rc = -1;
 			goto out;
 		}
@@ -161,6 +158,10 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *add
 		DEBUG(DL_DBG, ("non-fixed map not support yet.\n"));
 		rc = -1;
 		goto out;
+	}
+
+	if (flags & MAP_SHARE_F) {
+		pflag |= PAGE_SHARE_F;
 	}
 
 	DEBUG(DL_DBG, ("ctx(%p) start(%p), size(%x).\n", ctx, start, size));
@@ -173,7 +174,7 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *add
 			goto out;
 		}
 		DEBUG(DL_DBG, ("ctx(%p) page(%p) frame(%x).\n", ctx, p, p->frame));
-		page_alloc(p, 0);
+		page_alloc(p, pflag);
 		p->user = IS_KERNEL_CTX(ctx) ? FALSE : TRUE;
 		p->rw = FLAG_ON(flags, MAP_WRITE_F) ? TRUE : FALSE;
 	}

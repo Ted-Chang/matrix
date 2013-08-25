@@ -15,12 +15,11 @@ void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 {
 	int rc;
 	phys_addr_t base;
-	void *ptr;
+	void *ptr = NULL;
 
-	if (size == 0) {
+	if (!size) {
 		/* What do you want to do??? */
 		ASSERT(0);
-		ptr = NULL;
 		goto out;
 	}
 
@@ -38,13 +37,10 @@ void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 	base = ROUND_DOWN(addr, PAGE_SIZE);
 
 	/* Map pages from kernel MMU context */
-	rc = mmu_map(&_kernel_mmu_ctx, base, size,
-		     MAP_READ_F | MAP_WRITE_F | MAP_FIXED_F,
-		     NULL);
+	rc = mmu_map(&_kernel_mmu_ctx, base, size, mmflag, NULL);
 	if (rc != 0) {
 		DEBUG(DL_ERR, ("mmu_map failed, base(%llx), size(%x)\n",
 			       base, size));
-		ptr = NULL;
 		goto out;
 	}
 
