@@ -4,13 +4,15 @@ include ../Makefile.inc
 
 OBJ := ../../bin/obji386
 
-TARGETOBJ := $(OBJ)/vector.o \
+TARGETOBJ := \
+	$(OBJ)/vector.o \
 	$(OBJ)/mmu.o \
 	$(OBJ)/kmem.o \
 	$(OBJ)/page.o \
 	$(OBJ)/malloc.o \
 	$(OBJ)/slab.o \
 	$(OBJ)/phys.o \
+	$(OBJ)/va.o \
 
 
 .PHONY: clean help

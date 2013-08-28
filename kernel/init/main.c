@@ -19,6 +19,7 @@
 #include "mm/mmu.h"
 #include "mm/malloc.h"
 #include "mm/slab.h"
+#include "mm/va.h"
 #include "timer.h"
 #include "smp.h"
 #include "proc/process.h"
@@ -107,6 +108,9 @@ int kmain(u_long addr, uint32_t initial_stack)
 	
 	init_malloc();
 	kprintf("Kernel memory allocator initialization... done.\n");
+
+	init_va();
+	kprintf("Virtual address space manager initialization... done.\n");
 
 	/* Initialize our terminal */
 	init_terminal();
