@@ -35,7 +35,6 @@ extern struct mmu_ctx _kernel_mmu_ctx;
 #define MAP_WRITE_F	(1<<1)
 #define MAP_EXEC_F	(1<<2)
 #define MAP_FIXED_F	(1<<3)
-#define MAP_SHARE_F	(1<<4)
 
 extern void page_fault(struct registers *regs);
 extern struct mmu_ctx *mmu_create_ctx();

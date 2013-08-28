@@ -7,6 +7,7 @@
 
 
 [Build mkinitrd tools]
+$ cd tools
 $ gcc -o mkinitrd make_initrd.c
 
 

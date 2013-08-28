@@ -24,7 +24,7 @@ static struct acpi_rsdp *acpi_find_rsdp(phys_addr_t start, size_t size)
 	/* Map the pages to the specified address, we don't modify the content,
 	 * so it's OK to share content.
 	 */
-	mflags = (MAP_READ_F | MAP_FIXED_F | MAP_SHARE_F);
+	mflags = (MAP_READ_F | MAP_FIXED_F);
 	rsdp = phys_map(start, size, mflags);
 	
 	/* Search through the range on 16-byte boundaries */
@@ -82,12 +82,12 @@ void acpi_init()
 	kprintf("acpi: Extended BIOS Data Area at %p\n", ebda);
 
 	/* Search for the RSDP */
-	if (!(rsdp = acpi_find_rsdp(ebda, 0x400))) {
-		if (!(rsdp = acpi_find_rsdp(0xE0000, 0x20000))) {
-			kprintf("acpi: *** RSDP not found ***\n");
-			return;
-		}
-	}
+	/* if (!(rsdp = acpi_find_rsdp(ebda, 0x400))) { */
+	/* 	if (!(rsdp = acpi_find_rsdp(0xE0000, 0x20000))) { */
+	/* 		kprintf("acpi: *** RSDP not found ***\n"); */
+	/* 		return; */
+	/* 	} */
+	/* } */
 }
 
 void init_platform()

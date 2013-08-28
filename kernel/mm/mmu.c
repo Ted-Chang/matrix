@@ -18,9 +18,6 @@
 /* Determine if an MMU context is the kernel context */
 #define IS_KERNEL_CTX(ctx)	(ctx == &_kernel_mmu_ctx)
 
-/* Determine if an MMU context is the current context */
-#define IS_CURRENT_CTX(ctx)	(ctx == CURR_ASPACE)
-
 /*
  * Page Table
  * Each page table has 1024 page table entries, actually each
@@ -160,10 +157,6 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *add
 		goto out;
 	}
 
-	if (flags & MAP_SHARE_F) {
-		pflag |= PAGE_SHARE_F;
-	}
-
 	DEBUG(DL_DBG, ("ctx(%p) start(%p), size(%x).\n", ctx, start, size));
 
 	for (virt = start; virt < (start + size); virt += PAGE_SIZE) {
@@ -182,11 +175,6 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *add
 	rc = 0;
 
  out:
-	if (rc != 0) {
-		/* Do clean up if needed */
-		;
-	}
-	
 	return rc;
 }
 

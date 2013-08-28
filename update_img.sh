@@ -4,7 +4,7 @@ tool_path="tools/make_initrd"
 
 # update the matrix kernel in the floopy image
 #sudo losetup /dev/loop0 ~/vm/matrix/matrix.img
-if [ ! -x "$tool_path"]; then
+if [ ! -x "$tool_path" ]; then
     echo "$tool_path not exist or not executable"
     exit -1
 fi
