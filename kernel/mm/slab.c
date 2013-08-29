@@ -20,7 +20,7 @@ struct slab {
 };
 typedef struct slab slab_t;
 
-#define SLAB_MAGIC	'BALS'
+#define SLAB_MAGIC	0x42414C53	// 'BALS'
 
 /* List of all slab caches */
 static struct list _slab_caches = {

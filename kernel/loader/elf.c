@@ -18,7 +18,7 @@ typedef Elf32_Shdr elf_shdr_t;
 
 struct elf_binary {
 	elf_ehdr_t *ehdr;
-	struct mmu_ctx *mmu;
+	struct va_space *vas;
 	struct vfs_node *n;
 	ptr_t load_base;
 	size_t load_size;
@@ -103,7 +103,7 @@ ptr_t elf_finish_binary(void *data)
 	return entry;
 }
 
-int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **datap)
+int elf_load_binary(struct vfs_node *n, struct va_space *vas, void **datap)
 {
 	int rc = -1, i;
 	size_t size, load_cnt;
@@ -120,7 +120,7 @@ int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **datap)
 		goto out;
 	}
 	
-	bin->mmu = mmu;
+	bin->vas = vas;
 	bin->n = n;
 
 	/* Allocate buffer to store the file content */
@@ -180,7 +180,7 @@ int elf_load_binary(struct vfs_node *n, struct mmu_ctx *mmu, void **datap)
 
 			/* Map address space for this section, this is where codes stored */
 			map_size = ROUND_UP(shdr->sh_size, PAGE_SIZE);
-			rc = mmu_map(mmu, shdr->sh_addr, map_size,
+			rc = mmu_map(vas->mmu, shdr->sh_addr, map_size,
 				     MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
 			if (rc != 0) {
 				DEBUG(DL_WRN, ("mmu_map failed, err(%d).\n", rc));

@@ -53,8 +53,6 @@ void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 
 void phys_unmap(void *addr, size_t size, boolean_t shared)
 {
-	int rc;
-	
 	/* If the memory range lies within the physical map area, we don't
 	 * need to do anything. Otherwise, unmap and free the kernel memory.
 	 */

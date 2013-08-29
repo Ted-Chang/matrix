@@ -268,10 +268,12 @@ int thread_create(const char *name, struct process *owner, int flags,
 	int rc = -1;
 	struct thread *t;
 
+	/* If no owner provided then kernel process is our owner */
 	if (!owner) {
 		owner = _kernel_proc;
 	}
-	
+
+	/* Allocate a thread structure from our slab allocator */
 	t = slab_cache_alloc(&_thread_cache);
 	if (!t) {
 		DEBUG(DL_INF, ("slab allocate thread failed.\n"));
@@ -465,8 +467,8 @@ void thread_exit()
 	/* Unmap the user stack */
 	if (CURR_THREAD->ustack_size) {
 		DEBUG(DL_DBG, ("unmap ustack, proc(%s), mmu(%p).\n",
-			       CURR_PROC->name, CURR_PROC->mmu_ctx));
-		rc = mmu_unmap(CURR_PROC->mmu_ctx, (ptr_t)CURR_THREAD->ustack,
+			       CURR_PROC->name, CURR_PROC->vas->mmu));
+		rc = mmu_unmap(CURR_PROC->vas->mmu, (ptr_t)CURR_THREAD->ustack,
 			       CURR_THREAD->ustack_size);
 		ASSERT(rc == 0);
 	}

@@ -9,6 +9,9 @@ struct va_space {
 
 extern struct va_space *va_create();
 extern void va_destroy(struct va_space *vas);
+extern int va_map(struct va_space *vas, ptr_t start, size_t size, int flags, ptr_t *addrp);
+extern int va_unmap(struct va_space *vas, ptr_t start, size_t size);
+extern void va_switch(struct va_space *vas);
 extern void init_va();
 
 #endif	/* __VA_H__ */

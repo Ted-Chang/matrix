@@ -247,6 +247,7 @@ void sys_init_thread(void *ctx)
 		if (rc != 0) {
 			PANIC("Mount ramfs for root failed");
 		}
+		
 		kprintf("Initial ramdisk mounted, location(0x%p).\n",
 			initrd_location);
 

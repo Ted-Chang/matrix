@@ -23,7 +23,7 @@ struct process_creation;
 struct process {
 	int ref_count;				// Number of handles/threads in the process
 
-	struct mmu_ctx *mmu_ctx;		// MMU context
+	struct va_space *vas;			// Virtual address space
 
 	pid_t id;				// Process ID
 	uid_t uid;				// User ID
@@ -77,8 +77,7 @@ extern int process_exit(int status);
 extern int process_create(const char **args, struct process *parent, int flags,
 			  int priority, struct process **procp);
 extern int process_destroy(struct process *proc);
-extern int process_clone(void (*entry)(void *), void *esp, void *args,
-			 struct process **procp);
+
 extern int process_wait(struct process *p, void *sync);
 extern int process_getid();
 

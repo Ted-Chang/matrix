@@ -7,6 +7,7 @@
 #include "list.h"
 #include "debug.h"
 #include "hal/hal.h"
+#include "mm/va.h"
 
 /* Model Specific Register */
 #define X86_MSR_TSC		0x10		// Time Stamp Counter (TSC)
@@ -194,7 +195,7 @@ struct core {
 	/* Scheduler information */
 	struct sched_core *sched;	// Scheduler run queues/timers
 	struct thread *thread;		// Currently executing thread
-	struct mmu_ctx *aspace;		// Address space currently in use
+	struct va_space *aspace;	// Address space currently in use
 	struct list timers;		// List of active timers
 	boolean_t timer_enabled;	// Whether timer is enabled on this CORE
 };

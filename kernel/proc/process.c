@@ -31,7 +31,7 @@ struct process_creation {
 	const char **env;	// Environments
 
 	/* Information used internally by the loader */
-	struct mmu_ctx *mmu;	// Address space for the process
+	struct va_space *vas;	// Address space for the process
 	void *data;		// Data pointer for the ELF loader
 	ptr_t args;		// Address for argument block mapping
 	ptr_t ustack;		// Address for stack mapping
@@ -158,9 +158,9 @@ static void process_release(struct process *p)
 
 static void process_cleanup(struct process *p)
 {
-	if (p->mmu_ctx) {
-		mmu_destroy_ctx(p->mmu_ctx);
-		p->mmu_ctx = NULL;
+	if (p->vas) {
+		va_destroy(p->vas);
+		p->vas = NULL;
 	}
 	
 	if (p->fds) {
@@ -170,7 +170,7 @@ static void process_cleanup(struct process *p)
 	}
 }
 
-static int process_alloc(const char *name, struct process *parent, struct mmu_ctx *mmu,
+static int process_alloc(const char *name, struct process *parent, struct va_space *vas,
 			 int flags, int priority, struct fd_table *fds,
 			 struct process **procp)
 {
@@ -179,7 +179,7 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 
 	ASSERT((name != NULL) && (procp != NULL));
 
-	/* Create the new process */
+	/* Allocate the new process structure from slab allocator */
 	p = slab_cache_alloc(&_proc_cache);
 	if (!p) {
 		DEBUG(DL_DBG, ("slab allocate process failed.\n"));
@@ -200,7 +200,7 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 
 	p->uid = 500;			// FixMe: set it to the currently logged user
 	p->gid = 500;			// FixMe: set it to the current user's group
-	p->mmu_ctx = mmu;		// MMU context
+	p->vas = vas;			// Virtual address space
 	p->priority = priority;
 	p->flags = flags;
 	p->status = 0;
@@ -240,7 +240,7 @@ static int process_alloc(const char *name, struct process *parent, struct mmu_ct
 	rc = 0;
 
 	DEBUG(DL_DBG, ("allocated process(%s:%d:%p:%p).\n",
-		       p->name, p->id, p, p->mmu_ctx));
+		       p->name, p->id, p, p->vas));
 out:
 	if (rc != 0) {
 		if (p) {
@@ -329,19 +329,19 @@ static int create_aspace(struct process_creation *info)
 	size_t size;
 	void *data = NULL;
 	struct vfs_node *n;
-	struct mmu_ctx *mmu = NULL;
+	struct va_space *vas = NULL;
 
 	/* Initialize the semaphore for synchronize with new entry thread */
 	semaphore_init(&info->sem, "p-create-sem", 0);
 	
 	/* Create the address space for the process */
-	mmu = mmu_create_ctx();
-	if (!mmu) {
-		DEBUG(DL_INF, ("mmu_create_ctx failed.\n"));
+	vas = va_create();
+	if (!vas) {
+		DEBUG(DL_INF, ("va_create failed.\n"));
 		rc = -1;
 		goto out;
 	}
-	mmu_clone_ctx(mmu, &_kernel_mmu_ctx);
+	mmu_clone_ctx(vas->mmu, &_kernel_mmu_ctx);
 
 	/* Lookup the file from the file system */
 	n = vfs_lookup(info->argv[0], VFS_FILE);
@@ -352,7 +352,7 @@ static int create_aspace(struct process_creation *info)
 	}
 
 	/* Load the ELF file into this process */
-	rc = elf_load_binary(n, mmu, &data);
+	rc = elf_load_binary(n, vas, &data);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("elf_load_binary failed, err(%d).\n", rc));
 		goto out;
@@ -368,7 +368,7 @@ static int create_aspace(struct process_creation *info)
 	info->argc = i;
 
 	/* Map some pages for the user mode stack from the new mmu context */
-	rc = mmu_map(mmu, USTACK_BOTTOM, USTACK_SIZE, MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
+	rc = mmu_map(vas->mmu, USTACK_BOTTOM, USTACK_SIZE, MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("mmu_map for ustack failed, err(%d).\n", rc));
 		goto out;
@@ -378,21 +378,21 @@ static int create_aspace(struct process_creation *info)
 	 * non-allocated to probe stack underflow
 	 */
 	info->args = USTACK_BOTTOM + USTACK_SIZE + PAGE_SIZE;
-	rc = mmu_map(mmu, info->args, size, MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
+	rc = mmu_map(vas->mmu, info->args, size, MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("mmu_map for arguments failed, err(%d).\n", rc));
 		goto out;
 	}
 	
-	info->mmu = mmu;
+	info->vas = vas;
 	info->ustack = USTACK_BOTTOM;
 	info->data = data;
 	info->status = rc;
 
  out:
 	if (rc != 0) {
-		if (mmu) {
-			mmu_destroy_ctx(mmu);
+		if (vas) {
+			va_destroy(vas);
 		}
 	}
 	
@@ -424,7 +424,7 @@ static void process_entry_thread(void *ctx)
 
 	info = (struct process_creation *)ctx;
 
-	ASSERT(CURR_ASPACE == info->mmu);
+	ASSERT(CURR_ASPACE == info->vas);
 
 	/* We use a fixed user stack address for now */
 	ustack = info->ustack + USTACK_SIZE - 1;
@@ -476,7 +476,7 @@ int process_create(const char **args, struct process *parent, int flags,
 	}
 
 	/* Create the new process */
-	rc = process_alloc(args[0], parent, info.mmu, flags, priority, NULL, &p);
+	rc = process_alloc(args[0], parent, info.vas, flags, priority, NULL, &p);
 	if (rc != 0) {
 		DEBUG(DL_INF, ("process_alloc failed, err(%d).\n", rc));
 		goto out;
@@ -505,8 +505,8 @@ int process_create(const char **args, struct process *parent, int flags,
 		if (p) {
 			process_destroy(p);
 		}
-		if (info.mmu) {
-			mmu_destroy_ctx(info.mmu);
+		if (info.vas) {
+			va_destroy(info.vas);
 		}
 	}
 
@@ -558,72 +558,6 @@ int process_wait(struct process *p, void *sync)
 	return rc;
 }
 
-int process_clone(void (*entry)(void *), void *esp, void *args, struct process **procp)
-{
-	int rc = -1;
-	struct mmu_ctx *mmu;
-	struct thread *t = NULL;
-	struct process *p = NULL;
-	struct fd_table *fds = NULL;
-	struct thread_uspace_creation *info;
-	
-	/* Clone the parent(current)'s page directory */
-	mmu = mmu_create_ctx();
-	if (!mmu) {
-		DEBUG(DL_DBG, ("mmu_create_ctx failed.\n"));
-		goto out;
-	}
-	mmu_clone_ctx(mmu, CURR_PROC->mmu_ctx);
-
-	/* Clone the parent(current)'s file descriptor table */
-	fds = fd_table_clone(CURR_PROC->fds);
-	if (!fds) {
-		DEBUG(DL_DBG, ("fd_table_clone failed.\n"));
-		goto out;
-	}
-
-	/* Create the new process and a handle */
-	rc = process_alloc(CURR_PROC->name, CURR_PROC, mmu, 0, 16, fds, &p);
-	if (rc != 0) {
-		DEBUG(DL_DBG, ("process_alloc failed, err(%d).\n", rc));
-		goto out;
-	}
-
-	/* Create the main thread and run it */
-	info = kmalloc(sizeof(struct thread_uspace_creation), 0);
-	info->entry = (ptr_t)entry;
-	info->esp = (ptr_t)esp;
-	info->args = (ptr_t)args;
-	
-	rc = thread_create("main", p, 0, thread_uspace_wrapper, info, &t);
-	if (rc != 0) {
-		DEBUG(DL_DBG, ("thread_create failed, err(%d).\n", rc));
-		goto out;
-	}
-
-	*procp = p;
-
-	/* Run the new thread */
-	thread_run(t);
-	thread_release(t);
-
-out:
-	if (rc != 0) {
-		if (p) {
-			process_destroy(p);
-		}
-		if (fds) {
-			fd_table_destroy(fds);
-		}
-		if (mmu) {
-			/* TODO: Should unmap mmu context */
-			mmu_destroy_ctx(mmu);
-		}
-	}
-	
-	return rc;
-}
-
 int process_replace(const char *path, const char *args[])
 {
 	return -1;
@@ -654,7 +588,9 @@ void init_process()
 	avl_tree_init(&_proc_tree);
 	mutex_init(&_proc_tree_lock, "ptree-mutex", 0);
 
-	/* Create the kernel process */
+	/* Create the kernel process. Note that kernel process doesn't need virtual
+	 * address space.
+	 */
 	rc = process_alloc("kernel", NULL, NULL, 0, 16, NULL, &_kernel_proc);
 	if (rc != 0) {
 		PANIC("Could not initialize kernel process");

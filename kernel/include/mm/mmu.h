@@ -41,7 +41,7 @@ extern struct mmu_ctx *mmu_create_ctx();
 extern struct page *mmu_get_page(struct mmu_ctx *ctx, ptr_t addr, boolean_t make, int mmflag);
 extern int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *addrp);
 extern int mmu_unmap(struct mmu_ctx *ctx, ptr_t start, size_t size);
-extern void mmu_switch_ctx(struct mmu_ctx *ctx);
+extern void mmu_load_ctx(struct mmu_ctx *ctx);
 extern void mmu_clone_ctx(struct mmu_ctx *dst, struct mmu_ctx *src);
 extern void mmu_destroy_ctx(struct mmu_ctx *ctx);
 extern void init_mmu();

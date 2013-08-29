@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "mm/malloc.h"
 #include "mm/mmu.h"
+#include "mm/va.h"
 #include "sys/time.h"
 #include "debug.h"
 #include "timer.h"
@@ -289,9 +290,9 @@ void sched_reschedule(boolean_t state)
 #endif	/* _DEBUG_SCHED */
 		
 		/* Switch the address space. The NULL case will be handled by the
-		 * context switch function.
+		 * virtual address space switch function.
 		 */
-		mmu_switch_ctx(CURR_PROC->mmu_ctx);
+		va_switch(CURR_PROC->vas);
 
 		/* Perform the thread switch */
 		arch_thread_switch(CURR_THREAD, c->prev_thread);

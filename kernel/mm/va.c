@@ -1,6 +1,8 @@
 #include <types.h>
 #include <stddef.h>
 #include "debug.h"
+#include "hal/core.h"
+#include "mm/kmem.h"
 #include "mm/va.h"
 
 struct va_space *va_create()
@@ -67,7 +69,29 @@ int va_unmap(struct va_space *vas, ptr_t start, size_t size)
 
 void va_switch(struct va_space *vas)
 {
-	mmu_switch_ctx(vas->mmu);
+	boolean_t state;
+
+	/* The kernel process does not have an address space. When switching
+	 * to one of its threads, it is not necessary to switch to the kernel
+	 * address space, as all mappings in the kernel context are visible in
+	 * all address spaces. Kernel threads should never touch the userspace
+	 * portion of the address space.
+	 */
+	if (vas && (vas != CURR_ASPACE)) {
+		
+		DEBUG(DL_DBG, ("new vas(%p), current vas(%p), core(%p).\n",
+			       vas, CURR_ASPACE, CURR_CORE));
+
+		state = irq_disable();
+
+		/* Update the current mmu context */
+		CURR_ASPACE = vas;
+
+		/* Load the page directory base */
+		mmu_load_ctx(vas->mmu);
+
+		irq_restore(state);
+	}
 }
 
 void va_clone(struct va_space *dst, struct va_space *src)
