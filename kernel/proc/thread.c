@@ -466,9 +466,9 @@ void thread_exit()
 
 	/* Unmap the user stack */
 	if (CURR_THREAD->ustack_size) {
-		DEBUG(DL_DBG, ("unmap ustack, proc(%s), mmu(%p).\n",
-			       CURR_PROC->name, CURR_PROC->vas->mmu));
-		rc = mmu_unmap(CURR_PROC->vas->mmu, (ptr_t)CURR_THREAD->ustack,
+		DEBUG(DL_DBG, ("unmap ustack, proc(%s), vas(%p).\n",
+			       CURR_PROC->name, CURR_PROC->vas));
+		rc = va_unmap(CURR_PROC->vas, (ptr_t)CURR_THREAD->ustack,
 			       CURR_THREAD->ustack_size);
 		ASSERT(rc == 0);
 	}

@@ -131,7 +131,7 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, ptr_t virt, boolean_t make, int m
 	return page;
 }
 
-int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *addrp)
+int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags)
 {
 	int rc;
 	int pflag = 0;

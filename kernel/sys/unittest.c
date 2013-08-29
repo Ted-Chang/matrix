@@ -76,13 +76,14 @@ int do_unit_test(uint32_t round)
 	/* Memory map test */
 	start = 0x40000000;
 	size = 0x4000;
-	rc = mmu_map(CURR_PROC->vas->mmu, start, size, MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
+	rc = va_map(CURR_PROC->vas, start, size,
+		    VA_MAP_READ|VA_MAP_WRITE|VA_MAP_FIXED, NULL);
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("mmu_map failed.\n"));
+		DEBUG(DL_DBG, ("va_map failed.\n"));
 		goto out;
 	} else {
 		memset((void *)start, 0, size);
-		rc = mmu_unmap(CURR_PROC->vas->mmu, start, size);
+		rc = va_unmap(CURR_PROC->vas, start, size);
 		ASSERT(rc == 0);
 	}
 	DEBUG(DL_DBG, ("memory map test finished.\n"));

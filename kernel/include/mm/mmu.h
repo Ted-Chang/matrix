@@ -1,9 +1,9 @@
 /*
- * mmgr.h
+ * mmu.h
  */
 
-#ifndef __MMGR_H__
-#define __MMGR_H__
+#ifndef __MMU_H__
+#define __MMU_H__
 
 #include "hal/isr.h"	// For struct registers
 #include "page.h"
@@ -39,7 +39,7 @@ extern struct mmu_ctx _kernel_mmu_ctx;
 extern void page_fault(struct registers *regs);
 extern struct mmu_ctx *mmu_create_ctx();
 extern struct page *mmu_get_page(struct mmu_ctx *ctx, ptr_t addr, boolean_t make, int mmflag);
-extern int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags, ptr_t *addrp);
+extern int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags);
 extern int mmu_unmap(struct mmu_ctx *ctx, ptr_t start, size_t size);
 extern void mmu_load_ctx(struct mmu_ctx *ctx);
 extern void mmu_clone_ctx(struct mmu_ctx *dst, struct mmu_ctx *src);

@@ -37,7 +37,7 @@ void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 	base = ROUND_DOWN(addr, PAGE_SIZE);
 
 	/* Map pages from kernel MMU context */
-	rc = mmu_map(&_kernel_mmu_ctx, base, size, mmflag, NULL);
+	rc = mmu_map(&_kernel_mmu_ctx, base, size, mmflag);
 	if (rc != 0) {
 		DEBUG(DL_ERR, ("mmu_map failed, base(%llx), size(%x)\n",
 			       base, size));

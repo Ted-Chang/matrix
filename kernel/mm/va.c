@@ -46,7 +46,7 @@ int va_map(struct va_space *vas, ptr_t start, size_t size, int flags, ptr_t *add
 
 	DEBUG(DL_DBG, ("vas(%p) start(%p), size(%x).\n", vas, start, size));
 	
-	rc = mmu_map(vas->mmu, start, size, flags, NULL);
+	rc = mmu_map(vas->mmu, start, size, flags);
 
  out:
 	return rc;

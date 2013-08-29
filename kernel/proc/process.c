@@ -71,7 +71,7 @@ static void move_stack(uint32_t new_stack, uint32_t size)
 
 	start = new_stack - size;
 	rc = mmu_map(&_kernel_mmu_ctx, start, size + PAGE_SIZE,
-		     MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
+		     MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F);
 	ASSERT(rc == 0);
 	
 	/* Flush the TLB by reading and writing the page directory address again */
@@ -368,9 +368,10 @@ static int create_aspace(struct process_creation *info)
 	info->argc = i;
 
 	/* Map some pages for the user mode stack from the new mmu context */
-	rc = mmu_map(vas->mmu, USTACK_BOTTOM, USTACK_SIZE, MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
+	rc = va_map(vas, USTACK_BOTTOM, USTACK_SIZE,
+		    VA_MAP_READ|VA_MAP_WRITE|VA_MAP_FIXED, NULL);
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("mmu_map for ustack failed, err(%d).\n", rc));
+		DEBUG(DL_DBG, ("va_map for ustack failed, err(%d).\n", rc));
 		goto out;
 	}
 
@@ -378,9 +379,10 @@ static int create_aspace(struct process_creation *info)
 	 * non-allocated to probe stack underflow
 	 */
 	info->args = USTACK_BOTTOM + USTACK_SIZE + PAGE_SIZE;
-	rc = mmu_map(vas->mmu, info->args, size, MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
+	rc = va_map(vas, info->args, size,
+		    VA_MAP_READ|VA_MAP_WRITE|VA_MAP_FIXED, NULL);
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("mmu_map for arguments failed, err(%d).\n", rc));
+		DEBUG(DL_DBG, ("va_map for arguments failed, err(%d).\n", rc));
 		goto out;
 	}
 	

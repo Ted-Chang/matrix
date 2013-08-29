@@ -180,10 +180,10 @@ int elf_load_binary(struct vfs_node *n, struct va_space *vas, void **datap)
 
 			/* Map address space for this section, this is where codes stored */
 			map_size = ROUND_UP(shdr->sh_size, PAGE_SIZE);
-			rc = mmu_map(vas->mmu, shdr->sh_addr, map_size,
-				     MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F, NULL);
+			rc = va_map(vas, shdr->sh_addr, map_size,
+				    VA_MAP_READ|VA_MAP_WRITE|VA_MAP_FIXED, NULL);
 			if (rc != 0) {
-				DEBUG(DL_WRN, ("mmu_map failed, err(%d).\n", rc));
+				DEBUG(DL_WRN, ("va_map failed, err(%d).\n", rc));
 				goto out;
 			}
 
