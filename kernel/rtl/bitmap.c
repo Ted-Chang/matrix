@@ -4,12 +4,12 @@
 #include "debug.h"
 #include "rtl/bitmap.h"
 
-static void dump_bitmap(struct bitmap *b)
+void dump_bitmap(struct bitmap *b)
 {
 	u_long i;
 	boolean_t all_zeros, all_ones;
 	
-	kprintf("bitmap: %p (%x) %p\n", b, b->nr_bits, b->buf);
+	DEBUG(DL_INF, ("bitmap: %p (%x) %p\n", b, b->nr_bits, b->buf));
 
 	all_zeros = FALSE;
 	all_ones = FALSE;

@@ -150,7 +150,7 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags)
 			rc = -1;
 			goto out;
 		}
-	} else /*if (!addrp)*/ {
+	} else {
 		/* We didn't support this yet. */
 		DEBUG(DL_DBG, ("non-fixed map not support yet.\n"));
 		rc = -1;

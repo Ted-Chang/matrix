@@ -107,6 +107,7 @@ int do_unit_test(uint32_t round)
 	ASSERT(bitmap_test(&bm, 34));
 	bitmap_clear(&bm, 34);
 	ASSERT(!bitmap_test(&bm, 34));
+	dump_bitmap(&bm);
 	kfree(bm_buf);
 	DEBUG(DL_DBG, ("bitmap test finished.\n"));
 	

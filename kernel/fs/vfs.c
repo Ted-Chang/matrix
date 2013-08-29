@@ -68,11 +68,11 @@ int vfs_node_refer(struct vfs_node *node)
 	int ref_count;
 
 	ref_count = node->ref_count;
-	node->ref_count++;
-	if (node->ref_count == 0) {
+	if (ref_count == 0) {
 		DEBUG(DL_ERR, ("node(%s:%d) corrupted.\n", node->name, node->ino));
 		PANIC("vfs_node_refer: ref_count is corrupted!");
 	}
+	node->ref_count++;
 	
 	return ref_count;
 }
@@ -82,7 +82,10 @@ int vfs_node_deref(struct vfs_node *node)
 	int ref_count;
 
 	ref_count = node->ref_count;
-	ASSERT(ref_count != 0);
+	if (ref_count <= 0) {
+		DEBUG(DL_ERR, ("node(%s:%d) corrupted.\n", node->name, node->ino));
+		PANIC("vfs_node_deref: ref_count is corrupted!");
+	}
 	node->ref_count--;
 	if (!node->ref_count) {
 		vfs_node_free(node);

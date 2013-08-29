@@ -1,20 +1,59 @@
 How to build?
-To build matrix, execute GNU make in the current directory.
+To build matrix, execute build.sh in current directory.
 
 How to test matrix?
-I only tried it with bochs 2.4.6 and boot it with grub installed.
+I only tried it with bochs 2.4.6 and boot it with grub installed. 
+You need to install grub and boot from the kernel file. Also a initrd 
+is needed. You can generate the initrd with the make_initrd tool. To 
+build make_initrd tool, just build the source file in tools directory.
 
 What architecture does matrix support now?
 At this moment matrix only support the x86 architecture.
+
+How to debug matrix?
+When matrix booting it will config the serial port and write logs to 
+the serial port. If you are debugging with physical machine, you can 
+use a serial line. If you are debugging with bochs, you can redirect 
+the output to a file.
 
 How to create an image?
 dd if=/dev/zero of=matrix.img bs=512 count=2880
 
 How to create a bochs vm using the image?
-Create a file bochsrc.bxrc and write the configuration into the file. You can refer to the documents on bochs site.
+Create a file bochsrc.bxrc and write the configuration into the file. 
+You can refer to the documents on bochs site. Also there is a bochs 
+configuration file in tools directory.
 
-How to install grub to the image?
-sudo losetup /dev/loop0 ~/vm/matrix/matrix.img
-sudo mkfs.msdos /dev/loop0
-sudo mount /dev/loop0 /mnt
-sudo grub-install --root-directory=/mnt --recheck --force /dev/loop0
+***
+
+Organization of the Matrix sources
+
+The sdk\ directory contains a number of shared user mode startup code
+for applications. sdk\include contains all the headers shared between
+user mode and kernel mode components. sdk\libc contains the standard C
+library code that don't need runtime environments(i.e. no memory related
+stuff).
+
+The uspace\ directory contains code for all the applications
+
+The drivers\ directory contains all the drivers for Matrix
+
+The kernel\ directory contains the Matrix kernel sources.
+
+The primary Matrix source components are organized as follows:
+
+    hal\    - Hardware abstract layer
+    mm\	    - Memory management stuff
+    proc\   - Process, thread management and also scheduler
+    sys\    - System call, timer, utility, etc
+    fs\	    - File System related stuff
+    loader\ - ELF loader, load the ELF file to process' address space
+    time\   - Time management code
+    libc\   - Place holder, actual code is in sdk\libc directory
+    dbgk\   - Kernel debugger support
+
+    include\- Kernel-only include files
+    rtl\    - Kernel run-time support
+    init\   - Kernel startup code
+
+***
