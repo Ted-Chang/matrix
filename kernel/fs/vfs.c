@@ -68,8 +68,9 @@ int vfs_node_refer(struct vfs_node *node)
 	int ref_count;
 
 	ref_count = node->ref_count;
-	if (ref_count == 0) {
-		DEBUG(DL_ERR, ("node(%s:%d) corrupted.\n", node->name, node->ino));
+	if (ref_count < 0) {
+		DEBUG(DL_ERR, ("node(%s:%d) %p corrupted.\n",
+			       node->name, node->ino, node));
 		PANIC("vfs_node_refer: ref_count is corrupted!");
 	}
 	node->ref_count++;
@@ -83,7 +84,8 @@ int vfs_node_deref(struct vfs_node *node)
 
 	ref_count = node->ref_count;
 	if (ref_count <= 0) {
-		DEBUG(DL_ERR, ("node(%s:%d) corrupted.\n", node->name, node->ino));
+		DEBUG(DL_ERR, ("node(%s:%d) %p corrupted.\n",
+			       node->name, node->ino, node));
 		PANIC("vfs_node_deref: ref_count is corrupted!");
 	}
 	node->ref_count--;
@@ -200,7 +202,8 @@ int vfs_create(const char *path, uint32_t type, struct vfs_node **np)
 	}
 
 	ASSERT(n != NULL);
-	DEBUG(DL_DBG, ("create(%s) node(%p).\n", path, n));
+	DEBUG(DL_DBG, ("create(%s:%d) node(%p) ref_count(%d).\n",
+		       path, n->ino, n, n->ref_count));
 
 	if (np) {
 		*np = n;
@@ -209,7 +212,7 @@ int vfs_create(const char *path, uint32_t type, struct vfs_node **np)
 
  out:
 	if (parent) {
-		vfs_node_deref(n);
+		vfs_node_deref(parent);
 	}
 	if (n) {
 		vfs_node_deref(n);
@@ -327,7 +330,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 			return n;
 		}
 	} else {
-		ASSERT(n->type == VFS_DIRECTORY);
+		ASSERT((n != NULL) && (n->type == VFS_DIRECTORY));
 	}
 
 	/* Loop through each element of the path string */
@@ -408,17 +411,22 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 			/* Insert the node into the node cache */
 			avl_tree_insert(&m->nodes, ino, n);
 			vfs_node_refer(n);
+
+			DEBUG(DL_DBG, ("vfs node(%s:%d) miss, ref_count(%d).\n",
+				       n->name, n->ino, n->ref_count));
 		}
 
 		mutex_release(&m->lock);
+		ASSERT(v != NULL);
 		vfs_node_deref(v);
 	}
 }
 
 struct vfs_node *vfs_lookup(const char *path, int type)
 {
-	struct vfs_node *n = NULL, *c = NULL;
 	char *dup = NULL;
+	struct vfs_node *n = NULL;
+	struct vfs_node *c = NULL;
 	
 	if (!_root_mount || !path || !path[0]) {
 		goto out;

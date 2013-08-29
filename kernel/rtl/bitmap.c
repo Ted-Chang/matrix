@@ -9,7 +9,7 @@ void dump_bitmap(struct bitmap *b)
 	u_long i;
 	boolean_t all_zeros, all_ones;
 	
-	DEBUG(DL_INF, ("bitmap: %p (%x) %p\n", b, b->nr_bits, b->buf));
+	DEBUG(DL_DBG, ("bitmap: %p (%x) %p\n", b, b->nr_bits, b->buf));
 
 	all_zeros = FALSE;
 	all_ones = FALSE;
@@ -17,14 +17,14 @@ void dump_bitmap(struct bitmap *b)
 	for (i = 0; i < (b->nr_bits / (sizeof(u_long) * 8)); i++) {
 		if (b->buf[i] == 0) {
 			if (!all_zeros) {
-				kprintf("%4d: %08x\n", i, b->buf[i]);
+				DEBUG(DL_DBG, ("%4d: %08x\n", i, b->buf[i]));
 			}
 
 			all_zeros = TRUE;
 			all_ones = FALSE;
 		} else if (b->buf[i] == 0xFFFFFFFF) {
 			if (!all_ones) {
-				kprintf("%4d: %08x\n", i, b->buf[i]);
+				DEBUG(DL_DBG, ("%4d: %08x\n", i, b->buf[i]));
 			}
 
 			all_ones = TRUE;
@@ -33,7 +33,7 @@ void dump_bitmap(struct bitmap *b)
 			all_zeros = FALSE;
 			all_ones = FALSE;
 
-			kprintf("%4d: %08x\n", i, b->buf[i]);
+			DEBUG(DL_DBG, ("%4d: %08x\n", i, b->buf[i]));
 		}
 	}
 }

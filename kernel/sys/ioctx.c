@@ -37,6 +37,7 @@ void io_init_ctx(struct io_ctx *ctx, struct io_ctx *parent)
 
 void io_destroy_ctx(struct io_ctx *ctx)
 {
+	ASSERT((ctx->cwd != NULL) && (ctx->rd != NULL));
 	vfs_node_deref(ctx->cwd);
 	vfs_node_deref(ctx->rd);
 }
@@ -50,6 +51,7 @@ int io_setcwd(struct io_ctx *ctx, struct vfs_node *node)
 	}
 
 	vfs_node_refer(node);
+	ASSERT(ctx->cwd != NULL);
 	vfs_node_deref(ctx->cwd);
 	ctx->cwd = node;
 	rc = 0;
@@ -70,6 +72,7 @@ int io_setroot(struct io_ctx *ctx, struct vfs_node *node)
 	vfs_node_refer(node);
 	vfs_node_refer(node);
 
+	ASSERT((ctx->cwd != NULL) && (ctx->rd != NULL));
 	vfs_node_deref(ctx->cwd);
 	ctx->cwd = node;
 	vfs_node_deref(ctx->rd);

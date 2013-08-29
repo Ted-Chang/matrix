@@ -72,6 +72,9 @@ static int initrd_create(struct vfs_node *parent, const char *name,
 	n->ino = _initrd_nodes[pos].ino;
 	n->length = _initrd_nodes[pos].length;
 
+	/* We have to reference the node as the ref_count is 0 when it was allocated */
+	vfs_node_refer(n);
+
 	*np = n;
 
 	rc = 0;
