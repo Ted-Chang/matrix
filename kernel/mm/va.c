@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include "debug.h"
 #include "hal/core.h"
+#include "mm/page.h"
 #include "mm/kmem.h"
 #include "mm/va.h"
 
@@ -24,14 +25,17 @@ struct va_space *va_create()
 int va_map(struct va_space *vas, ptr_t start, size_t size, int flags, ptr_t *addrp)
 {
 	int rc;
-	
+	int pflag = 0;
+	struct page *p;
+	ptr_t virt;
+
 	if (!size || (size % PAGE_SIZE)) {
 		DEBUG(DL_DBG, ("size (%x) invalid.\n", size));
 		rc = -1;
 		goto out;
 	}
 	
-	if (flags & MAP_FIXED_F) {
+	if (flags & VA_MAP_FIXED) {
 		if (start % PAGE_SIZE) {
 			DEBUG(DL_DBG, ("start(%p) not aligned.\n", start));
 			rc = -1;
@@ -46,8 +50,22 @@ int va_map(struct va_space *vas, ptr_t start, size_t size, int flags, ptr_t *add
 
 	DEBUG(DL_DBG, ("vas(%p) start(%p), size(%x).\n", vas, start, size));
 	
-	rc = mmu_map(vas->mmu, start, size, flags);
+	for (virt = start; virt < (start + size); virt += PAGE_SIZE) {
+		p = mmu_get_page(vas->mmu, virt, TRUE, 0);
+		if (!p) {
+			DEBUG(DL_DBG, ("mmu_get_page failed, addr(%p).\n", virt));
+			rc = -1;
+			goto out;
+		}
+		
+		DEBUG(DL_DBG, ("mmu(%p) page(%p) frame(%x).\n", vas->mmu, p, p->frame));
+		page_alloc(p, pflag);
+		p->user = IS_KERNEL_CTX(vas->mmu) ? FALSE : TRUE;
+		p->rw = FLAG_ON(flags, VA_MAP_WRITE) ? TRUE : FALSE;
+	}
 
+	rc = 0;
+	
  out:
 	return rc;
 }
@@ -55,13 +73,26 @@ int va_map(struct va_space *vas, ptr_t start, size_t size, int flags, ptr_t *add
 int va_unmap(struct va_space *vas, ptr_t start, size_t size)
 {
 	int rc;
-	
+	ptr_t virt;
+	struct page *p;
+
 	if (!size || (start % PAGE_SIZE) || (size % PAGE_SIZE)) {
 		rc = -1;
 		goto out;
 	}
 
-	rc = mmu_unmap(vas->mmu, start, size);
+	for (virt = start; virt < start + size; virt += PAGE_SIZE) {
+		p = mmu_get_page(vas->mmu, virt, FALSE, 0);
+		if (!p) {
+			rc = -1;
+			goto out;
+		}
+		
+		DEBUG(DL_DBG, ("mmu(%p) page(%p) frame(%x).\n", vas->mmu, p, p->frame));
+		page_free(p);
+	}
+
+	rc = 0;
 
  out:
 	return rc;

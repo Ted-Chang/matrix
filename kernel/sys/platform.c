@@ -24,7 +24,6 @@ static struct acpi_rsdp *acpi_find_rsdp(phys_addr_t start, size_t size)
 	/* Map the pages to the specified address, we don't modify the content,
 	 * so it's OK to share content.
 	 */
-	mflags = (MAP_READ_F | MAP_FIXED_F);
 	rsdp = phys_map(start, size, mflags);
 	
 	/* Search through the range on 16-byte boundaries */
@@ -75,11 +74,11 @@ void acpi_init()
 	struct acpi_rsdp *rsdp;
 
 	/* Get the base address of the Extended BIOS Data Area (EBDA) */
-	mapping = phys_map(0x40e, sizeof(uint16_t), 0);
-	ebda = (*mapping) << 4;
-	phys_unmap(mapping, sizeof(uint16_t), TRUE);
+	/* mapping = phys_map(0x40e, sizeof(uint16_t), 0); */
+	/* ebda = (*mapping) << 4; */
+	/* phys_unmap(mapping, sizeof(uint16_t), TRUE); */
 	
-	kprintf("acpi: Extended BIOS Data Area at %p\n", ebda);
+	/* kprintf("acpi: Extended BIOS Data Area at %p\n", ebda); */
 
 	/* Search for the RSDP */
 	/* if (!(rsdp = acpi_find_rsdp(ebda, 0x400))) { */

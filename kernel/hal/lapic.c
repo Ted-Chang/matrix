@@ -92,10 +92,10 @@ void init_lapic()
 		 * register interrupt handlers.
 		 */
 		_lapic_base = base;
-		_lapic_mapping = phys_map(base, PAGE_SIZE, 0);
+		_lapic_mapping = phys_map((phys_addr_t)base, PAGE_SIZE, 0);
 		kprintf("lapic: physical location 0x%llx mapped to %p\n",
 			base, _lapic_mapping);
-
+		
 		/* Register interrupt handlers */
 		register_irq_handler(LAPIC_VECT_SPURIOUS, &_lapic_hook[0],
 				     lapic_spurious_handler);

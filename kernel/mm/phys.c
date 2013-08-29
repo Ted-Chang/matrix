@@ -13,9 +13,9 @@
 
 void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 {
-	int rc;
+	ptr_t ptr;
 	phys_addr_t base;
-	void *ptr = NULL;
+	void *ret = NULL;
 
 	if (!size) {
 		/* What do you want to do??? */
@@ -27,28 +27,16 @@ void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 	 * information please refer to the memory layout of our system.
 	 */
 	if (PMAP_CONTAINS(addr, size)) {
-		ptr = (void *)addr;
+		ret = (void *)addr;
 		goto out;
 	}
 
-	/* Not in range of physical map area. Must allocate memory pages and
-	 * map there.
-	 */
-	base = ROUND_DOWN(addr, PAGE_SIZE);
+	DEBUG(DL_DBG, ("addr(%x), size(%x).\n", addr, size));
 
-	/* Map pages from kernel MMU context */
-	rc = mmu_map(&_kernel_mmu_ctx, base, size, mmflag);
-	if (rc != 0) {
-		DEBUG(DL_ERR, ("mmu_map failed, base(%llx), size(%x)\n",
-			       base, size));
-		goto out;
-	}
-
-	ptr = (void *)addr;
-
+	ASSERT(0);
  out:
 
-	return ptr;
+	return ret;
 }
 
 void phys_unmap(void *addr, size_t size, boolean_t shared)

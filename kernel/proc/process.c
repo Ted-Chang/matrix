@@ -60,19 +60,27 @@ static pid_t id_alloc()
 }
 
 /* Move stack to a new position */
-static void move_stack(uint32_t new_stack, uint32_t size)
+static void relocate_stack(uint32_t new_stack, uint32_t size)
 {
-	int rc;
 	uint32_t i, pd_addr;
 	uint32_t old_esp, old_ebp;
 	uint32_t new_esp, new_ebp;
 	uint32_t offset;
+	struct page *p;
 	ptr_t start;
+	ptr_t virt;
+	ptr_t end;
 
+	/* Map some pages to the specified virtual address */
 	start = new_stack - size;
-	rc = mmu_map(&_kernel_mmu_ctx, start, size + PAGE_SIZE,
-		     MAP_READ_F|MAP_WRITE_F|MAP_FIXED_F);
-	ASSERT(rc == 0);
+	end = start + size + PAGE_SIZE;
+	for (virt = start; virt < end; virt += PAGE_SIZE) {
+		p = mmu_get_page(&_kernel_mmu_ctx, virt, TRUE, 0);
+		ASSERT(p != NULL);
+		page_alloc(p, 0);
+		p->user = FALSE;
+		p->rw = TRUE;
+	}
 	
 	/* Flush the TLB by reading and writing the page directory address again */
 	asm volatile("mov %%cr3, %0" : "=r"(pd_addr));
@@ -580,7 +588,7 @@ void init_process()
 	/* Relocate the stack so we know where it is, the stack size is 8KB. Note
 	 * that this was done in the context of kernel mmu.
 	 */
-	move_stack(0xE0000000, KSTACK_SIZE);
+	relocate_stack(0xE0000000, KSTACK_SIZE);
 
 	/* Initialize the process slab cache */
 	slab_cache_init(&_proc_cache, "proc-cache", sizeof(struct process),

@@ -15,9 +15,6 @@
 #include "proc/process.h"
 #include "proc/thread.h"
 
-/* Determine if an MMU context is the kernel context */
-#define IS_KERNEL_CTX(ctx)	(ctx == &_kernel_mmu_ctx)
-
 /*
  * Page Table
  * Each page table has 1024 page table entries, actually each
@@ -131,77 +128,21 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, ptr_t virt, boolean_t make, int m
 	return page;
 }
 
-int mmu_map(struct mmu_ctx *ctx, ptr_t start, size_t size, int flags)
+int mmu_map(struct mmu_ctx *ctx, ptr_t virt, phys_addr_t phys, int flags)
 {
 	int rc;
-	int pflag = 0;
-	struct page *p;
-	ptr_t virt;
 
-	if (!size || (size % PAGE_SIZE)) {
-		DEBUG(DL_DBG, ("size (%x) invalid.\n", size));
-		rc = -1;
-		goto out;
-	}
-	
-	if (flags & MAP_FIXED_F) {
-		if (start % PAGE_SIZE) {
-			DEBUG(DL_DBG, ("start(%p) not aligned.\n", start));
-			rc = -1;
-			goto out;
-		}
-	} else {
-		/* We didn't support this yet. */
-		DEBUG(DL_DBG, ("non-fixed map not support yet.\n"));
-		rc = -1;
-		goto out;
-	}
+	rc = -1;
 
-	DEBUG(DL_DBG, ("ctx(%p) start(%p), size(%x).\n", ctx, start, size));
-
-	for (virt = start; virt < (start + size); virt += PAGE_SIZE) {
-		p = mmu_get_page(ctx, virt, TRUE, 0);
-		if (!p) {
-			DEBUG(DL_DBG, ("mmu_get_page failed, addr(%p).\n", virt));
-			rc = -1;
-			goto out;
-		}
-		DEBUG(DL_DBG, ("ctx(%p) page(%p) frame(%x).\n", ctx, p, p->frame));
-		page_alloc(p, pflag);
-		p->user = IS_KERNEL_CTX(ctx) ? FALSE : TRUE;
-		p->rw = FLAG_ON(flags, MAP_WRITE_F) ? TRUE : FALSE;
-	}
-	
-	rc = 0;
-
- out:
 	return rc;
 }
 
-int mmu_unmap(struct mmu_ctx *ctx, ptr_t start, size_t size)
+int mmu_unmap(struct mmu_ctx *ctx, ptr_t virt, boolean_t shared, phys_addr_t *physp)
 {
 	int rc;
-	ptr_t virt;
-	struct page *p;
 
-	if (!size || (start % PAGE_SIZE) || (size % PAGE_SIZE)) {
-		rc = -1;
-		goto out;
-	}
-
-	for (virt = start; virt < start + size; virt += PAGE_SIZE) {
-		p = mmu_get_page(ctx, virt, FALSE, 0);
-		if (!p) {
-			rc = -1;
-			goto out;
-		}
-		DEBUG(DL_DBG, ("ctx(%p) page(%p) frame(%x).\n", ctx, p, p->frame));
-		page_free(p);
-	}
-
-	rc = 0;
-
- out:
+	rc = -1;
+	
 	return rc;
 }
 
@@ -251,11 +192,6 @@ void page_fault(struct registers *regs)
 		reserved ? "reserved " : "",
 		faulting_addr,
 		regs->eip);
-
-	/* Print current thread */
-	//kprintf("Faulting process(%s:%d) pdir(%p) thread(%s:%d)\n",
-	//	CURR_PROC->name, CURR_PROC->id, CURR_PROC->mmu_ctx->pdir,
-	//	CURR_THREAD->name, CURR_THREAD->id);
 
 	PANIC("Page fault");
 }
