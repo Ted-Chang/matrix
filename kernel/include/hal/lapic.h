@@ -2,19 +2,20 @@
 #define __LAPIC_H__
 
 /* Local APIC register offsets */
-#define LAPIC_REG_APIC_ID		8	// Local APIC ID
-#define LAPIC_REG_APIC_VERSION		12	// Local APIC Version
-#define LAPIC_REG_TPR			32	// Task Priority Register (TPR)
-#define LAPIC_REG_APR			36	// Arbitration Priority Register (APR)
-#define LAPIC_REG_PPR			40	// Processor Priority Register (PPR)
-#define LAPIC_REG_EOI			44	// EOI
-#define LAPIC_REG_LOGICAL_DEST		52	// Logical Destination
-#define LAPIC_REG_DEST_FORMAT		56	// Destination Format
-#define LAPIC_REG_SPURIOUS		60	// Spurious Interrupt Vector
-#define LAPIC_REG_LVT_TIMER		200	// LVT Timer
-#define LAPIC_REG_TIMER_INITIAL		224	// Timer Initial Count
-#define LAPIC_REG_TIMER_CURRENT		228	// Timer Current Count
-#define LAPIC_REG_TIMER_DIVIDER		248	// Timer Divide Configuration
+#define LAPIC_REG_APIC_ID		0x20	// Local APIC ID
+#define LAPIC_REG_APIC_VERSION		0x30	// Local APIC Version
+#define LAPIC_REG_TPR			0x80	// Task Priority Register (TPR)
+#define LAPIC_REG_APR			0x90	// Arbitration Priority Register (APR)
+#define LAPIC_REG_PPR			0xA0	// Processor Priority Register (PPR)
+#define LAPIC_REG_EOI			0xB0	// EOI
+#define LAPIC_REG_LOGICAL_DEST		0xD0	// Logical Destination
+#define LAPIC_REG_DEST_FORMAT		0xE0	// Destination Format
+#define LAPIC_REG_SPURIOUS		0xF0	// Spurious Interrupt Vector
+#define LAPIC_REG_ERROR			0x280	// Error Status Register (ESR)
+#define LAPIC_REG_LVT_TIMER		0x320	// LVT Timer
+#define LAPIC_REG_TIMER_INITIAL		0x380	// Timer Initial Count
+#define LAPIC_REG_TIMER_CURRENT		0x390	// Timer Current Count
+#define LAPIC_REG_TIMER_DIVIDER		0x3E0	// Timer Divide Configuration
 
 /* Local APIC Divide Configuration Register values */
 #define LAPIC_TIMER_DIV1		0xB	// Divide by 1

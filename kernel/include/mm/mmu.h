@@ -33,6 +33,11 @@ extern struct mmu_ctx _kernel_mmu_ctx;
 /* Determine if an MMU context is the kernel context */
 #define IS_KERNEL_CTX(ctx)	(ctx == &_kernel_mmu_ctx)
 
+/* Flags for MMU map */
+#define MMU_MAP_READ	(1<<0)
+#define MMU_MAP_WRITE	(1<<1)
+#define MMU_MAP_EXEC	(1<<2)
+
 extern void page_fault(struct registers *regs);
 extern struct mmu_ctx *mmu_create_ctx();
 extern struct page *mmu_get_page(struct mmu_ctx *ctx, ptr_t addr, boolean_t make, int mmflag);

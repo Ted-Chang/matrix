@@ -44,6 +44,7 @@ void *kmem_alloc_int(size_t size, boolean_t align, phys_addr_t *phys)
 	if (_kpool) {	// The pool manager was initialized
 		void *addr;
 
+		/* Allocate virtual address from the kernel memory pool */
 		addr = alloc(_kpool, size, (uint8_t)align);
 		if (phys) {
 			struct page *page;
@@ -106,6 +107,57 @@ void *kmem_alloc_p(size_t size, phys_addr_t *phys, int mmflag)
 	return ret;
 }
 
+void *kmem_map(phys_addr_t base, size_t size, int mmflag)
+{
+	int rc;
+	size_t i;
+	ptr_t virt;
+
+	rc = 0;
+	virt = base;
+	
+	for (i = 0; i < size; i += PAGE_SIZE) {
+		rc = mmu_map(&_kernel_mmu_ctx, virt + i, base + i,
+			     MMU_MAP_WRITE | MMU_MAP_EXEC);
+		if (rc != 0) {
+			virt = (ptr_t)NULL;
+			break;
+		}
+	}
+
+	if (rc != 0) {
+		/* Rollback the changes */
+		for (; i != 0; i -= PAGE_SIZE) {
+			mmu_unmap(&_kernel_mmu_ctx, virt + (i - PAGE_SIZE),
+				  TRUE, NULL);
+		}
+	}
+
+	DEBUG(DL_DBG, ("map range[%p, %p)\n", virt, virt + size));
+
+	return (void *)virt;
+}
+
+void kmem_unmap(void *addr, size_t size, boolean_t shared)
+{
+	int rc;
+	size_t i;
+	ptr_t virt;
+	phys_addr_t phys;
+
+	rc = 0;
+	virt = (ptr_t)addr;
+	
+	for (i = 0; i < size; i += PAGE_SIZE) {
+		rc = mmu_unmap(&_kernel_mmu_ctx, virt + i, shared, &phys);
+		if (rc != 0) {
+			PANIC("Unmapping unmapped page");
+		}
+	}
+
+	DEBUG(DL_DBG, ("unmap range[%p, %p)\n", virt, virt + size));
+}
+
 static void expand(struct kmem_pool *pool, size_t new_size)
 {
 	struct page *p;
@@ -166,6 +218,7 @@ static uint32_t contract(struct kmem_pool *pool, size_t new_size)
 	}
 
 	pool->end_addr = pool->start_addr + new_size;
+	
 	return new_size;
 }
 

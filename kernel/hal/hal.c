@@ -208,6 +208,10 @@ void init_idt()
 	idt_set_gate(46, (uint32_t)irq14, 0x08, 0x8E);
 	idt_set_gate(47, (uint32_t)irq15, 0x08, 0x8E);
 	
+	idt_set_gate(240, (uint32_t)irq240, 0x08, 0x8E);
+	idt_set_gate(241, (uint32_t)irq241, 0x08, 0x8E);
+	idt_set_gate(242, (uint32_t)irq242, 0x08, 0x8E);
+
 	/* The following interrupt number is for system call */
 	idt_set_gate(128, (uint32_t)isr128, 0x08, 0x8E);
 

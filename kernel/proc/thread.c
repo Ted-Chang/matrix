@@ -74,9 +74,11 @@ void arch_thread_switch(struct thread *curr, struct thread *prev)
 	/* Switch the kernel stack in TSS to the process's kernel stack */
 	set_kernel_stack(curr->kstack);
 
+#ifdef _DEBUG_THREAD
 	DEBUG(DL_DBG, ("prev(%s:%x:%x:%x), curr(%s:%x:%x:%x)\n",
 		       prev->name, prev->arch.eip, prev->arch.esp, prev->arch.ebp,
 		       curr->name, curr->arch.eip, curr->arch.esp, curr->arch.ebp));
+#endif	/* _DEBUG_THREAD */
 
 	/* Here we:
 	 * [1] Disable interrupts so we don't get bothered.

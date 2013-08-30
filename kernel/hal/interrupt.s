@@ -84,6 +84,9 @@ IRQ	12, 44
 IRQ	13, 45
 IRQ	14, 46
 IRQ	15, 47
+IRQ     240, 48
+IRQ	241, 49
+IRQ	242, 50
  
 ; In isr.c
 extern isr_handler

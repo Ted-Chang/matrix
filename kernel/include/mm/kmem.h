@@ -14,6 +14,8 @@
 extern void *kmem_alloc(size_t size, int mmflag);
 extern void *kmem_alloc_p(size_t size, uint32_t *phys, int mmflag);
 extern void kmem_free(void *p);
+extern void *kmem_map(phys_addr_t base, size_t size, int mmflag);
+extern void kmem_unmap(void *addr, size_t size, boolean_t shared);
 extern void init_kmem();
 
 #endif	/* __KMEM_H__ */

@@ -8,7 +8,7 @@
 #include "mm/phys.h"
 
 /* Local APIC mapping. NULL if LAPIC is not present */
-static volatile uint32_t *_lapic_mapping = NULL;
+static volatile uint8_t *_lapic_mapping = NULL;
 
 /* Local APIC base address */
 static phys_addr_t _lapic_base = 0;
@@ -17,12 +17,12 @@ static struct irq_hook _lapic_hook[3];
 
 static INLINE uint32_t lapic_read(uint32_t reg)
 {
-	return _lapic_mapping[reg];
+	return *((uint32_t *)(_lapic_mapping + reg));
 }
 
 static INLINE void lapic_write(uint32_t reg, uint32_t val)
 {
-	_lapic_mapping[reg] = val;
+	*((uint32_t *)(_lapic_mapping + reg)) = val;
 }
 
 static INLINE void lapic_eoi()
@@ -79,6 +79,9 @@ void init_lapic()
 		DEBUG(DL_INF, ("lapic: base -> 0x%llx\n", base));
 	}
 
+	/* Hardware enable the local APIC if it wasn't enabled */
+	x86_write_msr(X86_MSR_APIC_BASE, base);
+
 	base &= 0xFFFFF000;
 	if (_lapic_mapping) {
 		/* This is a secondary core. Ensure that the base address
@@ -95,7 +98,7 @@ void init_lapic()
 		_lapic_mapping = phys_map((phys_addr_t)base, PAGE_SIZE, 0);
 		kprintf("lapic: physical location 0x%llx mapped to %p\n",
 			base, _lapic_mapping);
-		
+
 		/* Register interrupt handlers */
 		register_irq_handler(LAPIC_VECT_SPURIOUS, &_lapic_hook[0],
 				     lapic_spurious_handler);
@@ -108,7 +111,8 @@ void init_lapic()
 	/* Enable the local APIC (bit 8) and set spurious interrupt handler
 	 * in the Spurious Interrupt Vector Register.
 	 */
-	lapic_write(LAPIC_REG_SPURIOUS, LAPIC_VECT_SPURIOUS | (1<<8));
+	lapic_write(LAPIC_REG_SPURIOUS, LAPIC_VECT_SPURIOUS | (0x100));
+	/* Setup divider to 8 */
 	lapic_write(LAPIC_REG_TIMER_DIVIDER, LAPIC_TIMER_DIV8);
 
 	/* Sanity check */
@@ -124,6 +128,13 @@ void init_lapic()
 	lapic_write(LAPIC_REG_TPR, lapic_read(LAPIC_REG_TPR) & 0xFFFFFF00);
 
 	/* Enable the timer: interrupt vector, no extra bits = Unmasked/One-shot */
-	lapic_write(LAPIC_REG_TIMER_INITIAL, 0);
+	lapic_write(LAPIC_REG_TIMER_INITIAL, 8);
+	
+	/* Map APIC timer to an interrupt */
 	lapic_write(LAPIC_REG_LVT_TIMER, LAPIC_VECT_TIMER);
+	
+	/* Setting divide value register again not needed by the manuals although
+	 * I have found buggy hardware that require it.
+	 */
+	lapic_write(LAPIC_REG_TIMER_DIVIDER, LAPIC_TIMER_DIV8);
 }

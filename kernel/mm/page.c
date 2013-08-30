@@ -25,11 +25,7 @@ static void set_frame(uint32_t frame_addr)
 	uint32_t idx = INDEX_FROM_BIT(frame);
 	uint32_t off = OFFSET_FROM_BIT(frame);
 
-	spinlock_acquire(&_pages_lock);
-	
 	_pages[idx] |= (0x1 << off);
-	
-	spinlock_release(&_pages_lock);
 }
 
 static void clear_frame(uint32_t frame_addr)
@@ -38,11 +34,7 @@ static void clear_frame(uint32_t frame_addr)
 	uint32_t idx = INDEX_FROM_BIT(frame);
 	uint32_t off = OFFSET_FROM_BIT(frame);
 
-	spinlock_acquire(&_pages_lock);
-
 	_pages[idx] &= ~(0x1 << off);
-	
-	spinlock_release(&_pages_lock);
 }
 
 static uint32_t first_frame()
@@ -51,8 +43,6 @@ static uint32_t first_frame()
 
 	frame = 0;
 
-	spinlock_acquire(&_pages_lock);
-	
 	for (i = 0; i < INDEX_FROM_BIT(_nr_total_pages); i++) {
 		if (_pages[i] != 0xFFFFFFFF) {
 			for (j = 0; j < 32; j++) {
@@ -66,8 +56,6 @@ static uint32_t first_frame()
 	}
 
  out:
-	spinlock_release(&_pages_lock);
-	
 	return frame;
 }
 
@@ -80,19 +68,17 @@ void page_alloc(struct page *p, int flags)
 	if (p->frame != 0) {
 		DEBUG(DL_WRN, ("page(%p), frame(%x), flags(%d)\n",
 			       p, p->frame, flags));
-		if (!(flags & PAGE_SHARE_F)) {
-			PANIC("alloc page in use");
-		}
+		PANIC("alloc page in use");
 	} else {
+		spinlock_acquire(&_pages_lock);
 		/* Get the first free frame from our global frame set */
-
 		idx = first_frame();
 		if (idx == (uint32_t)(-1)) {
 			PANIC("No free frames!\n");
 		}
-
-		/* Mark the frame as being used */
-		set_frame(idx * 0x1000);
+		/* Mark the frame address as being used */
+		set_frame(idx * PAGE_SIZE);
+		spinlock_release(&_pages_lock);
 
 		p->present = 1;
 		p->frame = idx;
@@ -117,7 +103,10 @@ void page_free(struct page *p)
 		DEBUG(DL_WRN, ("free page(%p) not allocated.\n", p));
 		PANIC("free page not allocated");
 	} else {
+		spinlock_acquire(&_pages_lock);
 		clear_frame(frame);
+		spinlock_release(&_pages_lock);
+		
 		p->frame = 0;
 		p->present = 0;
 	}

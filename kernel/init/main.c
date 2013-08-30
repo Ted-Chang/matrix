@@ -89,10 +89,6 @@ int kmain(u_long addr, uint32_t initial_stack)
 	irq_enable();
 	kprintf("Interrupt enabled.\n");
 
-	/* Initialize our timer */
-	init_clock();
-	kprintf("System PIT initialization... done.\n");
-
 	/* Initialize our memory manager */
 	init_page();
 	kprintf("Page initialization... done.\n");
@@ -119,6 +115,10 @@ int kmain(u_long addr, uint32_t initial_stack)
 	/* Properly initialize the CORE and detect other COREs */
 	init_core();
 	kprintf("CORE initialization... done.\n");
+
+	/* Initialize our timer */
+	init_clock();
+	kprintf("System PIT initialization... done.\n");
 
 	/* Initialize the platform */
 	init_platform();

@@ -131,18 +131,72 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, ptr_t virt, boolean_t make, int m
 int mmu_map(struct mmu_ctx *ctx, ptr_t virt, phys_addr_t phys, int flags)
 {
 	int rc;
+	struct page *p;
 
-	rc = -1;
+	ASSERT((phys % PAGE_SIZE) == 0);
+	
+	if (IS_KERNEL_CTX(ctx)) {
+		ASSERT(virt >= KERNEL_KMEM_START);
+	} else {
+		ASSERT(virt < KERNEL_KMEM_SIZE);
+	}
 
+	/* Get a page from the specified MMU context */
+	p = mmu_get_page(ctx, virt, TRUE, flags);
+	if (!p) {
+		rc = -1;
+		goto out;
+	}
+
+	/* The page should not be present */
+	if (p->present) {
+		PANIC("Mapping a page which already allocated");
+	}
+
+	/* Set the page table entry */
+	p->frame = phys;
+	p->present = 1;
+	p->user = IS_KERNEL_CTX(ctx) ? FALSE : TRUE;
+	p->rw = FLAG_ON(flags, MMU_MAP_WRITE) ? TRUE : FALSE;
+
+ out:
 	return rc;
 }
 
 int mmu_unmap(struct mmu_ctx *ctx, ptr_t virt, boolean_t shared, phys_addr_t *physp)
 {
 	int rc;
+	struct page *p;
+	phys_addr_t entry;
 
-	rc = -1;
-	
+	if (IS_KERNEL_CTX(ctx)) {
+		ASSERT(virt >= KERNEL_KMEM_START);
+	} else {
+		ASSERT(virt < KERNEL_KMEM_START);
+	}
+
+	/* Get the page which the specified virtual address was mapping */
+	p = mmu_get_page(ctx, virt, FALSE, 0);
+	if (!p) {
+		rc = -1;
+		goto out;
+	}
+
+	/* The mapping does not exist, just return */
+	if (!p->present) {
+		rc = -1;
+		goto out;
+	}
+
+	entry = p->frame;
+	p->frame = 0;
+	p->present = 0;
+
+	if (physp) {
+		*physp = entry;
+	}
+
+ out:
 	return rc;
 }
 
@@ -266,7 +320,8 @@ void mmu_destroy_ctx(struct mmu_ctx *ctx)
 
 void init_mmu()
 {
-	phys_addr_t i, pdbr;
+	phys_addr_t i;
+	phys_addr_t pdbr;
 	struct page *page;
 
 	/* Initialize the kernel MMU context structure */
@@ -274,12 +329,13 @@ void init_mmu()
 	_kernel_mmu_ctx.pdbr = pdbr;
 	memset(_kernel_mmu_ctx.pdir, 0, sizeof(struct pdir));
 	
-	DEBUG(DL_DBG, ("kernel mmu ctx(%p), pdbr(%p), core(%p)\n",
+	DEBUG(DL_DBG, ("kernel MMU context(%p), pdbr(%p), core(%p)\n",
 		       &_kernel_mmu_ctx, _kernel_mmu_ctx.pdbr, CURR_CORE));
 
 	/* Allocate some pages in the kernel pool area. Here we call mmu_get_page
-	 * but not page_alloc. this cause the page tables to be created when necessary.
-	 * We can't allocate page yet because they need to be identity mapped first.
+	 * but we do not call page_alloc. this cause the page tables to be created
+	 * when necessary. We cannot allocate pages yet because they need to be
+	 * identity mapped first.
 	 */
 	for (i = KERNEL_KMEM_START;
 	     i < (KERNEL_KMEM_START + KERNEL_KMEM_SIZE);
@@ -294,7 +350,7 @@ void init_mmu()
 		mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
 	}
 
-	/* Do identity map (physical addr == virtual addr) for the memory we used. */
+	/* Do identity map (physical addr == virtual addr) for the memory we have used. */
 	for (i = 0; i < (_placement_addr + PAGE_SIZE); i += PAGE_SIZE) {
 		/* Kernel code is readable but not writable from user-mode */
 		page = mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
@@ -307,7 +363,8 @@ void init_mmu()
 	for (i = KERNEL_KMEM_START;
 	     i < (KERNEL_KMEM_START + KERNEL_KMEM_SIZE);
 	     i += PAGE_SIZE) {
-		page = mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
+		page = mmu_get_page(&_kernel_mmu_ctx, i, FALSE, 0);
+		ASSERT(page != NULL);
 		page_alloc(page, 0);
 		page->user = FALSE;
 		page->rw = FALSE;
@@ -317,10 +374,12 @@ void init_mmu()
 	for (i = KERNEL_PMAP_START;
 	     (i < (KERNEL_PMAP_START + KERNEL_PMAP_SIZE)) && (i != 0);
 	     i += PAGE_SIZE) {
-		page = mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
-		page_alloc(page, 0);
+		page = mmu_get_page(&_kernel_mmu_ctx, i, FALSE, 0);
+		ASSERT(page != NULL);
+		page->present = TRUE;
+		page->frame = i / PAGE_SIZE;
 		page->user = FALSE;
-		page->rw = FALSE;
+		page->rw = TRUE;
 	}
 
 	/* Before we enable paging, we must register our page fault handler */
