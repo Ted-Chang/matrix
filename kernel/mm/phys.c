@@ -5,7 +5,7 @@
 #include "mm/mm.h"
 #include "mm/mlayout.h"
 #include "mm/page.h"
-#include "mm/mmu.h"
+#include "mm/kmem.h"
 
 #define PMAP_CONTAINS(addr, size)					\
 	((addr >= KERNEL_PMAP_START) &&					\
@@ -13,8 +13,8 @@
 
 void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 {
-	ptr_t ptr;
 	phys_addr_t base;
+	phys_addr_t end;
 	void *ret = NULL;
 
 	if (!size) {
@@ -31,9 +31,15 @@ void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 		goto out;
 	}
 
-	DEBUG(DL_DBG, ("addr(%x), size(%x).\n", addr, size));
+	base = ROUND_DOWN(addr, PAGE_SIZE);
+	end = ROUND_UP(addr + size, PAGE_SIZE);
+	ASSERT(end > base);
+	
+	/* Map pages from kernel memory */
+	ret = kmem_map(base, end - base, mmflag);
+	
+	DEBUG(DL_DBG, ("addr(%x), size(%x), ret(%p).\n", addr, size, ret));
 
-	ASSERT(0);
  out:
 
 	return ret;
@@ -41,11 +47,17 @@ void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 
 void phys_unmap(void *addr, size_t size, boolean_t shared)
 {
+	ptr_t base;
+	ptr_t end;
+	
 	/* If the memory range lies within the physical map area, we don't
 	 * need to do anything. Otherwise, unmap and free the kernel memory.
 	 */
 	if (((uint32_t)addr < KERNEL_PMAP_START) ||
 	    ((uint32_t)addr > (KERNEL_PMAP_START + KERNEL_PMAP_SIZE))) {
-		// TODO: Implement this.
+		base = ROUND_DOWN((ptr_t)addr, PAGE_SIZE);
+		end = ROUND_UP((ptr_t)addr + size, PAGE_SIZE);
+		ASSERT(end > base);
+		kmem_unmap(addr, end - base, shared);
 	}
 }

@@ -248,7 +248,7 @@ static void arch_preinit_core_percore(struct core *c)
 	/* Get the CORE frequency */
 	if (c == &_boot_core) {
 		c->arch.core_freq = calculate_freq(calculate_core_freq);
-		kprintf("core:%d core freq(%lld)", c->id, c->arch.core_freq);
+		kprintf("core:%d core freq(%lld)\n", c->id, c->arch.core_freq);
 	} else {
 		c->arch.core_freq = _boot_core.arch.core_freq;
 	}

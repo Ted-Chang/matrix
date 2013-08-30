@@ -135,12 +135,6 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t virt, phys_addr_t phys, int flags)
 
 	ASSERT((phys % PAGE_SIZE) == 0);
 	
-	if (IS_KERNEL_CTX(ctx)) {
-		ASSERT(virt >= KERNEL_KMEM_START);
-	} else {
-		ASSERT(virt < KERNEL_KMEM_SIZE);
-	}
-
 	/* Get a page from the specified MMU context */
 	p = mmu_get_page(ctx, virt, TRUE, flags);
 	if (!p) {
@@ -168,12 +162,6 @@ int mmu_unmap(struct mmu_ctx *ctx, ptr_t virt, boolean_t shared, phys_addr_t *ph
 	int rc;
 	struct page *p;
 	phys_addr_t entry;
-
-	if (IS_KERNEL_CTX(ctx)) {
-		ASSERT(virt >= KERNEL_KMEM_START);
-	} else {
-		ASSERT(virt < KERNEL_KMEM_START);
-	}
 
 	/* Get the page which the specified virtual address was mapping */
 	p = mmu_get_page(ctx, virt, FALSE, 0);

@@ -114,6 +114,7 @@ void *kmem_map(phys_addr_t base, size_t size, int mmflag)
 	ptr_t virt;
 
 	rc = 0;
+	/* FixMe: For now we just do the identical map (virt = base)*/
 	virt = base;
 	
 	for (i = 0; i < size; i += PAGE_SIZE) {
