@@ -67,6 +67,10 @@ ISR_NOERRCODE 29
 ISR_NOERRCODE 30
 ISR_NOERRCODE 31
 ISR_NOERRCODE 128	; Used by system call
+	
+ISR_NOERRCODE 240	; The following 3 used by APIC
+ISR_NOERRCODE 241
+ISR_NOERRCODE 242
 
 IRQ	0, 32
 IRQ 	1, 33
@@ -84,9 +88,6 @@ IRQ	12, 44
 IRQ	13, 45
 IRQ	14, 46
 IRQ	15, 47
-IRQ     240, 48
-IRQ	241, 49
-IRQ	242, 50
  
 ; In isr.c
 extern isr_handler
@@ -98,7 +99,6 @@ isr_common_stub:
 	pusha                   ; Pushes edi,esi,ebp,esp,ebx,edx,ecx,eax
 	push ds
 	push es
-	push fs
 
 	mov ax, 0x10  		; load the kernel data segment descriptor
 	mov ds, ax
@@ -107,7 +107,6 @@ isr_common_stub:
 
 	call isr_handler
 
-	pop fs
 	pop es
 	pop ds
 	popa                    ; Pops edi,esi,ebp...
@@ -125,7 +124,6 @@ irq_common_stub:
 	pusha
 	push ds
 	push es
-	push fs
 
 	mov ax, 0x10		; Load the kernel data segment
 	mov ds, ax
@@ -134,7 +132,6 @@ irq_common_stub:
 
 	call irq_handler
 
-	pop fs
 	pop es
 	pop ds
 	popa

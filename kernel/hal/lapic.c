@@ -112,6 +112,7 @@ void init_lapic()
 	 * in the Spurious Interrupt Vector Register.
 	 */
 	lapic_write(LAPIC_REG_SPURIOUS, LAPIC_VECT_SPURIOUS | (0x100));
+	
 	/* Setup divider to 8 */
 	lapic_write(LAPIC_REG_TIMER_DIVIDER, LAPIC_TIMER_DIV8);
 
@@ -127,14 +128,11 @@ void init_lapic()
 	/* Accept all interrupts */
 	lapic_write(LAPIC_REG_TPR, lapic_read(LAPIC_REG_TPR) & 0xFFFFFF00);
 
-	/* Enable the timer: interrupt vector, no extra bits = Unmasked/One-shot */
-	lapic_write(LAPIC_REG_TIMER_INITIAL, 8);
-	
-	/* Map APIC timer to an interrupt */
-	lapic_write(LAPIC_REG_LVT_TIMER, LAPIC_VECT_TIMER);
-	
-	/* Setting divide value register again not needed by the manuals although
-	 * I have found buggy hardware that require it.
+	/* Set the timer initial count to non-zero, so we can see a log that
+	 * our timer ISR get called
 	 */
-	lapic_write(LAPIC_REG_TIMER_DIVIDER, LAPIC_TIMER_DIV8);
+	lapic_write(LAPIC_REG_TIMER_INITIAL, 16);
+	
+	/* Map APIC timer to an interrupt vector */
+	lapic_write(LAPIC_REG_LVT_TIMER, LAPIC_VECT_TIMER);
 }

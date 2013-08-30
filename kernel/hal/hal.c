@@ -207,13 +207,14 @@ void init_idt()
 	idt_set_gate(45, (uint32_t)irq13, 0x08, 0x8E);
 	idt_set_gate(46, (uint32_t)irq14, 0x08, 0x8E);
 	idt_set_gate(47, (uint32_t)irq15, 0x08, 0x8E);
-	
-	idt_set_gate(240, (uint32_t)irq240, 0x08, 0x8E);
-	idt_set_gate(241, (uint32_t)irq241, 0x08, 0x8E);
-	idt_set_gate(242, (uint32_t)irq242, 0x08, 0x8E);
 
 	/* The following interrupt number is for system call */
 	idt_set_gate(128, (uint32_t)isr128, 0x08, 0x8E);
+
+	/* ISR for APIC interrupts */
+	idt_set_gate(240, (uint32_t)isr240, 0x08, 0x8E);
+	idt_set_gate(241, (uint32_t)isr241, 0x08, 0x8E);
+	idt_set_gate(242, (uint32_t)isr242, 0x08, 0x8E);
 
 	idt_flush((uint32_t)&_idt_ptr);
 
