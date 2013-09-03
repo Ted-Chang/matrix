@@ -7,7 +7,6 @@
 #include "list.h"
 #include "debug.h"
 #include "hal/hal.h"
-#include "mm/va.h"
 
 /* Model Specific Register */
 #define X86_MSR_TSC		0x10		// Time Stamp Counter (TSC)
@@ -166,11 +165,13 @@ struct arch_core {
 	void *double_fault_stack;	// Pointer to the stack for double faults
 
 	/* Time conversion factors */
+	uint64_t lapic_tmr_cv;		// LAPIC timer conversion factor
 	uint64_t cycles_per_us;		// CORE cycles per us
 	int64_t sys_time_offset;	// Value to subtract from TSC value for sys_time()
 	
 	/* CORE information */
 	uint64_t core_freq;		// CORE frequency in Hz
+	uint64_t lapic_freq;		// LAPIC frequency in Hz
 	char vendor_str[64];		// Vendor string
 	uint8_t core_step;		// CORE step
 	uint8_t max_phys_bits;		// Maximum physical address bits
@@ -179,6 +180,11 @@ struct arch_core {
 
 /* CORE ID */
 typedef uint32_t core_id_t;
+
+/* Forward declarations */
+struct va_space;
+struct thread;
+struct sched_core;
 
 struct core {
 	struct list link;		// Link to running COREs list
@@ -196,6 +202,7 @@ struct core {
 	struct sched_core *sched;	// Scheduler run queues/timers
 	struct thread *thread;		// Currently executing thread
 	struct va_space *aspace;	// Address space currently in use
+	struct spinlock timer_lock;	// Lock to protect timers list
 	struct list timers;		// List of active timers
 	boolean_t timer_enabled;	// Whether timer is enabled on this CORE
 };
@@ -367,6 +374,8 @@ static INLINE void core_spin_hint()
 	asm volatile("pause");
 }
 
+extern uint64_t calculate_core_freq();
+extern uint64_t calculate_freq(uint64_t (*func)());
 extern void dump_core(struct core *c);
 extern core_id_t core_id();
 extern void preinit_core_percore();

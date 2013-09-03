@@ -8,6 +8,7 @@
 #include "mm/mmu.h"
 #include "mm/phys.h"
 #include "acpi.h"
+#include "pit.h"
 #include "platform.h"
 
 /* Whether ACPI is supported */
@@ -16,7 +17,6 @@ boolean_t _acpi_supported = FALSE;
 static struct acpi_rsdp *acpi_find_rsdp(phys_addr_t start, size_t size)
 {
 	size_t i;
-	int mflags = 0;
 	struct acpi_rsdp *rsdp = NULL;
 
 	ASSERT(!(start % 16) && !(size % 16));
@@ -67,6 +67,7 @@ void acpi_init()
 	 * that we have done identity map while initialize kernel MMU so we
 	 * don't need to map it again.
 	 */
+	mapping = (uint16_t *)0x40e;
 	ebda = (*mapping) << 4;
 	
 	kprintf("acpi: Extended BIOS Data Area at %p\n", ebda);
@@ -87,6 +88,13 @@ void acpi_init()
 void init_platform()
 {
 	acpi_init();
+
+	init_pit();	// FixMe: We only need to init pit if LAPIC is disabled.
+	
+	/* If the LAPIC is not available, we must use the PIT as the timer */
+	if (!lapic_enabled()) {
+		;
+	}
 }
 
 void platform_reboot()

@@ -16,13 +16,7 @@
 #define LEAPYEAR(y)	(((y) % 4) == 0 && (((y) % 100) != 0 || ((y) % 400) == 0))
 #define DAYS(y)		(LEAPYEAR(y) ? 366 : 365)
 
-static int _current_frequency = 0;
-
-uint32_t _lost_ticks = 0;
-clock_t _real_time = 0;
-useconds_t _boot_time;
-
-static struct irq_hook _clock_hook;
+static struct irq_hook _pit_hook;
 
 /* Table containing number of days before a month */
 static int _days_before_month[] = {
@@ -81,15 +75,8 @@ useconds_t sys_time()
 	return value;
 }
 
-static void clock_callback(struct registers *regs)
+static void pit_callback(struct registers *regs)
 {
-	uint32_t ticks;
-
-	/* Get number of ticks and update realtime. */
-	ticks = _lost_ticks + 1;
-	_lost_ticks = 0;
-	_real_time += ticks;
-
 	timer_tick();
 }
 
@@ -105,17 +92,14 @@ void tsc_init_target()
 	}
 }
 
-void init_clock()
+void init_pit()
 {
 	uint8_t low;
 	uint8_t high;
 	uint32_t divisor;
 
-	/* Save the frequency */
-	_current_frequency = HZ;
-	
 	/* Register our timer callback first */
-	register_irq_handler(IRQ0, &_clock_hook, &clock_callback);
+	register_irq_handler(IRQ0, &_pit_hook, &pit_callback);
 
 	/* The value we send to the PIT is the value to divide. it's input
 	 * clock (1193182 Hz) by, to get our required frequency. Important
@@ -132,39 +116,21 @@ void init_clock()
 
 	outportb(0x40, low);
 	outportb(0x40, high);
-
-	_boot_time = platform_time_from_cmos() - sys_time();
 }
 
-void stop_clock()
+void stop_pit()
 {
 	outportb(0x43, 0x36);
 	outportb(0x40, 0);
 	outportb(0x40, 0);
 }
 
-static uint32_t msec_2_ticks(uint32_t msec)
+void spin(useconds_t us)
 {
-	uint32_t ticks;
+	uint64_t tgt = x86_rdtsc() + (us * CURR_CORE->arch.cycles_per_us);
 
-	ticks = (msec * 12) / 10;
-
-	return ticks;
-}
-
-void pit_delay(uint32_t msec)
-{
-	uint32_t when;
-
-	when = _real_time + msec_2_ticks(msec);
-	
-	DEBUG(DL_DBG, ("msec(%d), _real_time(%d), when(%d)\n",
-		       msec, _real_time, when));
-	
-	while (TRUE) {
-		if (_real_time >= when) {
-			break;
-		}
-		core_idle();
+	/* Spin until we reach the target */
+	while (x86_rdtsc() < tgt) {
+		core_spin_hint();
 	}
 }

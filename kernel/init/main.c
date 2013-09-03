@@ -116,10 +116,6 @@ int kmain(u_long addr, uint32_t initial_stack)
 	init_core();
 	kprintf("CORE initialization... done.\n");
 
-	/* Initialize our timer */
-	init_clock();
-	kprintf("System PIT initialization... done.\n");
-
 	/* Initialize the platform */
 	init_platform();
 	kprintf("Platform initialization... done.\n");

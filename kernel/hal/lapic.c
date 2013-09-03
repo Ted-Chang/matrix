@@ -6,6 +6,11 @@
 #include "debug.h"
 #include "mm/page.h"
 #include "mm/phys.h"
+#include "div64.h"
+
+#define LAPIC_TIMER_PERIODIC	0x20000
+
+extern void timer_tick();
 
 /* Local APIC mapping. NULL if LAPIC is not present */
 static volatile uint8_t *_lapic_mapping = NULL;
@@ -30,6 +35,12 @@ static INLINE void lapic_eoi()
 	lapic_write(LAPIC_REG_EOI, 0);
 }
 
+void lapic_timer_prepare(useconds_t us)
+{
+	uint32_t cnt = (CURR_CORE->arch.lapic_tmr_cv * us) >> 32;
+	lapic_write(LAPIC_REG_TIMER_INITIAL, (cnt == 0 && us != 0) ? 1 : cnt);
+}
+
 void lapic_spurious_handler(struct registers *regs)
 {
 	kprintf("lapic: received spurious interrupt!\n");
@@ -37,8 +48,10 @@ void lapic_spurious_handler(struct registers *regs)
 
 void lapic_timer_handler(struct registers * regs)
 {
-	DEBUG(DL_INF, ("lapic: received timer interrupt\n"));
+	timer_tick();
 	lapic_eoi();
+	
+	DEBUG(DL_DBG, ("lapic: timer triggered.\n"));
 }
 
 void lapic_ipi_handler(struct registers *regs)
@@ -60,6 +73,7 @@ uint32_t lapic_id()
 void init_lapic()
 {
 	uint64_t base;
+	uint64_t lapic_tmr_cv;
 
 	/* Don't do anything if we don't support LAPIC */
 	if (!_core_features.apic) {
@@ -78,9 +92,6 @@ void init_lapic()
 	} else {
 		DEBUG(DL_INF, ("lapic: base -> 0x%llx\n", base));
 	}
-
-	/* Hardware enable the local APIC if it wasn't enabled */
-	x86_write_msr(X86_MSR_APIC_BASE, base);
 
 	base &= 0xFFFFF000;
 	if (_lapic_mapping) {
@@ -106,7 +117,36 @@ void init_lapic()
 				     lapic_timer_handler);
 		register_irq_handler(LAPIC_VECT_IPI, &_lapic_hook[2],
 				     lapic_ipi_handler);
+
+		/* Hardware enable the local APIC if it wasn't enabled */
+		base = x86_read_msr(X86_MSR_APIC_BASE);
+		x86_write_msr(X86_MSR_APIC_BASE, base);
 	}
+
+	/* Calculate the LAPIC frequency. */
+	if (CURR_CORE == &_boot_core) {
+		CURR_CORE->arch.lapic_freq = calculate_freq(calculate_core_freq);
+		
+		DEBUG(DL_INF, ("lapic: lapic_id() returns %d\n", lapic_id()));
+	} else {
+		CURR_CORE->arch.lapic_freq = _boot_core.arch.lapic_freq;
+		
+		/* Sanity check */
+		if (CURR_CORE->id != lapic_id()) {
+			PANIC("Core ID mismatch");
+		}
+	}
+
+	/* Figure out the timer conversion factor */
+	lapic_tmr_cv = CURR_CORE->arch.lapic_freq;
+	do_div(lapic_tmr_cv, 8);
+	lapic_tmr_cv <<= 32;
+	do_div(lapic_tmr_cv, 1000000);
+	ASSERT(lapic_tmr_cv != 0);
+	CURR_CORE->arch.lapic_tmr_cv = lapic_tmr_cv;
+	
+	kprintf("lapic: timer conversion factor for CORE %d is %d\n",
+		CURR_CORE->id, CURR_CORE->arch.lapic_tmr_cv);
 
 	/* Enable the local APIC (bit 8) and set spurious interrupt handler
 	 * in the Spurious Interrupt Vector Register.
@@ -116,23 +156,17 @@ void init_lapic()
 	/* Setup divider to 8 */
 	lapic_write(LAPIC_REG_TIMER_DIVIDER, LAPIC_TIMER_DIV8);
 
-	/* Sanity check */
-	if (CURR_CORE != &_boot_core) {
-		if (CURR_CORE->id != lapic_id()) {
-			PANIC("Core ID mismatch");
-		}
-	} else {
-		DEBUG(DL_INF, ("lapic: lapic_id() returns %d\n", lapic_id()));
-	}
-
 	/* Accept all interrupts */
 	lapic_write(LAPIC_REG_TPR, lapic_read(LAPIC_REG_TPR) & 0xFFFFFF00);
 
 	/* Set the timer initial count to non-zero, so we can see a log that
 	 * our timer ISR get called
 	 */
-	lapic_write(LAPIC_REG_TIMER_INITIAL, 16);
+	lapic_write(LAPIC_REG_TIMER_INITIAL, 80000);
 	
-	/* Map APIC timer to an interrupt vector */
-	lapic_write(LAPIC_REG_LVT_TIMER, LAPIC_VECT_TIMER);
+	/* Map APIC timer to an interrupt vector, we are setting it in periodic
+	 * mode. For effiency we should use one-shot mode.
+	 */
+	lapic_write(LAPIC_REG_LVT_TIMER,
+		    LAPIC_VECT_TIMER | LAPIC_TIMER_PERIODIC);
 }

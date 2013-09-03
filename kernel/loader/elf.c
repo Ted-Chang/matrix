@@ -3,8 +3,8 @@
 #include <string.h>
 #include "debug.h"
 #include "mm/page.h"
-#include "mm/mmu.h"
 #include "mm/malloc.h"
+#include "mm/va.h"
 #include "proc/process.h"
 #include "proc/thread.h"
 #include "elf.h"

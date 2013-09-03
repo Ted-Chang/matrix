@@ -64,6 +64,7 @@ static void core_ctor(struct core *c, core_id_t id, int state)
 	c->state = state;
 
 	/* Initialize timer information */
+	spinlock_init(&c->timer_lock, "tmr-lock");
 	LIST_INIT(&c->timers);
 	c->timer_enabled = FALSE;
 }
@@ -125,65 +126,6 @@ static void detect_core_features(struct core *c, struct core_features *f)
 	if (!c->arch.max_virt_bits) {
 		c->arch.max_virt_bits = 48;
 	}
-}
-
-static uint64_t calculate_core_freq()
-{
-	uint16_t shi, slo, ehi, elo, ticks;
-	uint64_t start, end, cycles;
-
-	/* Set the PIT to rate generator mode */
-	outportb(0x43, 0x34);
-	outportb(0x40, 0xFF);
-	outportb(0x40, 0xFF);
-
-	/* Wait for the cycle to begin */
-	do {
-		outportb(0x43, 0x00);
-		slo = inportb(0x40);
-		shi = inportb(0x40);
-	} while (shi != 0xFF);
-
-	/* Get the start TSC value */
-	start = x86_rdtsc();
-
-	/* Wait for the high byte to decrease to 128 */
-	do {
-		outportb(0x43, 0x00);
-		elo = inportb(0x40);
-		ehi = inportb(0x40);
-	} while (ehi > 0x80);
-
-	/* Get the end TSC value */
-	end = x86_rdtsc();
-
-	/* Calculate the difference between the values */
-	cycles = end - start;
-	ticks = ((ehi << 8) | elo) - ((shi << 8) | slo);
-
-	/* Calculate frequency */
-	ASSERT(PIT_BASE_FREQ > ticks);
-	ASSERT(ticks != 0);
-
-	return cycles * (PIT_BASE_FREQ / ticks);
-}
-
-static uint64_t calculate_freq(uint64_t (*func)())
-{
-	size_t i;
-	uint64_t ret = 0;
-	uint64_t results[FREQ_ATTEMPTS];
-
-	/* Get the frequencies */
-	for (i = 0; i < FREQ_ATTEMPTS; i++) {
-		results[i] = func();
-	}
-
-	for (i = 0; i < FREQ_ATTEMPTS; i++) {
-		ret = ret > results[i] ? ret : results[i];
-	}
-
-	return ret;
 }
 
 static void arch_preinit_core()
@@ -265,6 +207,65 @@ static void arch_preinit_core_percore(struct core *c)
 static void arch_init_core_percore()
 {
 	init_lapic();
+}
+
+uint64_t calculate_core_freq()
+{
+	uint16_t shi, slo, ehi, elo, ticks;
+	uint64_t start, end, cycles;
+
+	/* Set the PIT to rate generator mode */
+	outportb(0x43, 0x34);
+	outportb(0x40, 0xFF);
+	outportb(0x40, 0xFF);
+
+	/* Wait for the cycle to begin */
+	do {
+		outportb(0x43, 0x00);
+		slo = inportb(0x40);
+		shi = inportb(0x40);
+	} while (shi != 0xFF);
+
+	/* Get the start TSC value */
+	start = x86_rdtsc();
+
+	/* Wait for the high byte to decrease to 128 */
+	do {
+		outportb(0x43, 0x00);
+		elo = inportb(0x40);
+		ehi = inportb(0x40);
+	} while (ehi > 0x80);
+
+	/* Get the end TSC value */
+	end = x86_rdtsc();
+
+	/* Calculate the difference between the values */
+	cycles = end - start;
+	ticks = ((ehi << 8) | elo) - ((shi << 8) | slo);
+
+	/* Calculate frequency */
+	ASSERT(PIT_BASE_FREQ > ticks);
+	ASSERT(ticks != 0);
+
+	return cycles * (PIT_BASE_FREQ / ticks);
+}
+
+uint64_t calculate_freq(uint64_t (*func)())
+{
+	size_t i;
+	uint64_t ret = 0;
+	uint64_t results[FREQ_ATTEMPTS];
+
+	/* Get the frequencies */
+	for (i = 0; i < FREQ_ATTEMPTS; i++) {
+		results[i] = func();
+	}
+
+	for (i = 0; i < FREQ_ATTEMPTS; i++) {
+		ret = ret > results[i] ? ret : results[i];
+	}
+
+	return ret;
 }
 
 void preinit_core_percore(struct core *c)

@@ -14,6 +14,7 @@
 #include "mm/mmu.h"
 #include "mm/malloc.h"
 #include "mm/slab.h"
+#include "mm/va.h"
 #include "kstrdup.h"
 #include "rtl/object.h"
 #include "proc/process.h"

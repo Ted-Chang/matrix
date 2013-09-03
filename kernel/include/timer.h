@@ -20,12 +20,10 @@ struct timer {
 };
 typedef struct timer timer_t;
 
-extern void init_clock();
-extern void stop_clock();
 extern void init_timer(struct timer *t, const char *name, void *data);
 extern void set_timer(struct timer *t, useconds_t expire_time, timer_func_t callback);
 extern void cancel_timer(struct timer *t);
-extern void timer_delay(uint32_t msec);
+extern void timer_delay(uint32_t us);
 extern void timer_tick();
 
 #endif	/* __TIMER_H__ */

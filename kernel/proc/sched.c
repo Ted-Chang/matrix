@@ -440,7 +440,8 @@ void sched_enter()
 	/* Disable irq first */
 	irq_disable();
 
-	CURR_CORE->timer_enabled = TRUE;	// TODO: Find a better place to do this
+	// TODO: Find a better place to do the following
+	CURR_CORE->timer_enabled = TRUE;
 
 	/* Switch to current process */
 	arch_thread_switch(CURR_THREAD, NULL);

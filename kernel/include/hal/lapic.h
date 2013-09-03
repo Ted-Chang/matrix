@@ -13,6 +13,10 @@
 #define LAPIC_REG_SPURIOUS		0xF0	// Spurious Interrupt Vector
 #define LAPIC_REG_ERROR			0x280	// Error Status Register (ESR)
 #define LAPIC_REG_LVT_TIMER		0x320	// LVT Timer
+#define LAPIC_REG_LVT_PERFMON		0x340	// LVT Performance Monitoring Counters
+#define LAPIC_REG_LVT_LINT0		0x350	// LVT LINT0
+#define LAPIC_REG_LVT_LINT1		0x360	// LVT LINT1
+#define LAPIC_REG_LVT_ERROR		0x370	// LVT Error
 #define LAPIC_REG_TIMER_INITIAL		0x380	// Timer Initial Count
 #define LAPIC_REG_TIMER_CURRENT		0x390	// Timer Current Count
 #define LAPIC_REG_TIMER_DIVIDER		0x3E0	// Timer Divide Configuration
@@ -32,6 +36,7 @@
 #define LAPIC_VECT_SPURIOUS		0xF1
 #define LAPIC_VECT_IPI			0xF2
 
+extern void lapic_timer_prepare(useconds_t us);
 extern boolean_t lapic_enabled();
 extern uint32_t lapic_id();
 extern void init_lapic();

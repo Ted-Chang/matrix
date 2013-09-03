@@ -2,9 +2,9 @@
 #include <stddef.h>
 #include <string.h>
 #include "matrix/matrix.h"
-#include "mm/mmu.h"
 #include "mm/malloc.h"
 #include "mm/slab.h"
+#include "mm/va.h"
 #include "debug.h"
 #include "kd.h"
 #include "mutex.h"

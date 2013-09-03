@@ -85,7 +85,9 @@ void irq_handler(struct registers regs)
 	}
 
 	if (!processed) {
-		DEBUG(DL_INF, ("IRQ %d not handled\n", int_no));
+#ifdef _DEBUG_HAL
+		DEBUG(DL_DBG, ("IRQ %d not handled\n", int_no));
+#endif
 	}
 }
 
