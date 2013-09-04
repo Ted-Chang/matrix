@@ -365,9 +365,9 @@ void init_mmu()
 		page = mmu_get_page(&_kernel_mmu_ctx, i, FALSE, 0);
 		ASSERT(page != NULL);
 		page->present = TRUE;
-		page->frame = i / PAGE_SIZE;
+		page->frame = i / PAGE_SIZE;	// We are mapping to the physical address
 		page->user = FALSE;
-		page->rw = TRUE;
+		page->rw = FALSE;
 	}
 
 	/* Before we enable paging, we must register our page fault handler */

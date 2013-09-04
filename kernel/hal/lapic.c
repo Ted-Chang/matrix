@@ -38,25 +38,25 @@ static INLINE void lapic_eoi()
 void lapic_timer_prepare(useconds_t us)
 {
 	uint32_t cnt = (CURR_CORE->arch.lapic_tmr_cv * us) >> 32;
+
+	DEBUG(DL_DBG, ("us:%lld, cnt:%d\n", us, cnt));
 	lapic_write(LAPIC_REG_TIMER_INITIAL, (cnt == 0 && us != 0) ? 1 : cnt);
 }
 
 void lapic_spurious_handler(struct registers *regs)
 {
-	kprintf("lapic: received spurious interrupt!\n");
+	kprintf("lapic received spurious interrupt!\n");
 }
 
 void lapic_timer_handler(struct registers * regs)
 {
 	timer_tick();
 	lapic_eoi();
-	
-	DEBUG(DL_DBG, ("lapic: timer triggered.\n"));
 }
 
 void lapic_ipi_handler(struct registers *regs)
 {
-	DEBUG(DL_INF, ("lapic: received ipi interrupt\n"));
+	DEBUG(DL_INF, ("lapic received ipi interrupt\n"));
 	lapic_eoi();
 }
 
@@ -85,12 +85,10 @@ void init_lapic()
 	 */
 	base = x86_read_msr(X86_MSR_APIC_BASE);
 	if (!(base & (1 << 11))) {
-		kprintf("lapic: *** local APIC disabled ***\n");
+		kprintf("*** local APIC disabled ***\n");
 		return;
-	} else if (_core_features.x2apic && (base & (1 << 11))) {
-		PANIC("Cannot handle core in x2APIC mode");
 	} else {
-		DEBUG(DL_INF, ("lapic: base -> 0x%llx\n", base));
+		DEBUG(DL_INF, ("base -> 0x%llx\n", base));
 	}
 
 	base &= 0xFFFFF000;
@@ -127,7 +125,7 @@ void init_lapic()
 	if (CURR_CORE == &_boot_core) {
 		CURR_CORE->arch.lapic_freq = calculate_freq(calculate_core_freq);
 		
-		DEBUG(DL_INF, ("lapic: lapic_id() returns %d\n", lapic_id()));
+		DEBUG(DL_INF, ("lapic_id() returns %d\n", lapic_id()));
 	} else {
 		CURR_CORE->arch.lapic_freq = _boot_core.arch.lapic_freq;
 		
@@ -151,22 +149,21 @@ void init_lapic()
 	/* Enable the local APIC (bit 8) and set spurious interrupt handler
 	 * in the Spurious Interrupt Vector Register.
 	 */
-	lapic_write(LAPIC_REG_SPURIOUS, LAPIC_VECT_SPURIOUS | (0x100));
+	lapic_write(LAPIC_REG_SPURIOUS, LAPIC_VECT_SPURIOUS | (1<<8));
 	
-	/* Setup divider to 8 */
-	lapic_write(LAPIC_REG_TIMER_DIVIDER, LAPIC_TIMER_DIV8);
-
 	/* Accept all interrupts */
 	lapic_write(LAPIC_REG_TPR, lapic_read(LAPIC_REG_TPR) & 0xFFFFFF00);
 
-	/* Set the timer initial count to non-zero, so we can see a log that
-	 * our timer ISR get called
+	/* Set the timer initial count based on time 100us
 	 */
-	lapic_write(LAPIC_REG_TIMER_INITIAL, 80000);
+	lapic_timer_prepare(2000);
 	
 	/* Map APIC timer to an interrupt vector, we are setting it in periodic
 	 * mode. For effiency we should use one-shot mode.
 	 */
 	lapic_write(LAPIC_REG_LVT_TIMER,
 		    LAPIC_VECT_TIMER | LAPIC_TIMER_PERIODIC);
+
+	/* Setup divider to 8 */
+	lapic_write(LAPIC_REG_TIMER_DIVIDER, LAPIC_TIMER_DIV8);
 }

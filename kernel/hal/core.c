@@ -198,7 +198,10 @@ static void arch_preinit_core_percore(struct core *c)
 	/* Work out the cycles per us */
 	c->arch.cycles_per_us = c->arch.core_freq;
 	do_div(c->arch.cycles_per_us, 1000000);
-	ASSERT(c->arch.cycles_per_us != 0);
+	DEBUG(DL_DBG, ("cycles per us(%d)\n", c->arch.cycles_per_us));
+	if (c->arch.cycles_per_us == 0) {
+		c->arch.cycles_per_us = 7;	// 7 is a value we get from test
+	}
 
 	/* Configure the TSC offset for sys_time() */
 	tsc_init_target();

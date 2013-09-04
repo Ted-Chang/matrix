@@ -110,8 +110,8 @@ void va_switch(struct va_space *vas)
 	 */
 	if (vas && (vas != CURR_ASPACE)) {
 		
-		DEBUG(DL_DBG, ("new vas(%p), current vas(%p), core(%p).\n",
-			       vas, CURR_ASPACE, CURR_CORE));
+		DEBUG(DL_DBG, ("new vas(%p), current vas(%p), core(%d).\n",
+			       vas, CURR_ASPACE, CURR_CORE->id));
 
 		state = irq_disable();
 

@@ -144,8 +144,12 @@ void timer_tick()
 	}
 
 	now = sys_time();
-	
+
+	DEBUG(DL_DBG, ("tick.\n"));
+
+	spinlock_acquire(&CURR_CORE->timer_lock);
 	prempt = tmrs_exptimers(&CURR_CORE->timers, now);
+	spinlock_release(&CURR_CORE->timer_lock);
 	if (prempt) {
 		spinlock_acquire_noirq(&CURR_THREAD->lock);
 		sched_reschedule(FALSE);
