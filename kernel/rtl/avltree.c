@@ -9,7 +9,9 @@ static int avl_tree_subtree_height(struct avl_tree_node *node)
 {
 	int left, right;
 
-	if (!node) return 0;
+	if (!node) {
+		return 0;
+	}
 
 	/* Get the heights of the children and add 1 to account for the node itself*/
 	left = (node->left) ? (node->left->height + 1) : 1;
@@ -110,7 +112,7 @@ static void avl_tree_balance_node(struct avl_tree *tree, struct avl_tree_node *n
 		/* Tree is left-heavy, check whether a RL rotation is necessary
 		 * (if the left subtree is right-heavy).
 		 */
-		if (avl_tree_balance_factor(node->left) < 0) {
+		if (avl_tree_balance_factor(node->left) > 0) {
 			/* RL rotation. Perform a left rotation of the left subtree */
 			avl_tree_rotate_left(tree, node->left);
 		}
@@ -215,6 +217,9 @@ void avl_tree_remove_node(struct avl_tree *tree, struct avl_tree_node *node)
 
 			child->left = node->left;
 		} else {
+			/* The left child has no right child. It will replace the
+			 * node being deleted as-is.
+			 */
 			start = child;
 		}
 

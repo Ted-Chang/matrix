@@ -43,6 +43,9 @@ int main(int argc, char **argv)
 	
 	/* Start the unit_test program */
 	start_unit_test();
+
+	/* Start process test */
+	start_process_test();
 	
 	while (TRUE) {
 		;
@@ -170,6 +173,37 @@ void start_unit_test()
 		goto out;
 	}
 	printf("unit_test started, process id(%d).\n", rc);
+
+ out:
+	return;
+}
+
+void start_process_test()
+{
+	int rc;
+	char *process_test1[] = {
+		"/process_test",
+		"alice",
+		NULL
+	};
+	char *process_test2[] = {
+		"/process_test",
+		"bob",
+		NULL
+	};
+
+	rc = create_process(process_test1[0], process_test1, 0, 16);
+	if (rc == -1) {
+		printf("create_process failed, err(%d).\n", rc);
+		goto out;
+	}
+
+
+	rc = create_process(process_test2[0], process_test2, 0, 16);
+	if (rc == -1) {
+		printf("create_process failed, err(%d).\n", rc);
+		goto out;
+	}
 
  out:
 	return;

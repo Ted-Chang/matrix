@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 
 	clear_test();
 
-	shutdown_test();
+	//shutdown_test();
 
 	while (TRUE) {
 		;

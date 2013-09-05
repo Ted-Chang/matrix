@@ -1,5 +1,6 @@
 #include <types.h>
 #include <stddef.h>
+#include <string.h>
 #include <syscall.h>
 #include <sys/mount.h>
 #include <errno.h>

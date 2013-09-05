@@ -89,6 +89,8 @@ void init_platform()
 {
 	acpi_init();
 
+	//init_pit();	// FixMe: remove it after tests
+
 	/* If the LAPIC is not available, we must use the PIT as the timer */
 	if (!lapic_enabled()) {
 		init_pit();

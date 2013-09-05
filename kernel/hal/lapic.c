@@ -154,9 +154,8 @@ void init_lapic()
 	/* Accept all interrupts */
 	lapic_write(LAPIC_REG_TPR, lapic_read(LAPIC_REG_TPR) & 0xFFFFFF00);
 
-	/* Set the timer initial count based on time 100us
-	 */
-	lapic_timer_prepare(2000);
+	/* Set the timer initial count based on time 100us */
+	lapic_timer_prepare(10);
 	
 	/* Map APIC timer to an interrupt vector, we are setting it in periodic
 	 * mode. For effiency we should use one-shot mode.

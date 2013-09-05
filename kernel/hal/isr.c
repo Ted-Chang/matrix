@@ -142,8 +142,8 @@ void dump_registers(struct registers *regs)
 		"  cs:0x%04x ss:0x%04x ds:0x%04x es:0x%04x\n"
 		"  err_code:0x%08x int_no:0x%08x eflags:0x%08x\n\n",
 		CURR_CORE->id, regs->eip, regs->esp, regs->ebp, regs->user_esp,
-		regs->cs, regs->ss, regs->ds, regs->es, regs->int_no,
-		regs->err_code, regs->eflags);
+		regs->cs, regs->ss, regs->ds, regs->es, regs->err_code,
+		regs->int_no, regs->eflags);
 }
 
 void divide_by_zero_fault(struct registers *regs)
