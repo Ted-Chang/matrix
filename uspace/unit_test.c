@@ -58,6 +58,8 @@ int main(int argc, char **argv)
 
 	clear_test();
 
+	multi_processes_test();
+		
 	//shutdown_test();
 
 	while (TRUE) {
@@ -247,6 +249,47 @@ void clear_test()
 	rc = waitpid(rc, &status, 0);
 	if (rc == -1) {
 		printf("waiting %s failed, err(%d).\n", clear[0], rc);
+	}
+
+ out:
+	return;
+}
+
+void multi_processes_test()
+{
+	int rc;
+	char *process_test1[] = {
+		"/process_test",
+		"alice",
+		NULL
+	};
+	char *process_test2[] = {
+		"/process_test",
+		"bob",
+		NULL
+	};
+	char *process_test3[] = {
+		"/process_test",
+		"cathy",
+		NULL
+	};
+
+	rc = create_process(process_test1[0], process_test1, 0, 16);
+	if (rc == -1) {
+		printf("create_process failed, err(%d).\n", rc);
+		goto out;
+	}
+
+	rc = create_process(process_test2[0], process_test2, 0, 16);
+	if (rc == -1) {
+		printf("create_process failed, err(%d).\n", rc);
+		goto out;
+	}
+
+	rc = create_process(process_test3[0], process_test3, 0, 16);
+	if (rc == -1) {
+		printf("create_process failed, err(%d).\n", rc);
+		goto out;
 	}
 
  out:

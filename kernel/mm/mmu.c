@@ -190,16 +190,10 @@ int mmu_unmap(struct mmu_ctx *ctx, ptr_t virt, boolean_t shared, phys_addr_t *ph
 
 void mmu_load_ctx(struct mmu_ctx *ctx)
 {
-	uint32_t cr0;
-	
 	ASSERT((ctx->pdbr % PAGE_SIZE) == 0);
 
 	/* Set CR3 register */
-	asm volatile("mov %0, %%cr3":: "r"(ctx->pdbr));
-	
-	asm volatile("mov %%cr0, %0": "=r"(cr0));
-	cr0 |= 0x80000000;	// Enable paging
-	asm volatile("mov %0, %%cr0":: "r"(cr0));
+	x86_write_cr3(ctx->pdbr);
 }
 
 /*
@@ -377,4 +371,7 @@ void init_mmu()
 	 * will be used by every process.
 	 */
 	mmu_load_ctx(&_kernel_mmu_ctx);
+
+	/* Enable paging */
+	x86_write_cr0(x86_read_cr0() | X86_CR0_PG);
 }

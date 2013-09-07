@@ -26,6 +26,6 @@
 /* Start address of the kernel physical map area */
 #define KERNEL_PMAP_START	0xFEE00000
 /* Size of the kernel physical map area */
-#define KERNEL_PMAP_SIZE	0x001FFFFF
+#define KERNEL_PMAP_SIZE	0x000FFFFF
 
 #endif	/* __MLAYOUT_H__ */

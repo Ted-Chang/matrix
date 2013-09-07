@@ -33,6 +33,9 @@ static int mutex_acquire_internal(struct mutex *m, useconds_t timeout, int flags
 				if (rc != 0) {
 					return rc;
 				}
+
+				DEBUG(DL_DBG, ("mutex(%s) put thread(%s:%d) to wait list.\n",
+					       m->name, CURR_THREAD->name, CURR_THREAD->id));
 			}
 		}
 	}
@@ -68,8 +71,11 @@ void mutex_release(struct mutex *m)
 		if (!LIST_EMPTY(&m->threads)) {
 			l = m->threads.next;
 			t = LIST_ENTRY(l, struct thread, wait_link);
+			DEBUG(DL_DBG, ("mutex(%s) waking up thread(%s:%d).\n",
+				       m->name, t->name, t->id));
 			thread_wake(t);
 		} else {
+			DEBUG(DL_DBG, ("mutex(%s) no waiting threads.\n", m->name));
 			atomic_dec(&m->value);
 		}
 	} else {

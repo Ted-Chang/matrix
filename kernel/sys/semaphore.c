@@ -18,6 +18,8 @@ void semaphore_down(struct semaphore *s)
 	}
 
 	list_add_tail(&CURR_THREAD->wait_link, &s->threads);
+	DEBUG(DL_DBG, ("sem(%s) put thread(%s:%d) to wait list.\n",
+		       s->name, CURR_THREAD->name, CURR_THREAD->id));
 	thread_sleep(&s->lock, -1, s->name, 0);
 }
 
@@ -37,6 +39,8 @@ void semaphore_up(struct semaphore *s, size_t count)
 		} else {
 			l = s->threads.next;
 			t = LIST_ENTRY(l, struct thread, wait_link);
+			DEBUG(DL_DBG, ("sem(%s) waking up thread(%s:%d).\n",
+				       s->name, t->name, t->id));
 			thread_wake(t);
 		}
 	}

@@ -166,6 +166,8 @@ static void sched_adjust_priority(struct sched_core *c, struct thread *t)
 static void sched_timer_func(void *ctx)
 {
 	CURR_THREAD->quantum = 0;
+
+	DEBUG(DL_DBG, ("sched timer triggered.\n"));
 }
 
 /**
@@ -177,17 +179,17 @@ static struct thread *sched_pick_thread(struct sched_core *c)
 	struct thread *t;
 	struct list *l;
 
-	if (!c->active->bitmap) {
-		return NULL;
-	}
-
 	t = NULL;
-
-	q = bitops_fls(c->active->bitmap);
-	ASSERT(!LIST_EMPTY(&c->active->threads[q]));
-	l = c->active->threads[q].next;
-	t = LIST_ENTRY(l, struct thread, runq_link);
-	sched_dequeue(c->active, t);
+	
+	if (!c->active->bitmap) {
+		ASSERT(c->total == 0);
+	} else {
+		q = bitops_fls(c->active->bitmap);
+		ASSERT(!LIST_EMPTY(&c->active->threads[q]));
+		l = c->active->threads[q].next;
+		t = LIST_ENTRY(l, struct thread, runq_link);
+		sched_dequeue(c->active, t);
+	}
 	
 	return t;
 }
@@ -244,15 +246,15 @@ void sched_reschedule(boolean_t state)
 		}
 	} else {
 		DEBUG(DL_DBG, ("thread(%s:%s:%d), state(%d).\n",
-			       CURR_PROC->name, CURR_THREAD->name, CURR_THREAD->id,
-			       CURR_THREAD->state));
+			       CURR_PROC->name, CURR_THREAD->name,
+			       CURR_THREAD->id, CURR_THREAD->state));
 		ASSERT(CURR_THREAD != c->idle_thread);
 		c->total--;
 		atomic_dec(&_nr_running_threads);
 	}
 	
-	/* Find a new process to run. A NULL return value means no processes are
-	 * ready, so we schedule the idle process in this case.
+	/* Find a new thread to run. A NULL return value means no threads are
+	 * ready, so we schedule the idle thread in this case.
 	 */
 	next = sched_pick_thread(c);
 	if (next) {
@@ -263,10 +265,13 @@ void sched_reschedule(boolean_t state)
 			DEBUG(DL_DBG, ("core(%d) has no runnable threads.\n",
 				       CURR_CORE->id));
 		}
+		
 		next->quantum = 0;
 	}
 
-	/* Move the next process to running state and set it as the current */
+	ASSERT(next->core == CURR_CORE);
+
+	/* Move the next thread to running state and set it as the current */
 	c->prev_thread = CURR_THREAD;
 	next->state = THREAD_RUNNING;
 	CURR_THREAD = next;
@@ -276,22 +281,25 @@ void sched_reschedule(boolean_t state)
 
 	/* Set off the timer if necessary */
 	if (CURR_THREAD->quantum > 0) {
+		DEBUG(DL_DBG, ("core(%d) total(%d) thread(%s:%d) quantum(%d).\n",
+			       CURR_CORE->id, c->total, CURR_THREAD->name,
+			       CURR_THREAD->id, CURR_THREAD->quantum));
 		set_timer(&c->timer, CURR_THREAD->quantum, sched_timer_func);
 	}
-
-	/* Perform the thread switch if current thread is not the same as previous
-	 * one.
+	
+	/* Perform the thread switch if current thread is not the same as
+	 * previous one.
 	 */
 	if (CURR_THREAD != c->prev_thread) {
 #ifdef _DEBUG_SCHED
-		DEBUG(DL_DBG, ("switching to (%s:%d:%s:%d:%d:%p), state(%d).\n",
-			       CURR_PROC->name, CURR_PROC->id, CURR_THREAD->name,
-			       CURR_THREAD->id, CURR_CORE->id, CURR_THREAD,
+		DEBUG(DL_DBG, ("core(%d) switching to(%s:%d:%s:%d:%p) state(%d).\n",
+			       CURR_CORE->id, CURR_PROC->name, CURR_PROC->id,
+			       CURR_THREAD->name, CURR_THREAD->id, CURR_THREAD,
 			       state));
 #endif	/* _DEBUG_SCHED */
 		
-		/* Switch the address space. The NULL case will be handled by the
-		 * virtual address space switch function.
+		/* Switch the address space. The NULL case will be handled by
+		 * the virtual address space switch function.
 		 */
 		va_switch(CURR_PROC->vas);
 
@@ -309,7 +317,7 @@ void sched_reschedule(boolean_t state)
 void sched_post_switch(boolean_t state)
 {
 	struct thread *t;
-	
+
 	/* The prev_thread pointer is set to NULL during sched_init(). It will
 	 * only be NULL once.
 	 */

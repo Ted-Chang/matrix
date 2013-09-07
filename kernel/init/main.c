@@ -286,7 +286,7 @@ void dump_mbi(struct multiboot_info *mbi)
 	     (u_long)mmap < (_mbi->mmap_addr + _mbi->mmap_length);
 	     mmap = (struct multiboot_mmap_entry *)
 		     ((u_long)mmap + mmap->size + sizeof(mmap->size))) {
-		DEBUG(DL_DBG, ("mmap addr(0x%016lx), len(0x%016lx), type(%d)\n",
+		DEBUG(DL_DBG, ("mmap addr(0x%016llx), len(0x%016llx), type(%d)\n",
 			       mmap->addr, mmap->len, mmap->type));
 	}
 

@@ -139,8 +139,6 @@ void timer_tick()
 	useconds_t now;
 	boolean_t prempt = FALSE;
 
-	DEBUG(DL_DBG, ("tick.\n"));
-
 	if (!CURR_CORE->timer_enabled) {
 		return;
 	}

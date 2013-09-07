@@ -143,7 +143,7 @@ void init_lapic()
 	ASSERT(lapic_tmr_cv != 0);
 	CURR_CORE->arch.lapic_tmr_cv = lapic_tmr_cv;
 	
-	kprintf("lapic: timer conversion factor for CORE %d is %d\n",
+	kprintf("lapic: timer conversion factor for CORE %d is %lld\n",
 		CURR_CORE->id, CURR_CORE->arch.lapic_tmr_cv);
 
 	/* Enable the local APIC (bit 8) and set spurious interrupt handler
@@ -151,11 +151,8 @@ void init_lapic()
 	 */
 	lapic_write(LAPIC_REG_SPURIOUS, LAPIC_VECT_SPURIOUS | (1<<8));
 	
-	/* Accept all interrupts */
-	lapic_write(LAPIC_REG_TPR, lapic_read(LAPIC_REG_TPR) & 0xFFFFFF00);
-
 	/* Set the timer initial count based on time 100us */
-	lapic_timer_prepare(10);
+	lapic_timer_prepare(100);
 	
 	/* Map APIC timer to an interrupt vector, we are setting it in periodic
 	 * mode. For effiency we should use one-shot mode.

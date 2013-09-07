@@ -17,23 +17,6 @@
 uint32_t _value = 0;
 struct mutex _mutex;
 
-static void unit_test_thread(void *ctx)
-{
-	struct mutex *m;
-
-	m = (struct mutex *)ctx;
-
-	DEBUG(DL_DBG, ("unit test thread(%s) is running.\n", CURR_THREAD->name));
-
-	while (_value < 0x00000FFF) {
-		mutex_acquire(m);
-		_value++;
-		DEBUG(DL_DBG, ("thread(%s) mutex(%p:%s) acquired, value(%x).\n",
-			       CURR_THREAD->name, m, m->name, _value));
-		mutex_release(m);
-	}
-}
-
 int do_unit_test(uint32_t round)
 {
 	int i, r, rc = 0;
@@ -142,22 +125,6 @@ int do_unit_test(uint32_t round)
 	}
 	DEBUG(DL_DBG, ("slab cache test finished with round %d.\n", round));
 
-
-	/* Create two kernel thread to do the mutex test */
-	mutex_init(&_mutex, "ut-mutex", 0);
-	rc = thread_create("unit-test1", CURR_PROC, 0, unit_test_thread, &_mutex, NULL);
-	if (rc != 0) {
-		DEBUG(DL_DBG, ("thread_create ut1 failed, err(%d).\n", rc));
-		goto out;
-	}
-	rc = thread_create("unit-test2", CURR_PROC, 0, unit_test_thread, &_mutex, NULL);
-	if (rc != 0) {
-		DEBUG(DL_DBG, ("thread_create ut2 failed, err(%d).\n", rc));
-		goto out;
-	}
-	DEBUG(DL_DBG, ("mutex test finished.\n"));
-
-
 	/* Test fsrtl functions */
 	rc = split_path(path, &dir, &name, 0);
 	if (rc == 0) {
@@ -165,7 +132,6 @@ int do_unit_test(uint32_t round)
 		kfree(dir);
 		kfree(name);
 	}
-
 
  out:
 	for (i = 0; i < 4; i++) {

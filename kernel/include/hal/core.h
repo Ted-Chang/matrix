@@ -23,6 +23,13 @@
 #define X86_MSR_GS_BASE		0xC0000101	// GS segment base register
 #define X86_MSR_K_GS_BASE	0xC0000102	// GS base switch to with SWAPGS
 
+/* Flags in CR0 */
+#define X86_CR0_MP		(1<<1)		// Monitor Coprocessor
+#define X86_CR0_EM		(1<<2)		// Emulation
+#define X86_CR0_NE		(1<<5)		// Numeric Error
+#define X86_CR0_WP		(1<<16)		// Write Protect
+#define X86_CR0_PG		(1<<31)		// Paging Enabled
+
 /* Standard COREID function definitions */
 #define X86_COREID_VENDOR_ID	0x00000000
 #define X86_COREID_FEATURE_INFO	0x00000001
@@ -304,6 +311,36 @@ static INLINE uint32_t x86_read_dr7()
 static INLINE void x86_write_dr7(uint32_t val)
 {
 	asm volatile("mov %0, %%dr7" :: "r"(val));
+}
+
+/* Read CR0 */
+static INLINE uint32_t x86_read_cr0()
+{
+	uint32_t r;
+
+	asm volatile("mov %%cr0, %0" : "=r"(r));
+	return r;
+}
+
+/* Write CR0 */
+static INLINE void x86_write_cr0(uint32_t val)
+{
+	asm volatile("mov %0, %%cr0" :: "r"(val));
+}
+
+/* Read CR3 */
+static INLINE uint32_t x86_read_cr3()
+{
+	uint32_t r;
+
+	asm volatile("mov %%cr3, %0" : "=r"(r));
+	return r;
+}
+
+/* Write CR3 */
+static INLINE void x86_write_cr3(uint32_t val)
+{
+	asm volatile("mov %0, %%cr3" :: "r"(val));
 }
 
 /* Read an MSR */

@@ -41,6 +41,7 @@ void isr_handler(struct registers regs)
 	 */
 	int_no = (uint8_t)regs.int_no;
 
+	/* Call each handler on the ISR hook chain */
 	hook = _irq_chains[int_no].head;
 	while (hook) {
 		isr_t handler = hook->handler;
@@ -51,6 +52,9 @@ void isr_handler(struct registers regs)
 		hook = hook->next;
 	}
 
+	/* Notify that the we have done */
+	irq_done(int_no);
+	
 	if (!processed) {
 		kprintf("ISR %d not handled\n", int_no);
 		for (; ; ) ;
@@ -70,10 +74,8 @@ void irq_handler(struct registers regs)
 	 * more than 0x80
 	 */
 	int_no = (uint8_t)regs.int_no;
-	
-	/* Notify the PIC that we have done so we can accept >= priority IRQs now */
-	irq_done(int_no);
 
+	/* Call each handler on the IRQ hook chain */
 	hook = _irq_chains[int_no].head;
 	while (hook) {
 		isr_t handler = hook->handler;
@@ -83,6 +85,11 @@ void irq_handler(struct registers regs)
 		}
 		hook = hook->next;
 	}
+
+	/* Notify the PIC that we have done so we can accept >= priority
+	 * IRQs now
+	 */
+	irq_done(int_no);
 
 	if (!processed) {
 #ifdef _DEBUG_HAL
@@ -285,5 +292,5 @@ void init_irqs()
 	/* Install the serial IRQ handler */
 	register_irq_handler(IRQ4, &_kd_hook, kd_callback);
 
-	kprintf("IRQ dispatch table initialied.\n");
+	kprintf("IRQ dispatch table initialized.\n");
 }

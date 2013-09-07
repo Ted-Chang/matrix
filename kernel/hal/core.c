@@ -203,6 +203,9 @@ static void arch_preinit_core_percore(struct core *c)
 		c->arch.cycles_per_us = 7;	// 7 is a value we get from test
 	}
 
+	/* Set NE/MP in CR0 (Numeric Error, Monitor Coprocessor) and clear EM (Emulation). */
+	x86_write_cr0((x86_read_cr0() | X86_CR0_NE | X86_CR0_MP) & ~X86_CR0_EM);
+
 	/* Configure the TSC offset for sys_time() */
 	tsc_init_target();
 }
