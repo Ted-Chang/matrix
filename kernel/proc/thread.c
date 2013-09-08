@@ -412,12 +412,14 @@ void thread_kill(struct thread *t)
 
 boolean_t thread_interrupt(struct thread *t)
 {
+	boolean_t ret = FALSE;
+	
 	/* Cannot interrupt kernel threads */
 	if (t->owner != _kernel_proc) {
-		return thread_interrupt_internal(t, 0);
-	} else {
-		return FALSE;
+		ret = thread_interrupt_internal(t, 0);
 	}
+
+	return ret;
 }
 
 void thread_release(struct thread *t)

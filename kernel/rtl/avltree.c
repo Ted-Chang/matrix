@@ -262,9 +262,9 @@ void avl_tree_remove_node(struct avl_tree *tree, struct avl_tree_node *node)
 
 		start = node->right;
 	} else {
-		/* Node is a leaf. If it is the only element in the tree, then
-		 * just remove it and return - no rebalancing required. Otherwise,
-		 * remove it and then rebalance.
+		/* Node is a leaf. If it is the only element in the tree,
+		 * then just remove it and return - no rebalancing required.
+		 * Otherwise, remove it and then rebalance.
 		 */
 		if (node->parent) {
 			if (node->parent->left == node) {
@@ -317,4 +317,70 @@ void *avl_tree_lookup(struct avl_tree *tree, key_t key)
 
 	node = avl_tree_lookup_internal(tree, key);
 	return (node) ? node->value : NULL;
+}
+
+struct avl_tree_node *avl_tree_first(struct avl_tree *tree)
+{
+	struct avl_tree_node *node = tree->root;
+
+	if (node) {
+		/* Descend down the left-hand side of the tree to find the
+		 * smallest node.
+		 */
+		while (node->left) {
+			node = node->left;
+		}
+	}
+
+	return node;
+}
+
+struct avl_tree_node *avl_tree_last(struct avl_tree *tree)
+{
+	struct avl_tree_node *node = tree->root;
+
+	if (node) {
+		/* Descend down the right-hand side of the tree to find the
+		 * largest node.
+		 */
+		while (node->right) {
+			node = node->right;
+		}
+	}
+
+	return node;
+}
+
+struct avl_tree_node *avl_tree_node_next(struct avl_tree_node *node)
+{
+	struct avl_tree_node *n = NULL;
+	
+	if (node) {
+		/* If there's a right-hand child, move onto it and then go as
+		 * far left as we can.
+		 */
+		if (node->right) {
+			node = node->right;
+			while (node->left) {
+				node = node->left;
+			}
+
+			n = node;
+		} else {
+			/* There's no right-hand children, go up until we can
+			 * find an ancestor that is the left-hand child of its
+			 * parent.
+			 */
+			while (node->parent && (node == node->parent->right)) {
+				node = node->parent;
+			}
+
+			/* The parent will now point to the following node (or
+			 * NULL, if we reach the top of the tree).
+			 */
+			n = node->parent;
+		}
+	}
+
+	return n;
 }

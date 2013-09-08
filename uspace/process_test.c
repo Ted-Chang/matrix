@@ -6,7 +6,7 @@
 
 void idle_spin()
 {
-	uint32_t cnt = 10000;
+	uint32_t cnt = 5000;
 
 	while (cnt > 0) {
 		cnt--;
@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 		nr_prints++;
 		
 		/* We only do this test for 5000 round */
-		if (nr_prints > 2000) {
+		if (nr_prints > 1000) {
 			break;
 		}
 	}

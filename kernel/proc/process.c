@@ -613,6 +613,25 @@ void init_process()
 /* Terminate all running threads */
 void shutdown_process()
 {
+	struct list *l;
+	struct thread *t;
+	struct process *p;
+	struct avl_tree_node *node;
+
+	/* At least kernel process should be alive */
+	ASSERT(!AVL_TREE_EMPTY(&_proc_tree));
+	
 	mutex_acquire(&_proc_tree_lock);
+	
+	AVL_TREE_FOR_EACH(node, &_proc_tree) {
+		p = AVL_TREE_ENTRY(node, struct process);
+		if (p != _kernel_proc) {
+			LIST_FOR_EACH(l, &p->threads) {
+				t = LIST_ENTRY(l, struct thread, owner_link);
+				thread_kill(t);
+			}
+		}
+	}
+	
 	mutex_release(&_proc_tree_lock);
 }
