@@ -1,7 +1,8 @@
 [Build a debug version of bochs]
 * Download the sources
 * ./configure --help
-* ./configure --enable-debugger --enable-disasm
+* ./configure --enable-debugger --enable-disasm --enable-x86-64
+* --enable-term requires ncurses library
 * make
 * sudo make install
 
@@ -52,6 +53,12 @@ $ objdump -xfhd bin/matrix
 * delete a break point by break point number
 <bochs:1> d 1
 
+* disable a break point
+<bochs:1> bpd 1
+
+* enable a break point
+<bochs:1> bpe 1
+
 * next statement, not step in
 <bochs:1> p
 
@@ -67,6 +74,8 @@ edit the bochsrc.bxrc, set the log option to a file
 
 * print infomation
 <bochs:1> info tss
+<bochs:1> info idt
+<bochs:1> info gdt
 
 * Debugging process:
 <bochs:1> lb 0x104008

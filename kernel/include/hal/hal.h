@@ -143,9 +143,6 @@ extern void isr29();
 extern void isr30();
 extern void isr31();
 extern void isr128();	// Interrupt handler for system call
-extern void isr240();	// Interrupt handler for APIC
-extern void isr241();
-extern void isr242();
 
 extern void irq0();
 extern void irq1();
@@ -163,5 +160,8 @@ extern void irq12();
 extern void irq13();
 extern void irq14();
 extern void irq15();
+extern void irq240();	// Interrupt handler for APIC
+extern void irq241();
+extern void irq242();
 
 #endif	/* __HAL_H__ */

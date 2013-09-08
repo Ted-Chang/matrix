@@ -176,19 +176,19 @@ static void sched_timer_func(void *ctx)
 static struct thread *sched_pick_thread(struct sched_core *c)
 {
 	int q;
-	struct thread *t;
 	struct list *l;
+	struct thread *t;
 
 	t = NULL;
 	
-	if (!c->active->bitmap) {
-		ASSERT(c->total == 0);
-	} else {
+	if (c->active->bitmap) {
 		q = bitops_fls(c->active->bitmap);
 		ASSERT(!LIST_EMPTY(&c->active->threads[q]));
 		l = c->active->threads[q].next;
 		t = LIST_ENTRY(l, struct thread, runq_link);
 		sched_dequeue(c->active, t);
+	} else {
+		ASSERT(c->total == 0);
 	}
 	
 	return t;
@@ -216,7 +216,7 @@ void sched_insert_thread(struct thread *t)
 }
 
 /**
- * Picks a new process to run and switches to it. Interrupts must be disable.
+ * Picks a new thread to run and switches to it. Interrupts must be disable.
  * @param state		- Previous interrupt state
  */
 void sched_reschedule(boolean_t state)
@@ -224,6 +224,9 @@ void sched_reschedule(boolean_t state)
 	struct sched_core *c;
 	struct thread *next;
 
+	/* We need interrupt disabled so we don't get bothered by interrupts */
+	ASSERT(irq_state() == FALSE);
+	
 	/* Get current schedule CORE */
 	c = CURR_CORE->sched;
 
@@ -237,7 +240,7 @@ void sched_reschedule(boolean_t state)
 		sched_adjust_priority(c, CURR_THREAD);
 	}
 
-	/* Enqueue and dequeue the current process to update the process queue */
+	/* Enqueue and dequeue the current process to update the thread queue */
 	if (CURR_THREAD->state == THREAD_RUNNING) {
 		/* The thread hasn't gone to sleep, re-queue it */
 		CURR_THREAD->state = THREAD_READY;
@@ -245,7 +248,8 @@ void sched_reschedule(boolean_t state)
 			sched_enqueue(c->active, CURR_THREAD);
 		}
 	} else {
-		DEBUG(DL_DBG, ("thread(%s:%s:%d), state(%d).\n",
+		/* The thread has gone sleep or dead */
+		DEBUG(DL_DBG, ("thread(%s:%s:%d) with state(%d).\n",
 			       CURR_PROC->name, CURR_THREAD->name,
 			       CURR_THREAD->id, CURR_THREAD->state));
 		ASSERT(CURR_THREAD != c->idle_thread);
@@ -281,9 +285,6 @@ void sched_reschedule(boolean_t state)
 
 	/* Set off the timer if necessary */
 	if (CURR_THREAD->quantum > 0) {
-		DEBUG(DL_DBG, ("core(%d) total(%d) thread(%s:%d) quantum(%d).\n",
-			       CURR_CORE->id, c->total, CURR_THREAD->name,
-			       CURR_THREAD->id, CURR_THREAD->quantum));
 		set_timer(&c->timer, CURR_THREAD->quantum, sched_timer_func);
 	}
 	
@@ -292,10 +293,12 @@ void sched_reschedule(boolean_t state)
 	 */
 	if (CURR_THREAD != c->prev_thread) {
 #ifdef _DEBUG_SCHED
-		DEBUG(DL_DBG, ("core(%d) switching to(%s:%d:%s:%d:%p) state(%d).\n",
-			       CURR_CORE->id, CURR_PROC->name, CURR_PROC->id,
-			       CURR_THREAD->name, CURR_THREAD->id, CURR_THREAD,
-			       state));
+		DEBUG(DL_DBG,
+		      ("core(%d) total(%d) process(%s:%d) thread(%s:%d:%p) "
+		       "quantum(%d) state(%d).\n",
+		       CURR_CORE->id, c->total, CURR_PROC->name, CURR_PROC->id,
+		       CURR_THREAD->name, CURR_THREAD->id, CURR_THREAD,
+		       CURR_THREAD->quantum, state));
 #endif	/* _DEBUG_SCHED */
 		
 		/* Switch the address space. The NULL case will be handled by
@@ -338,7 +341,8 @@ void sched_post_switch(boolean_t state)
 			list_add_tail(&t->runq_link, &_dead_threads);
 			spinlock_release(&_dead_threads_lock);
 			
-			DEBUG(DL_DBG, ("thread(%s:%d) -> dead threads list.\n", t->name, t->id));
+			DEBUG(DL_DBG, ("thread(%s:%d) -> dead threads list.\n",
+				       t->name, t->id));
 			semaphore_up(&_dead_threads_sem, 1);
 		}
 	}

@@ -498,7 +498,10 @@ int do_clear()
 
 int do_shutdown()
 {
+	shutdown_process();
+	
 	platform_shutdown();
+	
 	return 0;
 }
 

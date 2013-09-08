@@ -50,8 +50,8 @@ void lapic_spurious_handler(struct registers *regs)
 
 void lapic_timer_handler(struct registers * regs)
 {
-	timer_tick();
 	lapic_eoi();
+	timer_tick();
 }
 
 void lapic_ipi_handler(struct registers *regs)
@@ -150,9 +150,11 @@ void init_lapic()
 	 * in the Spurious Interrupt Vector Register.
 	 */
 	lapic_write(LAPIC_REG_SPURIOUS, LAPIC_VECT_SPURIOUS | (1<<8));
-	
-	/* Set the timer initial count based on time 100us */
-	lapic_timer_prepare(100);
+
+	/* Set the initial count, it's a magic number. I just get it by several
+	 * tests and it works.
+	 */
+	lapic_write(LAPIC_REG_TIMER_INITIAL, 10240);
 	
 	/* Map APIC timer to an interrupt vector, we are setting it in periodic
 	 * mode. For effiency we should use one-shot mode.

@@ -150,6 +150,8 @@ void timer_tick()
 	spinlock_release(&CURR_CORE->timer_lock);
 	if (prempt) {
 		spinlock_acquire_noirq(&CURR_THREAD->lock);
+
+		/* This function should be called with interrupt disabled */
 		sched_reschedule(FALSE);
 	}
 }

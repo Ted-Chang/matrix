@@ -122,8 +122,7 @@ void arch_thread_enter_uspace(ptr_t entry, ptr_t ustack, ptr_t ctx)
 	 * we enter user mode as it is a privileged instruction, we will set the
 	 * interrupt flag to enable interrupt.
 	 */
-	asm volatile("cli\n"
-		     "mov %1, %%esp\n"		/* Stack pointer */
+	asm volatile("mov %1, %%esp\n"		/* Stack pointer */
 		     "mov $0x23, %%ax\n"	/* Segment selector */
 		     "mov %%ax, %%ds\n"
 		     "mov %%ax, %%es\n"
@@ -141,7 +140,7 @@ void arch_thread_enter_uspace(ptr_t entry, ptr_t ustack, ptr_t ctx)
 		     :: "m"(entry), "r"(ustack) : "%ax", "%esp", "%eax");
 }
 
-/* Thread entry function wrapper */
+/* Thread kernel entry function wrapper */
 static void thread_wrapper()
 {
 	/* Upon switching to a newly-created thread's context, execution will
@@ -156,18 +155,6 @@ static void thread_wrapper()
 	CURR_THREAD->entry(CURR_THREAD->args);
 	
 	thread_exit();
-}
-
-/* Userspace thread entry function wrapper */
-void thread_uspace_wrapper(void *ctx)
-{
-	struct thread_uspace_creation *info;
-
-	ASSERT(ctx != NULL);
-	
-	info = (struct thread_uspace_creation *)ctx;
-	
-	arch_thread_enter_uspace(info->entry, info->esp, info->args);
 }
 
 static void thread_ctor(void *obj)
@@ -193,6 +180,23 @@ static void thread_dtor(void *obj)
 	;
 }
 
+static void thread_wake_internal(struct thread *t)
+{
+	ASSERT(t->state == THREAD_SLEEPING);
+	ASSERT(!t->wait_lock || spinlock_held(t->wait_lock));
+
+	/* Cancel the timer */
+	cancel_timer(&t->sleep_timer);
+
+	/* Remove the thread from the list and wake it up */
+	list_del(&t->wait_link);
+	CLEAR_FLAG(t->flags, THREAD_INTERRUPTIBLE_F);
+	t->wait_lock = NULL;
+
+	t->state = THREAD_READY;
+	sched_insert_thread(t);
+}
+
 static boolean_t thread_interrupt_internal(struct thread *t, int flags)
 {
 	struct spinlock *l;
@@ -207,9 +211,12 @@ static boolean_t thread_interrupt_internal(struct thread *t, int flags)
 	
 	if ((t->state == THREAD_SLEEPING) &&
 	    FLAG_ON(t->flags, THREAD_INTERRUPTIBLE_F)) {
+		t->sleep_status = -1;
+		thread_wake_internal(t);
 		ret = TRUE;
 	} else {
-		SET_FLAG(t->flags, THREAD_INTERRUPTIBLE_F);
+		/* The thread is either not sleeping or not interruptible. */
+		SET_FLAG(t->flags, THREAD_INTERRUPTED_F);
 	}
 
 	spinlock_release(&t->lock);
@@ -219,22 +226,6 @@ static boolean_t thread_interrupt_internal(struct thread *t, int flags)
 	}
 
 	return ret;
-}
-
-static void thread_wake_internal(struct thread *t)
-{
-	ASSERT(t->state == THREAD_SLEEPING);
-
-	/* Stop the timer */
-	cancel_timer(&t->sleep_timer);
-
-	/* Remove the thread from the list and wake it up */
-	list_del(&t->wait_link);
-	CLEAR_FLAG(t->flags, THREAD_INTERRUPTIBLE_F);
-	t->wait_lock = NULL;
-
-	t->state = THREAD_READY;
-	sched_insert_thread(t);
 }
 
 static void thread_timeout(void *ctx)
@@ -475,7 +466,7 @@ void thread_exit()
 		ASSERT(rc == 0);
 	}
 
-	/* Notify the waiter */
+	/* Notify the waiter that we are exiting */
 	notifier_run(&CURR_THREAD->death_notifier);
 
 	state = irq_disable();

@@ -609,3 +609,10 @@ void init_process()
 
 	DEBUG(DL_DBG, ("allocated kernel process(%p).\n", _kernel_proc));
 }
+
+/* Terminate all running threads */
+void shutdown_process()
+{
+	mutex_acquire(&_proc_tree_lock);
+	mutex_release(&_proc_tree_lock);
+}

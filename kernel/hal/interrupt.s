@@ -68,10 +68,6 @@ ISR_NOERRCODE 30
 ISR_NOERRCODE 31
 ISR_NOERRCODE 128	; Used by system call
 	
-ISR_NOERRCODE 240	; The following 3 used by APIC
-ISR_NOERRCODE 241
-ISR_NOERRCODE 242
-
 IRQ	0, 32
 IRQ 	1, 33
 IRQ	2, 34
@@ -88,6 +84,9 @@ IRQ	12, 44
 IRQ	13, 45
 IRQ	14, 46
 IRQ	15, 47
+IRQ	240, 240	; The following 3 were used by APIC
+IRQ	241, 241
+IRQ	242, 242
  
 ; In isr.c
 extern isr_handler

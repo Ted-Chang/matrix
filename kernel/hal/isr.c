@@ -52,9 +52,6 @@ void isr_handler(struct registers regs)
 		hook = hook->next;
 	}
 
-	/* Notify that the we have done */
-	irq_done(int_no);
-	
 	if (!processed) {
 		kprintf("ISR %d not handled\n", int_no);
 		for (; ; ) ;

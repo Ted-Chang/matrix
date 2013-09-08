@@ -82,5 +82,6 @@ extern int process_wait(struct process *p, void *sync);
 extern int process_getid();
 
 extern void init_process();
+extern void shutdown_process();
 
 #endif	/* __PROCESS_H__ */

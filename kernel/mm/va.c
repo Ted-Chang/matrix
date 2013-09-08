@@ -109,9 +109,10 @@ void va_switch(struct va_space *vas)
 	 * portion of the address space.
 	 */
 	if (vas && (vas != CURR_ASPACE)) {
-		
+#ifdef _DEBUG_MM
 		DEBUG(DL_DBG, ("new vas(%p), current vas(%p), core(%d).\n",
 			       vas, CURR_ASPACE, CURR_CORE->id));
+#endif	/* _DEBUG_MM */
 
 		state = irq_disable();
 

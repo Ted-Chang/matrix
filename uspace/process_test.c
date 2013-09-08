@@ -15,6 +15,7 @@ void idle_spin()
 int main(int argc, char **argv)
 {
 	int rc = 0;
+	uint32_t nr_prints = 0;
 
 	if (argc != 2) {
 		rc = -1;
@@ -24,6 +25,12 @@ int main(int argc, char **argv)
 	while (TRUE) {
 		printf("%s: say hello!\n", argv[1]);
 		idle_spin();
+		nr_prints++;
+		
+		/* We only do this test for 5000 round */
+		if (nr_prints > 5000) {
+			break;
+		}
 	}
 
  out:
