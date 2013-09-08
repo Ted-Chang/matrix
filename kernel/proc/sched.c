@@ -167,7 +167,7 @@ static void sched_timer_func(void *ctx)
 {
 	CURR_THREAD->quantum = 0;
 
-	DEBUG(DL_DBG, ("sched timer triggered.\n"));
+	DEBUG(DL_DBG, ("timer schedule.\n"));
 }
 
 /**
@@ -285,7 +285,8 @@ void sched_reschedule(boolean_t state)
 
 	/* Set off the timer if necessary */
 	if (CURR_THREAD->quantum > 0) {
-		set_timer(&c->timer, CURR_THREAD->quantum, sched_timer_func);
+		set_timer(&c->timer, CURR_THREAD->quantum, sched_timer_func,
+			  CURR_THREAD);
 	}
 	
 	/* Perform the thread switch if current thread is not the same as
@@ -422,7 +423,7 @@ void init_sched_percore()
 	CURR_CORE->thread = CURR_CORE->sched->idle_thread;
 	
 	/* Create the preemption timer */
-	init_timer(&CURR_CORE->sched->timer, "sched-tmr", NULL);
+	init_timer(&CURR_CORE->sched->timer, "sched-tmr", TIMER_SCHED);
 
 	/* Initialize queues */
 	for (i = 0; i < 2; i++) {

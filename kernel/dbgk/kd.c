@@ -89,6 +89,15 @@ void kd_callback(struct registers *regs)
 
 	/* Work out the reason */
 	dr6 = x86_read_dr6();
+	if (!(dr6 & (X86_DR6_B0 | X86_DR6_B1 | X86_DR6_B2 | X86_DR6_B3 | X86_DR6_BD
+		     | X86_DR6_BS))) {
+		/* No bits set, assume this came from kd_enter(), in which
+		 * case the reason will be in EAX
+		 */
+		reason = regs->eax;
+	} else {
+		;
+	}
 
 	kd_enter_internal(reason, regs, i);
 

@@ -9,12 +9,6 @@
 #include "kd.h"
 #include "terminal.h"
 
-struct klog_buffer {
-	u_char level;
-	u_char ch;
-};
-static struct klog_buffer _klog_buffer[10];
-
 /* Lock for the kernel terminal */
 static struct spinlock _terminal_lock;
 
@@ -157,7 +151,8 @@ void preinit_terminal()
 	uint8_t status;
 	
 	spinlock_init(&_terminal_lock, "term-lock");
-	
+
+	/* If we have a serial port then initialize it */
 	status = inportb(SERIAL_PORT + 6);
 
 	if ((status & ((1 << 4) | (1 << 5))) && status != 0xFF) {

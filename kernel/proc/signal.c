@@ -25,6 +25,14 @@
 
 void signal_send(struct thread *t, int num, struct siginfo *info, boolean_t force);
 
+int arch_signal_setup_frame(struct sigaction *action, struct siginfo *info,
+			    sigset_t mask)
+{
+	int rc = 0;
+
+	return rc;
+}
+
 static void signal_force(struct thread *t, int num, int cause)
 {
 	/* If failed to deliver the signal that we're sending now, force it to run
@@ -69,10 +77,12 @@ void signal_send(struct thread *t, int num, struct siginfo *info, boolean_t forc
 
 void signal_handle_pending()
 {
-	int i;
+	int i, rc;
 	sigset_t pending, mask;
 	struct sigaction *action;
 
+	spinlock_acquire(&CURR_THREAD->lock);
+	
 	pending = CURR_THREAD->pending_signals;
 	pending &= ~(CURR_THREAD->signal_mask | CURR_PROC->signal_mask);
 	if (!pending) {
@@ -93,19 +103,44 @@ void signal_handle_pending()
 			continue;
 		}
 
+		/* If not the default action, we must execute a user-mode
+		 * signal handler.
+		 */
 		if (action->sa_handler != SIG_DFT) {
-			;
+			/* Save the current mask, and apply a new mask. */
+			mask = CURR_PROC->signal_mask;
+			CURR_PROC->signal_mask |= action->sa_mask;
+
+			rc = arch_signal_setup_frame(action,
+						     &CURR_THREAD->signal_info[i],
+						     mask);
+			if (rc != 0) {
+				signal_force(CURR_THREAD, SIGSEGV, i);
+			}
+			
+			break;
 		}
+
+		/* Release the lock while handling default action in case
+		 * we need to kill the process.
+		 */
+		spinlock_release(&CURR_THREAD->lock);
 
 		/* Handle the default action */
 		if (SIG_DFT_TERM(i)) {
-			;
+			process_exit(i);
 		} else if (SIG_DFT_CORE(i)) {
-			;
+			// TODO: Core dump
+			process_exit(i);
 		} else if (SIG_DFT_STOP(i)) {
-			;
+			// TODO: Stop process
+			process_exit(i);
 		} else if (SIG_DFT_CONT(i)) {
 			break;
 		}
+
+		spinlock_acquire(&CURR_THREAD->lock);
 	}
+
+	spinlock_release(&CURR_THREAD->lock);
 }

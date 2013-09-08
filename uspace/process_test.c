@@ -6,7 +6,7 @@
 
 void idle_spin()
 {
-	uint32_t cnt = 20000;
+	uint32_t cnt = 10000;
 
 	while (cnt > 0) {
 		cnt--;

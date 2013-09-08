@@ -30,6 +30,15 @@
 #define X86_CR0_WP		(1<<16)		// Write Protect
 #define X86_CR0_PG		(1<<31)		// Paging Enabled
 
+/* Flags in DR6 (Debug Status Register) */
+#define X86_DR6_B0		(1<<0)		// Breakpoint 0 condition detected
+#define X86_DR6_B1		(1<<1)		// Breakpoint 1 condition detected
+#define X86_DR6_B2		(1<<2)		// Breakpoint 2 condition detected
+#define X86_DR6_B3		(1<<3)		// Breakpoint 3 condition detected
+#define X86_DR6_BD		(1<<13)		// Debug register access
+#define X86_DR6_BS		(1<<14)		// Single-stepped
+#define X86_DR6_BT		(1<<15)		// Task switch
+
 /* Standard COREID function definitions */
 #define X86_COREID_VENDOR_ID	0x00000000
 #define X86_COREID_FEATURE_INFO	0x00000001

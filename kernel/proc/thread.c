@@ -169,7 +169,7 @@ static void thread_ctor(void *obj)
 	LIST_INIT(&t->wait_link);
 	LIST_INIT(&t->owner_link);
 
-	init_timer(&t->sleep_timer, "t-slp-tmr", t);
+	init_timer(&t->sleep_timer, "t-slp-tmr", 0);
 
 	/* Initialize the death notifier */
 	init_notifier(&t->death_notifier);
@@ -357,7 +357,8 @@ int thread_sleep(struct spinlock *lock, useconds_t timeout, const char *name, in
 
 	/* Start the timer if required */
 	if (timeout > 0) {
-		set_timer(&CURR_THREAD->sleep_timer, timeout, thread_timeout);
+		set_timer(&CURR_THREAD->sleep_timer, timeout, thread_timeout,
+			  CURR_THREAD);
 	}
 
 	/* Release the specified lock */

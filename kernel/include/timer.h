@@ -15,13 +15,18 @@ struct timer {
 	struct core *core;		// CORE that the timer was started on
 	useconds_t expire_time;		// Time at which the timer will fire
 	timer_func_t func;		// Function to call when the timer expires
-	void *data;			// Argument to pass to timer handler
+	int flags;			// Flags for the timer
+	void *ctx;			// Argument to pass to timer handler
 	char name[16];			// Name for the timer
 };
 typedef struct timer timer_t;
 
-extern void init_timer(struct timer *t, const char *name, void *data);
-extern void set_timer(struct timer *t, useconds_t expire_time, timer_func_t callback);
+/* Flags for timer */
+#define TIMER_SCHED	(1<<0)		// Scheduler timer, reserved for system use
+
+extern void init_timer(struct timer *t, const char *name, int flags);
+extern void set_timer(struct timer *t, useconds_t expire_time,
+		      timer_func_t callback, void *ctx);
 extern void cancel_timer(struct timer *t);
 extern void timer_delay(uint32_t us);
 extern void timer_tick();

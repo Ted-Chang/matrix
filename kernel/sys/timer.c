@@ -36,7 +36,7 @@ void tmrs_clrtimer(struct list *head, struct timer *t)
  * caller is responsible for scheduling a new alarm for the timer if needed.
  */
 void tmrs_settimer(struct list *head, struct timer *t, useconds_t expire_time,
-		   timer_func_t callback)
+		   timer_func_t callback, void *ctx)
 {
 	struct list *l;
 	struct timer *at;
@@ -49,6 +49,7 @@ void tmrs_settimer(struct list *head, struct timer *t, useconds_t expire_time,
 	/* Set the timer's variables */
 	t->expire_time = expire_time + sys_time();
 	t->func = callback;
+	t->ctx = ctx;
 
 	/* Add the timer to the active timer list, the next timer due is in front */
 	LIST_FOR_EACH(l, head) {
@@ -78,8 +79,12 @@ boolean_t tmrs_exptimers(struct list *head, useconds_t now)
 		t = LIST_ENTRY(l, struct timer, link);
 		if (t->expire_time <= now) {
 			list_del(&t->link);
-			t->func(t->data);
-			preempt = TRUE;
+			t->func(t->ctx);
+			
+			/* If this is a schedule timer we need to do schedule */
+			if (!preempt && FLAG_ON(t->flags, TIMER_SCHED)) {
+				preempt = TRUE;
+			}
 		} else {
 			break;
 		}
@@ -88,27 +93,28 @@ boolean_t tmrs_exptimers(struct list *head, useconds_t now)
 	return preempt;
 }
 
-void init_timer(struct timer *t, const char *name, void *data)
+void init_timer(struct timer *t, const char *name, int flags)
 {
 	ASSERT(t != NULL);
 	
 	LIST_INIT(&t->link);
 	t->expire_time = TIMER_NEVER;
+	t->flags = flags;
 	t->func = NULL;
-	t->data = NULL;
-	t->data = data;
+	t->ctx = NULL;
 	strncpy(t->name, name, 15);
 	t->name[15] = 0;
 }
 
-void set_timer(struct timer *t, useconds_t expire_time, timer_func_t callback)
+void set_timer(struct timer *t, useconds_t expire_time, timer_func_t callback,
+	       void *ctx)
 {
 	ASSERT(t != NULL);
 
 	t->core = CURR_CORE;
 
 	spinlock_acquire(&CURR_CORE->timer_lock);
-	tmrs_settimer(&CURR_CORE->timers, t, expire_time, callback);
+	tmrs_settimer(&CURR_CORE->timers, t, expire_time, callback, ctx);
 	spinlock_release(&CURR_CORE->timer_lock);
 
 #ifdef _DEBUG_SCHED
