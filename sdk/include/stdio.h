@@ -17,4 +17,8 @@ extern int sprintf(char *buf, const char *fmt, ...);
 extern int snprintf(char *buf, size_t cnt, const char *fmt, ...);
 extern int do_printf(printf_helper_t helper, const char *fmt, va_list args);
 
+#ifndef __KERNEL__
+extern int printf(const char *fmt, ...);
+#endif	/* No __KERNEL__ */
+
 #endif	/* __STDIO_H__ */

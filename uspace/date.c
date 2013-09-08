@@ -1,5 +1,6 @@
 #include <types.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <sys/time.h>
 #include <syscall.h>
 
@@ -12,7 +13,7 @@ int main(int argc, char **argv)
 	struct tm *tmp;
 
 	t = time(NULL);
-	tmp = localtime(&t);
+	tmp = (struct tm *)localtime(&t);
 	if (!tmp) {
 		printf("localtime failed.\n");
 		goto out;

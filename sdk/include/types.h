@@ -68,4 +68,7 @@ typedef uint64_t off_t;
 typedef uint64_t fsblkcnt_t;
 typedef uint64_t fsfilcnt_t;
 
+/* Device handle definition */
+typedef uint32_t dev_t;
+
 #endif	/* __TYPES_H__ */

@@ -548,6 +548,13 @@ int do_umount(const char *path)
 	return rc;
 }
 
+int do_makedev()
+{
+	int ret = 0;
+
+	return ret;
+}
+
 int do_mknod(const char *path, mode_t mode, dev_t dev)
 {
 	int rc = -1;
@@ -570,6 +577,13 @@ int do_delete_module(const char *name)
 }
 
 int do_init_module(const char *name, void *image)
+{
+	int rc = -1;
+
+	return rc;
+}
+
+int do_ioctl(int d, int request, void *input, void *output)
 {
 	int rc = -1;
 
@@ -617,6 +631,7 @@ static void *_syscalls[] = {
 	do_create_module,
 	do_delete_module,
 	do_init_module,
+	do_ioctl,
 	NULL
 };
 

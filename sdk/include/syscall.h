@@ -88,6 +88,7 @@ DECL_SYSCALL3(mknod, const char *, mode_t, dev_t);
 DECL_SYSCALL2(create_module, const char *, size_t);
 DECL_SYSCALL1(delete_module, const char *);
 DECL_SYSCALL2(init_module, const char *, void *);
+DECL_SYSCALL4(ioctl, int, int, void *, void *);
 /* System call declaration end */
 
 #endif	/* __SYSCALL_H__ */

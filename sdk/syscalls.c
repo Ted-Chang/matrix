@@ -43,6 +43,7 @@ DEFN_SYSCALL3(mknod, 30, const char *, mode_t, dev_t)
 DEFN_SYSCALL2(create_module, 31, const char *, size_t)
 DEFN_SYSCALL1(delete_module, 32, const char *)
 DEFN_SYSCALL2(init_module, 33, const char *, void *)
+DEFN_SYSCALL4(ioctl, 34, int, int, void *, void *)
 
 int null()
 {
@@ -220,4 +221,9 @@ int delete_module(const char *name)
 int init_module(const char *name, void *image)
 {
 	return mtx_init_module(name, image);
+}
+
+int ioctl(int d, int request, void *input, void *output)
+{
+	return mtx_ioctl(d, request, input, output);
 }

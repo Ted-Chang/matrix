@@ -1,5 +1,6 @@
 #include <types.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <syscall.h>
 #include <errno.h>
 
@@ -28,7 +29,7 @@ int main(int argc, char **argv)
 		nr_prints++;
 		
 		/* We only do this test for 5000 round */
-		if (nr_prints > 5000) {
+		if (nr_prints > 2000) {
 			break;
 		}
 	}

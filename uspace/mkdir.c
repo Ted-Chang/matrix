@@ -1,5 +1,6 @@
 #include <types.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <syscall.h>
 #include <sys/stat.h>
 #include <errno.h>

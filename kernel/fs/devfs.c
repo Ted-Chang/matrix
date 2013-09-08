@@ -8,15 +8,6 @@
 #include "dirent.h"
 #include "devfs.h"
 
-#define MAX_DEVFS_NODES	64
-
-struct devfs_node {
-	char name[128];
-	uint32_t ino;
-};
-static struct devfs_node _devfs_nodes[MAX_DEVFS_NODES];
-static int _nr_devfs_nodes = 0;
-
 static ino_t _next_ino = 1;
 
 static ino_t id_alloc()
@@ -36,14 +27,9 @@ struct vfs_type _devfs_type = {
 static int devfs_readdir(struct vfs_node *n, uint32_t index, struct dirent **dentry)
 {
 	int rc = -1;
-	struct devfs_node *dn;
 	struct dirent *new_dentry = NULL;
 	
 	ASSERT(dentry != NULL);
-
-	if (index >= _nr_devfs_nodes) {
-		goto out;
-	}
 
 	new_dentry = (struct dirent *)kmalloc(sizeof(struct dirent), 0);
 	if (!new_dentry) {
@@ -54,11 +40,6 @@ static int devfs_readdir(struct vfs_node *n, uint32_t index, struct dirent **den
 
 	memset(new_dentry, 0, sizeof(struct dirent));
 
-	dn = &_devfs_nodes[index];
-	
-	strncpy(new_dentry->d_name, dn->name, 128);
-	new_dentry->d_ino = dn->ino;
-	
 	*dentry = new_dentry;
 	rc = 0;
 
@@ -109,8 +90,6 @@ int devfs_init(void)
 {
 	int rc = -1;
 
-	memset(_devfs_nodes, 0, sizeof(struct devfs_node) * MAX_DEVFS_NODES);
-	
 	rc = vfs_type_register(&_devfs_type);
 	if (rc != 0) {
 		DEBUG(DL_DBG, ("module devfs initialize failed.\n"));
@@ -128,7 +107,6 @@ int devfs_register(devfs_handle_t dir, const char *name, int flags, void *ops,
 {
 	int rc = -1;
 	uint32_t type;
-	struct devfs_node *dn;
 	struct vfs_node *n, *dev;
 
 	ASSERT(handle != NULL);
@@ -143,11 +121,6 @@ int devfs_register(devfs_handle_t dir, const char *name, int flags, void *ops,
 	if (strcmp(n->mount->type->name, "devfs") != 0) {
 		DEBUG(DL_INF, ("register device on non-devfs, node(%s), fstype(%s).\n",
 			       n->name, n->mount->type->name));
-		goto out;
-	}
-
-	if (_nr_devfs_nodes > MAX_DEVFS_NODES) {
-		DEBUG(DL_INF, ("too much devices in devfs.\n"));
 		goto out;
 	}
 
@@ -170,11 +143,6 @@ int devfs_register(devfs_handle_t dir, const char *name, int flags, void *ops,
 	 */
 	avl_tree_insert(&n->mount->nodes, dev->ino, dev);
 
-	dn = &_devfs_nodes[_nr_devfs_nodes];
-	strncpy(dn->name, name, 128);
-	dn->ino = dev->ino;
-	_nr_devfs_nodes++;
-	
 	*handle = dev;
 	rc = 0;
 
@@ -197,6 +165,7 @@ int devfs_unregister(devfs_handle_t handle)
 		goto out;
 	}
 
+	/* Check the File System type */
 	if (strcmp(n->mount->type->name, "devfs") != 0) {
 		DEBUG(DL_INF, ("unregister directory node(%s), fstype(%s).\n",
 			       n->name, n->mount->type->name));

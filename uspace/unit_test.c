@@ -1,5 +1,7 @@
 #include <types.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 #include <syscall.h>
 #include <errno.h>
 
@@ -11,6 +13,7 @@ static void cat_test();
 static void mkdir_test();
 static void date_test();
 static void clear_test();
+static void multi_processes_test();
 static void shutdown_test();
 
 int main(int argc, char **argv)
@@ -60,7 +63,7 @@ int main(int argc, char **argv)
 
 	multi_processes_test();
 		
-	//shutdown_test();
+	shutdown_test();
 
 	while (TRUE) {
 		;
@@ -257,7 +260,8 @@ void clear_test()
 
 void multi_processes_test()
 {
-	int rc;
+	int rc, status;
+	int pid1, pid2, pid3;
 	char *process_test1[] = {
 		"/process_test",
 		"alice",
@@ -274,23 +278,29 @@ void multi_processes_test()
 		NULL
 	};
 
-	rc = create_process(process_test1[0], process_test1, 0, 16);
-	if (rc == -1) {
-		printf("create_process failed, err(%d).\n", rc);
+	pid1 = create_process(process_test1[0], process_test1, 0, 16);
+	if (pid1 == -1) {
+		printf("create_process failed, err(%d).\n", pid1);
 		goto out;
 	}
 
-	rc = create_process(process_test2[0], process_test2, 0, 16);
-	if (rc == -1) {
-		printf("create_process failed, err(%d).\n", rc);
+	pid2 = create_process(process_test2[0], process_test2, 0, 16);
+	if (pid2 == -1) {
+		printf("create_process failed, err(%d).\n", pid2);
 		goto out;
 	}
 
-	rc = create_process(process_test3[0], process_test3, 0, 16);
-	if (rc == -1) {
-		printf("create_process failed, err(%d).\n", rc);
+	pid3 = create_process(process_test3[0], process_test3, 0, 16);
+	if (pid3 == -1) {
+		printf("create_process failed, err(%d).\n", pid3);
 		goto out;
 	}
+
+	rc = waitpid(pid1, &status, 0);
+
+	rc = waitpid(pid2, &status, 0);
+
+	rc = waitpid(pid3, &status, 0);
 
  out:
 	return;
