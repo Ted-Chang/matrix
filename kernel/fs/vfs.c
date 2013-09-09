@@ -376,7 +376,8 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 		mutex_acquire(&m->lock);
 		v = n;
 
-		DEBUG(DL_DBG, ("looking for %s in node(%s).\n", tok, n->name));
+		DEBUG(DL_DBG, ("looking for (%s) in node(%s) ino(%d).\n", tok, n->name, ino));
+		
 		/* Lookup the node in cached tree first */
 		n = avl_tree_lookup(&m->nodes, ino);
 		if (n) {
@@ -629,6 +630,7 @@ int vfs_mount(const char *dev, const char *path, const char *type, const void *d
 	/* Append the mount to the mount list */
 	list_add_tail(&mnt->link, &_mount_list);
 	if (!_root_mount) {
+		/* The first mount is the root mount */
 		_root_mount = mnt;
 		vfs_node_refer(_root_mount->root);
 	}

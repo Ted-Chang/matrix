@@ -11,7 +11,6 @@ TARGETS := \
 	$(TARGETDIR)/init \
 	$(TARGETDIR)/echo \
 	$(TARGETDIR)/crond \
-	$(TARGETDIR)/unit_test \
 	$(TARGETDIR)/ls \
 	$(TARGETDIR)/cat \
 	$(TARGETDIR)/clear \
@@ -21,6 +20,8 @@ TARGETS := \
 	$(TARGETDIR)/mount \
 	$(TARGETDIR)/umount \
 	$(TARGETDIR)/dd \
+	$(TARGETDIR)/mknod \
+	$(TARGETDIR)/unit_test \
 	$(TARGETDIR)/process_test \
 
 OBJ := ./obji386
@@ -68,6 +69,9 @@ $(TARGETDIR)/umount: $(OBJ)/umount.o
 
 $(TARGETDIR)/dd: $(OBJ)/dd.o
 	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/dd.map -o $(TARGETDIR)/dd $(OBJ)/dd.o
+
+$(TARGETDIR)/mknod: $(OBJ)/mknod.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/mknod.map -o $(TARGETDIR)/mknod $(OBJ)/mknod.o
 
 $(TARGETDIR)/process_test: $(OBJ)/process_test.o
 	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/process_test.map -o $(TARGETDIR)/process_test $(OBJ)/process_test.o

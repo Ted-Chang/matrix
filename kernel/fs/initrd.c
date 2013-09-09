@@ -1,7 +1,9 @@
 #include <types.h>
 #include <string.h>
+#include <errno.h>
 #include "hal/hal.h"
 #include "mm/malloc.h"
+#include "fs.h"
 #include "dirent.h"
 #include "initrd.h"
 #include "debug.h"
@@ -14,9 +16,6 @@ struct ramfs_node {
 	uint32_t mask;
 	uint8_t *data;
 };
-
-extern struct vfs_node *vfs_node_alloc(struct vfs_mount *mnt, uint32_t type,
-				       struct vfs_node_ops *ops, void *data);
 
 static int initrd_mount(struct vfs_mount *mnt, int flags, const void *data);
 static int initrd_read_node(struct vfs_mount *mnt, ino_t id, struct vfs_node **np);
@@ -43,18 +42,19 @@ static int initrd_create(struct vfs_node *parent, const char *name,
 
 	ASSERT(parent->type == VFS_DIRECTORY);
 	
-	DEBUG(DL_DBG, ("create(%s), type(%d).\n", name, type));
-
 	if (!np || type != VFS_DIRECTORY) {	// Only support create directory now
+		rc = EINVAL;
 		goto out;
 	}
 
 	if (_nr_initrd_nodes >= _nr_total_initrd_nodes) {
+		rc = EINVAL;
 		goto out;
 	}
 
 	n = vfs_node_alloc(parent->mount, VFS_DIRECTORY, parent->ops, NULL);
 	if (!n) {
+		rc = ENOMEM;
 		goto out;
 	}
 
@@ -76,10 +76,12 @@ static int initrd_create(struct vfs_node *parent, const char *name,
 	vfs_node_refer(n);
 
 	*np = n;
-
 	rc = 0;
 
  out:
+	DEBUG(DL_DBG, ("create(%s), type(%d), ino(%d), index(%d).\n", name, type,
+		       (rc == 0) ? n->ino : "N/A", pos));
+
 	return rc;
 }
 
@@ -123,7 +125,8 @@ static int initrd_read(struct vfs_node *node, uint32_t offset,
 /*
  * Caller should free the returned dirent by kfree
  */
-static int initrd_readdir(struct vfs_node *node, uint32_t index, struct dirent **dentry)
+static int initrd_readdir(struct vfs_node *node, uint32_t index,
+			  struct dirent **dentry)
 {
 	int rc = -1;
 	struct ramfs_node *rn;
@@ -132,11 +135,13 @@ static int initrd_readdir(struct vfs_node *node, uint32_t index, struct dirent *
 	ASSERT(dentry != NULL);
 	
 	if (index >= _nr_initrd_nodes) {
+		rc = EINVAL;
 		goto out;
 	}
 
 	new_dentry = kmalloc(sizeof(struct dirent), 0);
 	if (!new_dentry) {
+		rc = ENOMEM;
 		DEBUG(DL_INF, ("allocate dirent failed, node(%s), index(%d).\n",
 			       node->name, index));
 		goto out;
@@ -162,7 +167,7 @@ static int initrd_finddir(struct vfs_node *node, const char *name, ino_t *id)
 
 	ASSERT(id != NULL);
 	
-	for (i = 0; i < _nr_initrd_nodes; i++) {
+	for (i = 0; i <= _nr_initrd_nodes; i++) {
 		if (strcmp(name, _initrd_nodes[i].name) == 0) {
 			*id = _initrd_nodes[i].ino;
 			rc = 0;
@@ -171,8 +176,11 @@ static int initrd_finddir(struct vfs_node *node, const char *name, ino_t *id)
 	}
 
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("node(%s), name(%s), not found.\n",
+		DEBUG(DL_DBG, ("node(%s), name(%s) not found.\n",
 			       node->name, name));
+	} else {
+		DEBUG(DL_DBG, ("node(%s), name(%s), ino(%d) found.\n",
+			       node->name, name, *id));
 	}
 
 	return rc;
@@ -199,6 +207,7 @@ static int initrd_read_node(struct vfs_mount *mnt, ino_t id, struct vfs_node **n
 			node = vfs_node_alloc(mnt, _initrd_nodes[i].type,
 					      &_ramfs_node_ops, NULL);
 			if (!node) {
+				rc = ENOMEM;
 				break;
 			}
 			

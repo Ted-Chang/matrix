@@ -66,7 +66,7 @@ int list_directory(int fd, char *path, enum ls_option opt)
 	i = 0;
 	while (TRUE) {
 		rc = readdir(fd, i, &d);
-		if (rc == -1) {
+		if (rc != 0) {
 			break;
 		}
 

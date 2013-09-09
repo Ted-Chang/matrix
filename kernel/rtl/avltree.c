@@ -142,8 +142,8 @@ static struct avl_tree_node *avl_tree_lookup_internal(struct avl_tree *tree, key
 void avl_tree_insert_node(struct avl_tree *tree, struct avl_tree_node *node,
 			  key_t key, void *value)
 {
-	struct avl_tree_node **next, *curr = NULL;
 	int balance;
+	struct avl_tree_node **next, *curr = NULL;
 
 	node->left = NULL;
 	node->right = NULL;

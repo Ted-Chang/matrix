@@ -23,4 +23,6 @@ struct acpi_rsdp {
 	uint8_t reserved[3];			// Reserved field
 };
 
+extern void acpi_init();
+
 #endif	/* __ACPI_H__ */

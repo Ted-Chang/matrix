@@ -109,9 +109,15 @@ void ls_test()
 		"/proc",
 		NULL
 	};
+	char *ls_dev[] = {
+		"/ls",
+		"/dev",
+		NULL
+	};
 
 	printf("unit_test list directory:\n");
-	
+
+	printf("listing /\n");
 	rc = create_process(ls_root[0], ls_root, 0, 16);
 	if (rc == -1) {
 		printf("create_process(%s) failed, err(%d).\n", ls_root[0], rc);
@@ -119,15 +125,18 @@ void ls_test()
 	}
 
 	rc = waitpid(rc, &status, 0);
-	if (rc == -1) {
-		printf("waiting %s failed, err(%d).\n", ls_root[0], rc);
-	}
 
+	printf("listing /proc\n");
 	rc = create_process(ls_proc[0], ls_proc, 0, 16);
 	if (rc == -1) {
 		printf("create_process(%s) failed, err(%d).\n", ls_proc[0], rc);
 		goto out;
 	}
+
+	rc = waitpid(rc, &status, 0);
+
+	printf("listing /dev\n");
+	rc = create_process(ls_dev[0], ls_dev, 0, 16);
 
 	rc = waitpid(rc, &status, 0);
 	if (rc == -1) {

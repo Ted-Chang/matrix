@@ -11,6 +11,7 @@ static void announce();
 static void load_devfs();
 static void load_procfs();
 static void load_modules();
+static void make_nodes();
 static void set_hostname();
 static void get_uid_gid();
 static void start_crond();
@@ -28,6 +29,9 @@ int main(int argc, char **argv)
 
 	/* Load modules */
 	load_modules();
+
+	/* Make nodes */
+	make_nodes();
 
 	/* Set the host name */
 	set_hostname();
@@ -100,6 +104,20 @@ void load_procfs()
 void load_modules()
 {
 	;
+}
+
+void make_nodes()
+{
+	int rc = -1;
+
+	rc = mknod("/dev/null", 0, 0);
+	if (rc != 0) {
+		printf("init: mknod(/dev/null) failed.\n");
+		goto out;
+	}
+
+ out:
+	return;
 }
 
 void set_hostname()

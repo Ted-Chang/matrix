@@ -55,7 +55,6 @@ int do_open(const char *file, int flags, int mode)
 
 	/* Lookup file system node, if success the node will be referenced */
 	n = vfs_lookup(file, -1);
-	DEBUG(DL_DBG, ("file(%s), n(0x%x)\n", file, n));
 	if (!n && FLAG_ON(flags, 0x600)) {
 
 		DEBUG(DL_DBG, ("%s not found, create it.\n", file));
@@ -68,6 +67,7 @@ int do_open(const char *file, int flags, int mode)
 		}
 	}
 
+	DEBUG(DL_DBG, ("file(%s), n(%s:%p) found.\n", file, n->name, n));
 	if (n) {
 		/* Attach the file descriptor to the process */
 		fd = fd_attach((struct process *)CURR_PROC, n);
@@ -558,7 +558,24 @@ int do_makedev()
 int do_mknod(const char *path, mode_t mode, dev_t dev)
 {
 	int rc = -1;
+	struct vfs_node *n;
+	uint32_t type = VFS_CHARDEVICE;
 
+	/* Lookup file system node */
+	n = vfs_lookup(path, -1);
+	if (n) {
+		rc = -1;
+		goto out;
+	}
+
+	/* Delegate to VFS to create the node */
+	rc = vfs_create(path, type, &n);
+	if (rc != 0) {
+		DEBUG(DL_WRN, ("vfs_create failed, path(%s) error(%d).\n",
+			       path, rc));
+	}
+
+ out:
 	return rc;
 }
 
