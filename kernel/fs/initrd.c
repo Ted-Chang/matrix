@@ -79,8 +79,8 @@ static int initrd_create(struct vfs_node *parent, const char *name,
 	rc = 0;
 
  out:
-	DEBUG(DL_DBG, ("create(%s), type(%d), ino(%d), index(%d).\n", name, type,
-		       (rc == 0) ? n->ino : "N/A", pos));
+	DEBUG(DL_DBG, ("create(%s), type(%d), ino(%d), index(%d).\n",
+		       n->name, type, (rc == 0) ? n->ino : "N/A", pos));
 
 	return rc;
 }
@@ -167,7 +167,7 @@ static int initrd_finddir(struct vfs_node *node, const char *name, ino_t *id)
 
 	ASSERT(id != NULL);
 	
-	for (i = 0; i <= _nr_initrd_nodes; i++) {
+	for (i = 0; i < _nr_initrd_nodes; i++) {
 		if (strcmp(name, _initrd_nodes[i].name) == 0) {
 			*id = _initrd_nodes[i].ino;
 			rc = 0;
@@ -273,8 +273,11 @@ int initrd_mount(struct vfs_mount *mnt, int flags, const void *data)
 
 	mnt->ops = &_ramfs_mount_ops;
 	mnt->root = vfs_node_alloc(mnt, VFS_DIRECTORY, &_ramfs_node_ops, NULL);
-	strncpy(mnt->root->name, "initrd-root", 128);
 	ASSERT(mnt->root != NULL);
+	strncpy(mnt->root->name, "initrd-root", 128);
+	
+	/* Don't forget to reference the root node */
+	vfs_node_refer(mnt->root);
 
 	init_initrd((uint32_t)data);
 	

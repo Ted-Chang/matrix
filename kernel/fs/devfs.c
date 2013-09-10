@@ -183,12 +183,21 @@ int devfs_mount(struct vfs_mount *mnt, int flags, const void *data)
 
 	mnt->ops = &_devfs_mount_ops;
 	mnt->root = vfs_node_alloc(mnt, VFS_DIRECTORY, &_devfs_node_ops, NULL);
-	ASSERT(mnt->root != NULL);
+	if (mnt->root == NULL) {
+		rc = ENOMEM;
+		goto out;
+	}
+	strncpy(mnt->root->name, "devfs-root", 128);
+	mnt->root->ino = 0;
+
+	/* Don't forget to reference the root node */
+	vfs_node_refer(mnt->root);
 
 	DEBUG(DL_DBG, ("devfs mounted, flags(%x).\n", flags));
 	
 	rc = 0;
-	
+
+ out:
 	return rc;
 }
 

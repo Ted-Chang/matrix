@@ -15,7 +15,7 @@ fi
 
 $tool_path bin/init init bin/crond crond bin/echo echo bin/unit_test unit_test \
 bin/ls ls bin/cat cat bin/clear clear bin/shutdown shutdown bin/mkdir mkdir \
-bin/date date bin/mount mount bin/umount umount bin/process_test process_test \
+bin/date date bin/mount mount \
 bin/initrd
 
 sudo mount /dev/loop0 /mnt/matrix

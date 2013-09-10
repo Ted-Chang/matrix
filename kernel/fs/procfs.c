@@ -1,6 +1,7 @@
 #include <types.h>
 #include <stddef.h>
 #include <string.h>
+#include <errno.h>
 #include "matrix/matrix.h"
 #include "mm/malloc.h"
 #include "fs.h"
@@ -86,9 +87,15 @@ int procfs_mount(struct vfs_mount *mnt, int flags, const void *data)
 	mnt->ops = &_procfs_mount_ops;
 	mnt->root = vfs_node_alloc(mnt, VFS_DIRECTORY, &_procfs_node_ops, NULL);
 	if (mnt->root == NULL) {
+		rc = ENOMEM;
 		DEBUG(DL_WRN, ("failed to allocate procfs root node.\n"));
 		goto out;
 	}
+	strncpy(mnt->root->name, "procfs-root", 128);
+	mnt->root->ino = 0;
+
+	/* Don't forget to reference the root node */
+	vfs_node_refer(mnt->root);
 
 	rc = 0;
 

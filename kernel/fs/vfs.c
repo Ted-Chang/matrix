@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <string.h>
+#include <errno.h>
 #include "matrix/matrix.h"
 #include "mm/malloc.h"
 #include "mm/slab.h"
@@ -349,6 +350,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 			/* The last token was the last element of the path string,
 			 * return the current node we're currently on.
 			 */
+			DEBUG(DL_DBG, ("returned %s:%d\n", n->name, n->ino));
 			return n;
 		} else if (n->type != VFS_DIRECTORY) {
 			/* The previous token was not a directory, this means the
@@ -381,9 +383,14 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 		/* Lookup the node in cached tree first */
 		n = avl_tree_lookup(&m->nodes, ino);
 		if (n) {
-			ASSERT(n->mount == m);
+			ASSERT((n->mount == m) && (n->ino == ino));
+			DEBUG(DL_DBG, ("VFS node cache name(%s) tok(%s).\n",
+				       n->name, tok));
 			if (n->mounted) {
+				DEBUG(DL_DBG, ("node(%s) is mountpoint, root(%s).\n",
+					       n->name, n->mounted->root->name));
 				n = n->mounted->root;
+				ASSERT(n->type == VFS_DIRECTORY);
 				vfs_node_refer(n);
 			} else {
 				vfs_node_refer(n);
@@ -393,7 +400,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 			 * file system
 			 */
 			if (!m->ops->read_node) {
-				DEBUG(DL_DBG, ("read_node not supported by mount(%s).\n",
+				DEBUG(DL_DBG, ("no read_node on mount(%s).\n",
 					       m->type->name));
 				mutex_release(&m->lock);
 				vfs_node_deref(v);
@@ -556,6 +563,7 @@ int vfs_mount(const char *dev, const char *path, const char *type, const void *d
 	struct vfs_mount *mnt = NULL;
 
 	if (!path || (!dev && !type)) {
+		rc = EINVAL;
 		return rc;
 	}
 
@@ -567,15 +575,17 @@ int vfs_mount(const char *dev, const char *path, const char *type, const void *d
 	if (!_root_mount) {
 		ASSERT(CURR_PROC == _kernel_proc);
 		if (strcmp(path, "/") != 0) {
-			PANIC("Non-root mount before root File System mounted");
+			PANIC("Non-root mount before root FS mounted");
 		}
 	} else {
 		/* Look up the destination directory */
 		n = vfs_lookup(path, VFS_DIRECTORY);
 		if (!n) {
+			rc = ENOENT;
 			DEBUG(DL_DBG, ("vfs_lookup(%s) not found.\n", path));
 			goto out;
 		}
+		ASSERT(n->type == VFS_DIRECTORY);
 
 		/* Check whether it is being used as a mount point already */
 		if (n->mount->root == n) {
@@ -588,6 +598,7 @@ int vfs_mount(const char *dev, const char *path, const char *type, const void *d
 	/* Initialize the mount structure */
 	mnt = kmalloc(sizeof(struct vfs_mount), 0);
 	if (!mnt) {
+		rc = ENOMEM;
 		goto out;
 	}
 	LIST_INIT(&mnt->link);
@@ -603,7 +614,7 @@ int vfs_mount(const char *dev, const char *path, const char *type, const void *d
 	if (type) {
 		mnt->type = vfs_type_lookup(type);
 		if (!mnt->type) {
-			rc = -1;
+			rc = EINVAL;
 			DEBUG(DL_DBG, ("vfs_type_lookup(%s) not found.\n", type));
 			goto out;
 		}
@@ -635,7 +646,8 @@ int vfs_mount(const char *dev, const char *path, const char *type, const void *d
 		vfs_node_refer(_root_mount->root);
 	}
 
-	DEBUG(DL_DBG, ("mounted on %s, FS type(%s).\n", path, type));
+	DEBUG(DL_DBG, ("mounted (%s) on (%s), FS type(%s).\n",
+		       mnt->root->name, mnt->mnt_point->name, type));
 
  out:
 	if (rc != 0) {

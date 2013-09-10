@@ -14,9 +14,6 @@
 #include "rtl/fsrtl.h"
 #include "kstrdup.h"
 
-uint32_t _value = 0;
-struct mutex _mutex;
-
 int do_unit_test(uint32_t round)
 {
 	int i, r, rc = 0;
@@ -30,6 +27,8 @@ int do_unit_test(uint32_t round)
 	u_long *bm_buf;
 	char *dir = NULL, *name = NULL;
 	char *path = "/dev";
+	struct avl_tree tree;
+	char *val = NULL;
 
 	/* Kernel memory pool test */
 	memset(buf_ptr, 0, sizeof(buf_ptr));

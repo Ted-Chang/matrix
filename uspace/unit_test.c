@@ -61,8 +61,6 @@ int main(int argc, char **argv)
 
 	clear_test();
 
-	multi_processes_test();
-		
 	shutdown_test();
 
 	while (TRUE) {
