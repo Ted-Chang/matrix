@@ -8,12 +8,12 @@ ENTRY(start)
 SECTIONS
 {
 	/*
-	 * Told the linker to place the __mbHeader section at 0x100000,
+	 * Told the linker to place the __mbHeader section at 0x1000000(1MB),
 	 * the original way doesn't work when the kernel image grows too
 	 * large. So we place a separate section here to guarantee the
 	 * multiboot header will be in the 1st 8KB of the kernel image.
 	 */
-	.__mbHeader 0x100000: 
+	.__mbHeader 0x1000000: 
 	{
 		*(__mbHeader)
 	}
