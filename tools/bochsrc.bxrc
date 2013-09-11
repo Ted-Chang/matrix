@@ -5,12 +5,16 @@ megs: 256
 romimage: file=$BXSHARE/BIOS-bochs-latest
 vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 
-# what disk images will be used
-#floppya: 1_44="C:\virtual_machines\matrix\floppy.img", status=inserted
-floppya: 1_44="$HOME/vm/matrix/matrix.img", status=inserted
+# floppy disk images configuration
+#floppya: 1_44="C:\virtual_machines\matrix\matrix-flpy.img", status=inserted
+floppya: 1_44="$HOME/vm/matrix/matrix-flpy.img", status=ejected
 
-# choose the boot disk.
-boot: a
+# hard disk images configuration
+ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=15
+ata0-master: type=disk, mode=flat, path="$HOME/vm/matrix/matrix-hd.img"
+
+# define the boot sequence.
+boot: cdrom, floppy, disk
 
 # where do we send log message?
 log:~/vm/matrix/bochsrc.log

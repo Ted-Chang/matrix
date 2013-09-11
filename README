@@ -16,9 +16,6 @@ the serial port. If you are debugging with physical machine, you can
 use a serial line. If you are debugging with bochs, you can redirect 
 the output to a file.
 
-How to create an image?
-dd if=/dev/zero of=matrix.img bs=512 count=2880
-
 How to create a bochs vm using the image?
 Create a file bochsrc.bxrc and write the configuration into the file. 
 You can refer to the documents on bochs site. Also there is a bochs 

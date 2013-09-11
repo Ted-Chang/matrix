@@ -7,6 +7,10 @@
 * sudo make install
 
 
+[Create bochs image]
+$ bximage
+
+
 [Build mkinitrd tools]
 $ cd tools
 $ gcc -o mkinitrd make_initrd.c
