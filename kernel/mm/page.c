@@ -121,7 +121,7 @@ void init_page()
 	 * where our placement address begins
 	 */
 	_placement_addr = *((uint32_t *)(_mbi->mods_addr + 4));
-	
+
 	DEBUG(DL_DBG, ("Placement address: 0x%x\n", _placement_addr));
 
 	/* Detect the amount of physical memory by parse the memory map entry */

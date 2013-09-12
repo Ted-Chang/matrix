@@ -332,7 +332,9 @@ void init_mmu()
 		mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
 	}
 
-	/* Do identity map (physical addr == virtual addr) for the memory we have used. */
+	/* Do identity map (physical addr == virtual addr) for the memory we
+	 * have used.
+	 */
 	for (i = 0; i < (_placement_addr + PAGE_SIZE); i += PAGE_SIZE) {
 		/* Kernel code is readable but not writable from user-mode */
 		page = mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);

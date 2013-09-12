@@ -14,6 +14,8 @@ struct initrd_file_header {
 	uint32_t length;	// Length of the file
 };
 
+#define INITRD_MAGIC	0xBF	// DRTI
+
 extern struct vfs_type _ramfs_type;
 
 extern int initrd_init(void);

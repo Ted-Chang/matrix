@@ -11,6 +11,30 @@
 $ bximage
 
 
+[Install grub2 to the disk image]
+$ sudo losetup --show --find matrix-hd.img
+/dev/loop0
+
+$ sudo fdisk /dev/loop0
+Command (m for help): w
+
+$ sudo parted -s /dev/loop0 mkpart primary vfat 0 50M
+
+$ echo '0 101808 linear 7:0 0' | sudo dmsetup create hda
+
+$ sudo mkfs -t vfat /dev/mapper/hda
+
+$ sudo mount /dev/mapper/hda /mnt
+
+$ mkdir -p /mnt/boot/grub2
+
+$ echo '(hd0) /dev/mapper/hda' | tee /mnt/boot/grub2/device.map
+
+$ grub2-install --root-directory=/mnt /dev/mapper/hda
+
+$ cp /boot/grub2/grub.cfg /mnt/boot/grub2
+
+
 [Build mkinitrd tools]
 $ cd tools
 $ gcc -o mkinitrd make_initrd.c

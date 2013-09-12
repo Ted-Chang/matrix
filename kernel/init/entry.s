@@ -23,27 +23,20 @@ mboot:
 	dd MBOOT_HEADER_FLAGS	; How GRUB should load your file/settings
 	dd MBOOT_CHECKSUM	; To ensure that the above magics are correct
 
-	dd mboot		; Location of this descriptor
-	
 
 [BITS 32]			; All instructions should be 32-bit
 
 [EXTERN code]			; Start of the '.text' section.
 [EXTERN bss]			; Start of the '.bss' section.
 [EXTERN end]			; End of the last loadable section.
-	dd code			; Start of kernel '.text' (code) section.
-	dd bss			; End of kernel '.data' section
-	dd end			; End of kernel.
-	dd start		; Kernel entry point (initial EIP).
 
 [GLOBAL start]			; Kernel entry point.
 [EXTERN kmain]			; The entry point of our C code
-
 start:
 	push esp		; We need to know exactly where the current stack starts
 	push ebx		; Load multiboot header location
 
-	;; Execute our kernel
+	;; Execute our kernel defined in main.c
 	cli
 	call kmain
 	jmp $

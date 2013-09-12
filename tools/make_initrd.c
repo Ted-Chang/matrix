@@ -2,13 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define INITRD_MAGIC	0xBF
+
 struct initrd_header {
 	unsigned char magic;
 	char name[64];
 	unsigned int offset;
 	unsigned int length;
 };
-
 
 static void usage();
 
@@ -33,6 +34,8 @@ void main(int argc, char **argv)
 
 	for (i = 0; i < nr_headers; i++) {
 		FILE *fp;
+
+		headers[i].magic = INITRD_MAGIC;
 		
 		printf("writing file %s->%s at 0x%x\n", argv[i*2+1], argv[i*2+2], off);
 		strcpy(headers[i].name, argv[i*2+2]);
@@ -48,7 +51,6 @@ void main(int argc, char **argv)
 		headers[i].length = ftell(fp);
 		off += headers[i].length;
 		fclose(fp);
-		headers[i].magic = 0xBF;
 	}
 
 	wfp = fopen(argv[argc - 1], "w");

@@ -3,6 +3,8 @@
 
 /* Memory layout definition
  * +------------+
+ * | 0x01000000 | Kernel multiboot header
+ * +------------+
  * | 0x20000000 | User thread stack address
  * +------------+
  * | 0x30000000 | User mode image loaded address

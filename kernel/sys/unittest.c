@@ -14,6 +14,24 @@
 #include "rtl/fsrtl.h"
 #include "kstrdup.h"
 
+#define NR_AVL_NODES	13
+struct avl_tree_node _avl_nodes[NR_AVL_NODES];
+char *_avl_vals[NR_AVL_NODES] = {
+	"node1",
+	"node2",
+	"node3",
+	"node4",
+	"node5",
+	"node6",
+	"node7",
+	"node8",
+	"node9",
+	"node10",
+	"node11",
+	"node12",
+	"node13",
+};
+
 int do_unit_test(uint32_t round)
 {
 	int i, r, rc = 0;
@@ -27,7 +45,7 @@ int do_unit_test(uint32_t round)
 	u_long *bm_buf;
 	char *dir = NULL, *name = NULL;
 	char *path = "/dev";
-	struct avl_tree tree;
+	struct avl_tree avltree;
 	char *val = NULL;
 
 	/* Kernel memory pool test */
@@ -130,6 +148,28 @@ int do_unit_test(uint32_t round)
 		DEBUG(DL_DBG, ("dir(%s), name(%s).\n", dir, name));
 		kfree(dir);
 		kfree(name);
+	}
+
+	/* Test avl tree functions */
+	avl_tree_init(&avltree);
+	memset(_avl_nodes, 0, sizeof(_avl_nodes));
+	for (i = 0; i < NR_AVL_NODES; i++) {
+		avl_tree_insert_node(&avltree, &_avl_nodes[i], i+1, _avl_vals[i]);
+	}
+	val = avl_tree_lookup(&avltree, 9);
+	ASSERT(val != NULL);
+	ASSERT(strcmp(val, "node9") == 0);
+	avl_tree_remove_node(&avltree, &_avl_nodes[8]);
+	val = avl_tree_lookup(&avltree, 9);
+	ASSERT(val == NULL);
+	avl_tree_insert_node(&avltree, &_avl_nodes[8], 9, _avl_vals[8]);
+	val = avl_tree_lookup(&avltree, 9);
+	ASSERT(val != NULL);
+	ASSERT(strcmp(val, "node9") == 0);
+	for (i = 0; i < NR_AVL_NODES; i++) {
+		avl_tree_remove_node(&avltree, &_avl_nodes[i]);
+		val = avl_tree_lookup(&avltree, i+1);
+		ASSERT(val == NULL);
 	}
 
  out:

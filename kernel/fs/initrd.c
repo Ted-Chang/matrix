@@ -249,6 +249,9 @@ void init_initrd(uint32_t location)
 	 * nodes.
 	 */
 	for (i = 0; i < _nr_initrd_nodes; i++) {
+		/* Sanity check */
+		ASSERT(file_hdrs[i].magic == INITRD_MAGIC);
+		
 		file_hdrs[i].offset += location;
 
 		/* Create a new file node */

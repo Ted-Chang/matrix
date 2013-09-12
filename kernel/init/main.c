@@ -74,7 +74,10 @@ int kmain(u_long addr, uint32_t initial_stack)
 	clear_scr();
 
 	_mbi = (struct multiboot_info *)addr;
+	/* At least we must have the initial ramdisk loaded */
 	ASSERT(_mbi->mods_count > 0);
+	kprintf("mbi(0x%x) mods count(%d), mods address(0x%x).\n",
+		_mbi, _mbi->mods_count, _mbi->mods_addr);
 
 	/* Dump multiboot information */
 	dump_mbi(_mbi);

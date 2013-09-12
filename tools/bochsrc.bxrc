@@ -6,8 +6,8 @@ romimage: file=$BXSHARE/BIOS-bochs-latest
 vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 
 # floppy disk images configuration
-#floppya: 1_44="C:\virtual_machines\matrix\matrix-flpy.img", status=inserted
-floppya: 1_44="$HOME/vm/matrix/matrix-flpy.img", status=ejected
+#floppya: 1_44="C:\virtual_machines\matrix\matrix-flpy.img", status=ejected
+floppya: 1_44="$HOME/vm/matrix/matrix-flpy.img", status=inserted
 
 # hard disk images configuration
 ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14

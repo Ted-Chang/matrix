@@ -3,8 +3,13 @@
 #include "matrix/matrix.h"
 #include "mm/malloc.h"
 #include "symbol.h"
+#include "debug.h"
+#include "rtl/radixtree.h"
 
-extern struct symbol_table _kernel_symtab;
+struct symbol_table _kernel_symtab;
+
+/* Tree of name to symbol mappings */
+static struct radix_tree *_symbol_tree = NULL;
 
 /* List of all symbol tables */
 static struct list _symbol_tables = {
@@ -43,8 +48,8 @@ void symbol_table_insert(struct symbol_table *t, const char *name,
 	;
 }
 
-struct symbol *symbol_table_lookup_by_addr(struct symbol_table *t,
-					   ptr_t addr, size_t *offp)
+struct symbol *symbol_table_lookup_addr(struct symbol_table *t,
+					ptr_t addr, size_t *offp)
 {
 	size_t i;
 	
@@ -63,9 +68,12 @@ struct symbol *symbol_table_lookup_by_addr(struct symbol_table *t,
 	return NULL;
 }
 
-struct symbol *symbol_table_lookup_by_name(struct symbol_table *t,
-					   ptr_t addr, size_t *offp)
+struct symbol *symbol_table_lookup_name(struct symbol_table *t,
+					const char *name, boolean_t global,
+					boolean_t exported)
 {
+	ASSERT(t != NULL);
+	
 	return NULL;
 }
 
@@ -81,10 +89,26 @@ struct symbol *symbol_lookup_by_addr(ptr_t addr, size_t *offp)
 struct symbol *symbol_lookup_by_name(const char *name, boolean_t global,
 				     boolean_t exported)
 {
-	return NULL;
+	struct symbol *s;
+	struct list *l;
+
+	s = NULL;
+	if (_symbol_tree) {
+		;
+	} else {
+		s = symbol_table_lookup_name(&_kernel_symtab, name,
+					     global, exported);
+	}
+	
+	return s;
 }
 
 void init_symbol()
 {
-	;
+	_symbol_tree = kmalloc(sizeof(struct radix_tree), 0);
+	ASSERT(_symbol_tree != NULL);
+
+	/* Add the kernel symbol table into the tree */
+	radix_tree_init(_symbol_tree);
+	LIST_INIT(&_kernel_symtab.link);
 }
