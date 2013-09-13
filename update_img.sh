@@ -51,7 +51,7 @@ update_hd()
     result=`sudo ls /dev/mapper/hda`
     if [ $? -eq 0 ]; then
         # Loop mount the disk image
-	sudo losetup --find ~/vm/matrix/matrix-hd.img
+	sudo losetup /dev/loop1 ~/vm/matrix/matrix-hd.img
 	# Create device mapper node for root device
 	echo '0 101808 linear 7:1 0' | sudo dmsetup create hda
     fi
@@ -89,7 +89,8 @@ case "$1" in
 	update_hd
 	;;
     *)
-	echo "$usage"
+	# If no option provided, just update the hard disk
+	update_hd
 	;;
 esac
 

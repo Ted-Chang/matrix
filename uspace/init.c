@@ -116,6 +116,12 @@ void make_nodes()
 		goto out;
 	}
 
+	rc = mknod("/dev/zero", 0, 0);
+	if (rc != 0) {
+		printf("init: mknod(/dev/zero) failed.\n");
+		goto out;
+	}
+
  out:
 	return;
 }

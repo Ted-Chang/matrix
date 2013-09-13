@@ -50,6 +50,8 @@ case "$1" in
 	build_uspace
 	;;
     *)
-	echo "$usage"
+	# If no option provided, build both the kernel and user space
+	build_kernel
+	build_uspace
 	;;
 esac

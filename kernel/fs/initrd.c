@@ -79,8 +79,8 @@ static int initrd_create(struct vfs_node *parent, const char *name,
 	rc = 0;
 
  out:
-	DEBUG(DL_DBG, ("create(%s), type(%d), ino(%d), index(%d).\n",
-		       n->name, type, (rc == 0) ? n->ino : "N/A", pos));
+	DEBUG(DL_DBG, ("create(%s), type(%d), ino(%x), index(%d).\n",
+		       n->name, type, (rc == 0) ? n->ino : -1, pos));
 
 	return rc;
 }

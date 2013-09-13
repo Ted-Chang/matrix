@@ -13,7 +13,7 @@ boolean_t _acpi_supported = FALSE;
 
 void init_platform()
 {
-	acpi_init();
+	init_acpi();
 
 	/* If the LAPIC is not available, we must use the PIT as the timer */
 	if (!lapic_enabled()) {
@@ -44,10 +44,35 @@ void platform_shutdown()
 
 void platform_detect_smp()
 {
+	struct acpi_madt_lapic *lapic;
+	struct acpi_madt *madt;
+	size_t len, i;
+	
 	/* If LAPIC is disabled, we cannot use SMP */
 	if (!lapic_enabled()) {
 		return;
 	} else if (!_acpi_supported) {
 		return;
+	}
+
+	madt = (struct acpi_madt *)acpi_find_table(ACPI_MADT_SIGNATURE);
+	if (!madt) {
+		return;
+	}
+
+	len = madt->header.length - sizeof(struct acpi_madt);
+	for (i = 0; i < len; i += lapic->length) {
+		lapic = (struct acpi_madt_lapic *)(madt->apic_structures + i);
+		if (lapic->type != ACPI_MADT_LAPIC) {
+			continue;
+		} else if (!(lapic->flags & (1<<0))) {
+			/* Ignore disabled cores */
+			continue;
+		} else if (lapic->lapic_id == CURR_CORE->id) {
+			continue;
+		}
+
+		/* Register the core */
+		// TODO: Register the core
 	}
 }
