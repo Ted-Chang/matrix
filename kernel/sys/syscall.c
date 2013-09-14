@@ -20,6 +20,7 @@
 #include "semaphore.h"
 #include "pit.h"
 #include "platform.h"
+#include "module.h"
 
 #define MAX_HOSTNAME_LEN	256
 #define NR_SYSCALLS		(sizeof(_syscalls)/sizeof(_syscalls[0]))
@@ -170,7 +171,7 @@ int do_readdir(int fd, int index, struct dirent *entry)
 
 	rc = vfs_readdir(n, index, &e);
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("read dir failed, node(%s), index(%d), err(%d)\n",
+		DEBUG(DL_DBG, ("read dir failed, node(%s), index(%d), err(%x)\n",
 			       n->name, index, rc));
 		goto out;
 	}
@@ -439,7 +440,7 @@ int do_create_process(const char *path, const char *args[], int flags, int prior
 	/* By default we all use kernel process as the parent process */
 	rc = process_create((const char **)arguments, _kernel_proc, 0, 16, &p);
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("process_create failed, err(%d).\n", rc));
+		DEBUG(DL_DBG, ("process_create failed, err(%x).\n", rc));
 		goto out;
 	}
 
@@ -522,7 +523,7 @@ int do_mount(const char *src, const char *target, const char *fstype,
 	/* Mount src to target with File System type */
 	rc = vfs_mount(src, target, fstype, data);
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("vfs_mount failed, type(%s), err(%d).\n",
+		DEBUG(DL_DBG, ("vfs_mount failed, type(%s), err(%x).\n",
 			       fstype, rc));
 		goto out;
 	}
@@ -541,7 +542,7 @@ int do_umount(const char *path)
 
 	rc = vfs_umount(path);
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("vfs_umount failed, err(%d).\n", rc));
+		DEBUG(DL_DBG, ("vfs_umount failed, err(%x).\n", rc));
 		goto out;
 	}
  out:
@@ -571,7 +572,7 @@ int do_mknod(const char *path, mode_t mode, dev_t dev)
 	/* Delegate to VFS to create the node */
 	rc = vfs_create(path, type, &n);
 	if (rc != 0) {
-		DEBUG(DL_WRN, ("vfs_create failed, path(%s) error(%d).\n",
+		DEBUG(DL_WRN, ("vfs_create failed, path(%s) err(%d).\n",
 			       path, rc));
 	}
 
@@ -579,21 +580,37 @@ int do_mknod(const char *path, mode_t mode, dev_t dev)
 	return rc;
 }
 
-int do_create_module(const char *name, size_t size)
+int do_create_module(int handle)
 {
 	int rc = -1;
 
+	rc = module_load(handle);
+	if (rc != 0) {
+		DEBUG(DL_WRN, ("load module %x failed, err(%x).\n",
+			       handle, rc));
+		goto out;
+	}
+
+ out:
 	return rc;
 }
 
-int do_delete_module(const char *name)
+int do_delete_module()
 {
 	int rc = -1;
 
+	rc = module_unload();
+	if (rc != 0) {
+		DEBUG(DL_INF, ("unload module failed, err(%x).\n",
+			       rc));
+		goto out;
+	}
+
+ out:
 	return rc;
 }
 
-int do_init_module(const char *name, void *image)
+int do_query_module(const char *name, void *data)
 {
 	int rc = -1;
 
@@ -646,8 +663,8 @@ static void *_syscalls[] = {
 	do_umount,
 	do_mknod,
 	do_create_module,
+	do_query_module,
 	do_delete_module,
-	do_init_module,
 	do_ioctl,
 	NULL
 };

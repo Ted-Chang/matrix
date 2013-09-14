@@ -101,13 +101,13 @@ static int pci_scan_bus(int id, int indent)
 			for (j = 0; j < 8; j++) {
 				rc = pci_scan_dev();
 				if (rc != 0) {
-					;
+					DEBUG(DL_WRN, ("pci: scan device failed\n"));
 				}
 			}
 		} else {
 			rc = pci_scan_dev();
 			if (rc != 0) {
-				;
+				DEBUG(DL_WRN, ("pci: scan device failed\n"));
 			}
 		}
 	}
@@ -138,7 +138,7 @@ int pci_init(void)
 	/* Detect PCI presence */
 	rc = platform_init_pci();
 	if (rc != 0) {
-		kprintf("pci: PCI not present or not usable\n");
+		DEBUG(DL_WRN, ("pci: PCI not present or not usable\n"));
 		goto out;
 	}
 

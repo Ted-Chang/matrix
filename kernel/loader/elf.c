@@ -134,7 +134,7 @@ int elf_load_binary(struct vfs_node *n, struct va_space *vas, void **datap)
 	/* Read in the executive content */
 	rc = vfs_read(n, 0, n->length, (uint8_t *)bin->ehdr);
 	if (rc == -1 || rc < sizeof(elf_ehdr_t)) {
-		DEBUG(DL_INF, ("read file failed, err(%d).\n", rc));
+		DEBUG(DL_INF, ("read file failed, err(%x).\n", rc));
 		rc = -1;
 		goto out;
 	}
@@ -183,7 +183,7 @@ int elf_load_binary(struct vfs_node *n, struct va_space *vas, void **datap)
 			rc = va_map(vas, shdr->sh_addr, map_size,
 				    VA_MAP_READ|VA_MAP_WRITE|VA_MAP_FIXED, NULL);
 			if (rc != 0) {
-				DEBUG(DL_WRN, ("va_map failed, err(%d).\n", rc));
+				DEBUG(DL_WRN, ("va_map failed, err(%x).\n", rc));
 				goto out;
 			}
 

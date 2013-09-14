@@ -363,7 +363,7 @@ static int create_aspace(struct process_creation *info)
 	/* Load the ELF file into this process */
 	rc = elf_load_binary(n, vas, &data);
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("elf_load_binary failed, err(%d).\n", rc));
+		DEBUG(DL_DBG, ("elf_load_binary failed, err(%x).\n", rc));
 		goto out;
 	}
 
@@ -380,7 +380,7 @@ static int create_aspace(struct process_creation *info)
 	rc = va_map(vas, USTACK_BOTTOM, USTACK_SIZE,
 		    VA_MAP_READ|VA_MAP_WRITE|VA_MAP_FIXED, NULL);
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("va_map for ustack failed, err(%d).\n", rc));
+		DEBUG(DL_DBG, ("va_map for ustack failed, err(%x).\n", rc));
 		goto out;
 	}
 
@@ -391,7 +391,7 @@ static int create_aspace(struct process_creation *info)
 	rc = va_map(vas, info->args, size,
 		    VA_MAP_READ|VA_MAP_WRITE|VA_MAP_FIXED, NULL);
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("va_map for arguments failed, err(%d).\n", rc));
+		DEBUG(DL_DBG, ("va_map for arguments failed, err(%x).\n", rc));
 		goto out;
 	}
 	
@@ -482,21 +482,21 @@ int process_create(const char **args, struct process *parent, int flags,
 	/* Create MMU context and map pages need for the new process  */
 	rc = create_aspace(&info);
 	if (rc != 0) {
-		DEBUG(DL_INF, ("create_aspace failed, err(%d).\n", rc));
+		DEBUG(DL_INF, ("create_aspace failed, err(%x).\n", rc));
 		goto out;
 	}
 
 	/* Create the new process */
 	rc = process_alloc(args[0], parent, info.vas, flags, priority, NULL, &p);
 	if (rc != 0) {
-		DEBUG(DL_INF, ("process_alloc failed, err(%d).\n", rc));
+		DEBUG(DL_INF, ("process_alloc failed, err(%x).\n", rc));
 		goto out;
 	}
 
 	/* Create the main thread and run it */
 	rc = thread_create("main", p, 0, process_entry_thread, &info, &t);
 	if (rc != 0) {
-		DEBUG(DL_INF, ("thread_create failed, err(%d).\n", rc));
+		DEBUG(DL_INF, ("thread_create failed, err(%x).\n", rc));
 		goto out;
 	}
 

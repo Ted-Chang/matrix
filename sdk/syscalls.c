@@ -40,9 +40,9 @@ DEFN_SYSCALL2(syslog, 27, char *, size_t)
 DEFN_SYSCALL5(mount, 28, const char *, const char *, const char *, int, const void *)
 DEFN_SYSCALL1(umount, 29, const char *)
 DEFN_SYSCALL3(mknod, 30, const char *, mode_t, dev_t)
-DEFN_SYSCALL2(create_module, 31, const char *, size_t)
-DEFN_SYSCALL1(delete_module, 32, const char *)
-DEFN_SYSCALL2(init_module, 33, const char *, void *)
+DEFN_SYSCALL1(create_module, 31, int)
+DEFN_SYSCALL2(query_module, 32, const char *, void *)
+DEFN_SYSCALL0(delete_module, 33)
 DEFN_SYSCALL4(ioctl, 34, int, int, void *, void *)
 
 int null()
@@ -208,19 +208,19 @@ int fcntl(int fd, int cmd, ...)
 	return rc;
 }
 
-int create_module(const char *name, size_t size)
+int create_module(int handle)
 {
-	return mtx_create_module(name, size);
+	return mtx_create_module(handle);
 }
 
-int delete_module(const char *name)
+int query_module(const char *name, void *data)
 {
-	return mtx_delete_module(name);
+	return mtx_query_module(name, data);
 }
 
-int init_module(const char *name, void *image)
+int delete_module()
 {
-	return mtx_init_module(name, image);
+	return mtx_delete_module();
 }
 
 int ioctl(int d, int request, void *input, void *output)

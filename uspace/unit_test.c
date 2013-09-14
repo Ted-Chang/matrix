@@ -304,10 +304,19 @@ void multi_processes_test()
 	}
 
 	rc = waitpid(pid1, &status, 0);
+	if (rc != 0) {
+		;
+	}
 
 	rc = waitpid(pid2, &status, 0);
+	if (rc != 0) {
+		;
+	}
 
 	rc = waitpid(pid3, &status, 0);
+	if (rc != 0) {
+		;
+	}
 
  out:
 	return;

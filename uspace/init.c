@@ -103,7 +103,37 @@ void load_procfs()
 
 void load_modules()
 {
-	;
+	int rc = -1;
+	int handle = -1;
+	
+	/* FixMe: We should open the driver binary file first and then pass
+	 * the file handle down to the kernel. As we don't really support
+	 * loading driver modules yet so just pass the pseudo handle down.
+	 */
+
+	handle = 4;
+	rc = create_module(handle);
+	if (rc != 0) {
+		printf("init: load pci module failed.\n");
+	} else {
+		printf("init: pci module loaded successfully.\n");
+	}
+
+	handle = 5;
+	rc = create_module(handle);
+	if (rc != 0) {
+		printf("init: load keyboard module failed.\n");
+	} else {
+		printf("init: keyboard module loaded successfully.\n");
+	}
+
+	handle = 6;
+	rc = create_module(handle);
+	if (rc != 0) {
+		printf("init: load floppy module failed.\n");
+	} else {
+		printf("init: floppy module loaded successfully.\n");
+	}
 }
 
 void make_nodes()

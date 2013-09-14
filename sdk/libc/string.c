@@ -103,8 +103,8 @@ void *memcpy(void *dst, const void *src, size_t count)
 int memcmp(const void *s1, const void *s2, size_t count)
 {
 	int res = 0;
-	uint8_t *ptr1 = s1;
-	uint8_t *ptr2 = s2;
+	uint8_t *ptr1 = (uint8_t *)s1;
+	uint8_t *ptr2 = (uint8_t *)s2;
 	
 	while (count-- && !(res = *(unsigned char *)ptr1 - *(unsigned char *)ptr2))
 		++ptr1, ++ptr2;

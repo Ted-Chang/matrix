@@ -369,7 +369,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 		/* Look up this name within the directory */
 		rc = vfs_finddir(n, tok, &ino);
 		if (rc != 0) {
-			DEBUG(DL_DBG, ("vfs_finddir(%s) failed, err(%d).\n", tok, rc));
+			DEBUG(DL_DBG, ("vfs_finddir(%s) failed, err(%x).\n", tok, rc));
 			vfs_node_deref(n);
 			return NULL;
 		}
@@ -627,7 +627,7 @@ int vfs_mount(const char *dev, const char *path, const char *type, const void *d
 	ASSERT(mnt->type->mount != NULL);
 	rc = mnt->type->mount(mnt, flags, data);
 	if (rc != 0) {
-		DEBUG(DL_DBG, ("mount failed, err(%d).\n", rc));
+		DEBUG(DL_DBG, ("mount failed, err(%x).\n", rc));
 		goto out;
 	} else if (!mnt->root) {
 		PANIC("Mount with root not set");

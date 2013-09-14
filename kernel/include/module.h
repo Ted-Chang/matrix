@@ -4,6 +4,9 @@
 #define KMOD_RAMFS	1
 #define KMOD_DEVFS	2
 #define KMOD_PROCFS	3
+#define KMOD_PCI	4
+#define KMOD_KBD	5
+#define KMOD_FLPY	6
 
 typedef int (*module_init_func_t)(void);
 
@@ -23,6 +26,7 @@ struct module {
 };
 
 extern int module_load(int handle);
+extern int module_unload();
 extern void init_module();
 
 #endif	/* __MODULE_H__ */

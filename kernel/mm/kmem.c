@@ -113,9 +113,10 @@ void *kmem_map(phys_addr_t base, size_t size, int mmflag)
 	size_t i;
 	ptr_t virt;
 
+	ASSERT(((base % PAGE_SIZE) == 0) && ((size % PAGE_SIZE) == 0));
+	
 	rc = 0;
-	/* FixMe: For now we just do the identical map (virt = base)*/
-	virt = base;
+	virt = base;	// FixMe: For now we just do the identical map (virt = base)
 	
 	for (i = 0; i < size; i += PAGE_SIZE) {
 		rc = mmu_map(&_kernel_mmu_ctx, virt + i, base + i,
@@ -147,6 +148,8 @@ void kmem_unmap(void *addr, size_t size, boolean_t shared)
 	ptr_t virt;
 	phys_addr_t phys;
 
+	ASSERT((((ptr_t)addr % PAGE_SIZE) == 0) && ((size % PAGE_SIZE) == 0));
+	
 	rc = 0;
 	virt = (ptr_t)addr;
 	

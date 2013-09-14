@@ -68,6 +68,8 @@ static void acpi_copy_table(phys_addr_t addr)
 {
 	struct acpi_header *hdr;
 
+	//hdr = (struct acpi_header *)phys_map(addr, 2 * PAGE_SIZE, 0);
+	//ASSERT(hdr != NULL);
 	hdr = (struct acpi_header *)addr;
 
 	/* Sanity check */
@@ -75,14 +77,15 @@ static void acpi_copy_table(phys_addr_t addr)
 		goto out;
 	}
 
-	kprintf("acpi: table revision(%d) %.6s %.8s %d\n",
-		hdr->revision, hdr->oem_id, hdr->oem_table_id,
+	kprintf("acpi: table %x V%d %.6s %.8s %d\n",
+		addr, hdr->revision, hdr->oem_id, hdr->oem_table_id,
 		hdr->oem_revision);
 
 	//_acpi_tables[] = krealloc();
 	//memcpy(_acpi_tables[], hdr, hdr->length);
 	
  out:
+	//phys_unmap(hdr, 2 * PAGE_SIZE, TRUE);
 	return;
 }
 
@@ -90,23 +93,30 @@ static boolean_t acpi_parse_xsdt(uint32_t addr)
 {
 	boolean_t ret = FALSE;
 	struct acpi_xsdt *xsdt;
+	struct acpi_header *hdr;
 	size_t i, cnt;
 
-	/* Map 2 page table entries to the specified address */
-	xsdt = (struct acpi_xsdt *)phys_map(addr, 2 * PAGE_SIZE, 0);
+	/* Map 1 page table entry to the specified address */
+	xsdt = (struct acpi_xsdt *)phys_map(addr, PAGE_SIZE, 0);
 	ASSERT(xsdt != NULL);
 
+	hdr = &xsdt->header;
+	kprintf("acpi: XSDT %x (V%d %.6s %.8s)\n",
+		xsdt, hdr->revision, hdr->oem_id, hdr->oem_table_id);
+
 	/* Check the signature and checksum */
-	if (strncmp((char *)xsdt->header.signature, ACPI_XSDT_SIGNATURE, 4) != 0) {
+	if (strncmp((char *)hdr->signature, ACPI_XSDT_SIGNATURE, 4) != 0) {
 		kprintf("acpi: XSDT signature not match\n");
 		goto out;
-	} else if (!verify_chksum(xsdt, xsdt->header.length)) {
+	} else if (!verify_chksum(xsdt, hdr->length)) {
 		kprintf("acpi: XSDT checksum incorrect\n");
 		goto out;
 	}
 
-	cnt = (xsdt->header.length - sizeof(xsdt->header))/sizeof(xsdt->entry[0]);
-	DEBUG(DL_DBG, ("acpi: number of entries %d\n", cnt));
+	cnt = (hdr->length - sizeof(*hdr))/sizeof(xsdt->entry[0]);
+	DEBUG(DL_DBG,
+	      ("acpi: XSDT %x (V%d %.6s %.8s) %d\n",
+	       xsdt, hdr->revision, hdr->oem_id, hdr->oem_table_id, cnt));
 	
 	/* Load each table */
 	for (i = 0; i < cnt; i++) {
@@ -116,7 +126,7 @@ static boolean_t acpi_parse_xsdt(uint32_t addr)
 	ret = TRUE;
 
  out:
-	phys_unmap(xsdt, 2 * PAGE_SIZE, TRUE);
+	phys_unmap(xsdt, PAGE_SIZE, TRUE);
 	return ret;
 }
 
@@ -124,24 +134,32 @@ static boolean_t acpi_parse_rsdt(uint32_t addr)
 {
 	boolean_t ret = FALSE;
 	struct acpi_rsdt *rsdt;
+	struct acpi_header *hdr;
 	size_t i, cnt;
 
-	/* Map 2 page table entries to the specified address */
-	rsdt = (struct acpi_rsdt *)phys_map(addr, 2 * PAGE_SIZE, 0);
+	/* Map 1 page table entry to the specified address */
+	rsdt = (struct acpi_rsdt *)phys_map(addr, PAGE_SIZE, 0);
 	ASSERT(rsdt != NULL);
 
+	hdr = &rsdt->header;
+	kprintf("acpi: RSDT %x (V%d %.6s %.8s)\n",
+		rsdt, hdr->revision, hdr->oem_id, hdr->oem_table_id);
+
 	/* Check the signature and checksum */
-	if (strncmp((char *)rsdt->header.signature, ACPI_RSDT_SIGNATURE, 4) != 0) {
+	if (strncmp((char *)hdr->signature, ACPI_RSDT_SIGNATURE, 4) != 0) {
 		kprintf("acpi: RSDT signature not match\n");
 		goto out;
-	} else if (!verify_chksum(rsdt, rsdt->header.length)) {
+	} else if (!verify_chksum(rsdt, hdr->length)) {
 		kprintf("acpi: RSDT checksum incorrect\n");
 		goto out;
 	}
 
+	cnt = (hdr->length - sizeof(*hdr))/sizeof(rsdt->entry[0]);
+	DEBUG(DL_DBG,
+	      ("acpi: RSDT %x (V%d %.6s %.8s) %d\n",
+	       rsdt, hdr->revision, hdr->oem_id, hdr->oem_table_id, cnt));
+
 	/* Load each table */
-	cnt = (rsdt->header.length - sizeof(rsdt->header))/sizeof(rsdt->entry[0]);
-	DEBUG(DL_DBG, ("acpi: number of entries %d\n", cnt));
 	for (i = 0; i < cnt; i++) {
 		acpi_copy_table((phys_addr_t)rsdt->entry[i]);
 	}
@@ -149,7 +167,7 @@ static boolean_t acpi_parse_rsdt(uint32_t addr)
 	ret = TRUE;
 
  out:
-	phys_unmap(rsdt, 2 * PAGE_SIZE, TRUE);
+	phys_unmap(rsdt, PAGE_SIZE, TRUE);
 	return ret;
 }
 
@@ -195,25 +213,21 @@ void init_acpi()
 			kprintf("acpi: *** RSDP not found ***\n");
 			return;
 		} else {
-			DEBUG(DL_DBG, ("acpi: rsdp at (%p), revision(%d)\n",
-				       rsdp, rsdp->revision));
+			kprintf("acpi: RSDP %p (V%d %.6s)\n",
+				rsdp, rsdp->revision, rsdp->oem_id);
+			DEBUG(DL_DBG, ("acpi: RSDP at (%p), revision(%d), oem(%.6s)\n",
+				       rsdp, rsdp->revision, rsdp->oem_id));
 		}
 	}
 
 	/* Create a copy of all the tables using the XSDT where possible */
 	if (rsdp->revision >= 2 && rsdp->xsdt_addr != 0) {
-		kprintf("acpi: %.6s xsdt address at (0x%llx)\n",
-			rsdp->oem_id, rsdp->xsdt_addr);
-		
 		if (!acpi_parse_xsdt(rsdp->xsdt_addr)) {
 			if (rsdp->rsdt_addr != 0) {
 				acpi_parse_rsdt(rsdp->rsdt_addr);
 			}
 		}
 	} else if (rsdp->rsdt_addr != 0) {
-		kprintf("acpi: %.6s rsdt address at (0x%x)\n",
-			rsdp->oem_id, rsdp->rsdt_addr);
-		
 		acpi_parse_rsdt(rsdp->rsdt_addr);
 	} else {
 		kprintf("acpi: RSDP contains neither XSDT nor RSDT address.\n");

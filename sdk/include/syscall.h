@@ -85,9 +85,9 @@ DECL_SYSCALL2(syslog, char *, size_t);
 DECL_SYSCALL5(mount, const char *, const char *, const char *, int, const void *);
 DECL_SYSCALL1(umount, const char *);
 DECL_SYSCALL3(mknod, const char *, mode_t, dev_t);
-DECL_SYSCALL2(create_module, const char *, size_t);
-DECL_SYSCALL1(delete_module, const char *);
-DECL_SYSCALL2(init_module, const char *, void *);
+DECL_SYSCALL1(create_module, int);
+DECL_SYSCALL2(query_module, const char *, void *);
+DECL_SYSCALL0(delete_module);
 DECL_SYSCALL4(ioctl, int, int, void *, void *);
 /* System call declaration end */
 

@@ -37,6 +37,7 @@ void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 	
 	/* Map pages from kernel memory */
 	ret = kmem_map(base, end - base, mmflag);
+	ret = (char *)ret + (addr - base);	// Don't miss the offset
 	
 	DEBUG(DL_DBG, ("addr(%x), size(%x), ret(%p).\n", addr, size, ret));
 
@@ -61,6 +62,6 @@ void phys_unmap(void *addr, size_t size, boolean_t shared)
 			       addr, size, base, end));
 	
 		ASSERT(end > base);
-		kmem_unmap(base, end - base, shared);
+		kmem_unmap((void *)base, end - base, shared);
 	}
 }
