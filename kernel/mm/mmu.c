@@ -4,6 +4,7 @@
 
 #include <types.h>
 #include <string.h>	// memset
+#include <errno.h>
 #include "hal/hal.h"
 #include "hal/isr.h"	// register interrupt handler
 #include "hal/core.h"
@@ -109,8 +110,8 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, ptr_t virt, boolean_t make, int m
 		phys_addr_t tmp;
 		
 		/* Allocate a new page table */
-		pdir->ptbl[dir_idx] =
-			(struct ptbl *)kmem_alloc_p(sizeof(struct ptbl), &tmp, MM_ALIGN_F);
+		pdir->ptbl[dir_idx] = (struct ptbl *)
+			kmem_alloc_p(sizeof(struct ptbl), &tmp, MM_ALIGN_F);
 		
 		/* Clear the content of the page table */
 		memset(pdir->ptbl[dir_idx], 0, sizeof(struct ptbl));
@@ -138,7 +139,8 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t virt, phys_addr_t phys, int flags)
 	/* Get a page from the specified MMU context */
 	p = mmu_get_page(ctx, virt, TRUE, flags);
 	if (!p) {
-		rc = -1;
+		DEBUG(DL_WRN, ("get page failed, ctx(%p) virt(%x)\n", ctx, virt));
+		rc = EINVAL;
 		goto out;
 	}
 
@@ -152,6 +154,8 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t virt, phys_addr_t phys, int flags)
 	p->present = 1;
 	p->user = IS_KERNEL_CTX(ctx) ? FALSE : TRUE;
 	p->rw = FLAG_ON(flags, MMU_MAP_WRITE) ? TRUE : FALSE;
+	
+	rc = 0;
 
  out:
 	return rc;
@@ -166,12 +170,15 @@ int mmu_unmap(struct mmu_ctx *ctx, ptr_t virt, boolean_t shared, phys_addr_t *ph
 	/* Get the page which the specified virtual address was mapping */
 	p = mmu_get_page(ctx, virt, FALSE, 0);
 	if (!p) {
-		rc = -1;
+		DEBUG(DL_WRN, ("get page failed, ctx(%p) virt(%x)\n", ctx, virt));
+		rc = EINVAL;
 		goto out;
 	}
 
 	/* The mapping does not exist, just return */
 	if (!p->present) {
+		DEBUG(DL_WRN, ("unmap non-present page, ctx(%p) virt(%x)\n",
+			       ctx, virt));
 		rc = -1;
 		goto out;
 	}
@@ -183,6 +190,8 @@ int mmu_unmap(struct mmu_ctx *ctx, ptr_t virt, boolean_t shared, phys_addr_t *ph
 	if (physp) {
 		*physp = entry;
 	}
+
+	rc = 0;
 
  out:
 	return rc;
@@ -275,13 +284,13 @@ struct mmu_ctx *mmu_create_ctx()
 
 	ctx = kmem_alloc(sizeof(struct mmu_ctx), 0);
 	if (!ctx) {
-		return NULL;
+		goto out;
 	}
 
 	ctx->pdir = kmem_alloc_p(sizeof(struct pdir), &pdbr, MM_ALIGN_F);
 	if (!ctx->pdir) {
 		kmem_free(ctx);
-		return NULL;
+		goto out;
 	}
 	memset(ctx->pdir, 0, sizeof(struct pdir));
 	ctx->pdbr = pdbr;
@@ -289,6 +298,7 @@ struct mmu_ctx *mmu_create_ctx()
 
 	mutex_init(&ctx->lock, "mmu-mutex", 0);	// TODO: flags need to be confirmed
 
+ out:
 	return ctx;
 }
 

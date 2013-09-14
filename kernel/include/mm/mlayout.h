@@ -3,7 +3,7 @@
 
 /* Memory layout definition
  * +------------+
- * | 0x01000000 | Kernel multiboot header
+ * | 0x00100000 | Kernel multiboot header
  * +------------+
  * | 0x20000000 | User thread stack address
  * +------------+

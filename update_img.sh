@@ -38,8 +38,12 @@ update_flpy()
     # Mount the root partition onto /mnt
     sudo mount /dev/loop0 /mnt/matrix/
 
+    sudo rm -f /mnt/matrix/matrix
+    sudo rm -f /mnt/matrix/initrd
     sudo cp bin/matrix /mnt/matrix/
     sudo cp bin/initrd /mnt/matrix/
+
+    sync
 
     # Unmount the root partition
     sudo umount /mnt/matrix
@@ -48,8 +52,7 @@ update_flpy()
 # update the matrix kernel in the hard disk image
 update_hd()
 {
-    result=`sudo ls /dev/mapper/hda`
-    if [ $? -eq 0 ]; then
+    if [ ! -e "/dev/mapper/hda" ]; then
         # Loop mount the disk image
 	sudo losetup /dev/loop1 ~/vm/matrix/matrix-hd.img
 	# Create device mapper node for root device
@@ -63,12 +66,17 @@ update_hd()
     # Mount the root partition onto /mnt
     sudo mount /dev/mapper/hda /mnt/matrix
     
+    sudo rm -f /mnt/matrix/matrix
+    sudo rm -f /mnt/matrix/initrd
     # Copy the files to the disk image
     sudo cp bin/matrix /mnt/matrix/
     sudo cp bin/initrd /mnt/matrix/
 
     # Sleep for 1 seconds as devmapper will be busy if we unmount it now
     sleep 1s
+
+    # Sync data to the image file
+    sync
 
     # Umount the root partition
     sudo umount /mnt/matrix

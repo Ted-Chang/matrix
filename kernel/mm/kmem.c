@@ -134,7 +134,8 @@ void *kmem_map(phys_addr_t base, size_t size, int mmflag)
 		}
 	}
 
-	DEBUG(DL_DBG, ("map range[%p, %p)\n", virt, virt + size));
+	DEBUG(DL_DBG, ("virt(%x) map range[%p, %p) rc(%x)\n",
+		       virt, base, base + size, rc));
 
 	return (void *)virt;
 }
