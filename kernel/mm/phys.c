@@ -41,7 +41,6 @@ void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 	DEBUG(DL_DBG, ("addr(%x), size(%x), ret(%p).\n", addr, size, ret));
 
  out:
-
 	return ret;
 }
 

@@ -94,12 +94,17 @@ struct symbol *symbol_lookup_by_name(const char *name, boolean_t global,
 
 	s = NULL;
 	if (_symbol_tree) {
-		;
+		l = radix_tree_lookup(_symbol_tree, name);
+		if (!l) {
+			s = NULL;
+			goto out;
+		}
 	} else {
 		s = symbol_table_lookup_name(&_kernel_symtab, name,
 					     global, exported);
 	}
-	
+
+ out:
 	return s;
 }
 

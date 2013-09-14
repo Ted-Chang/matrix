@@ -85,7 +85,7 @@ void *kmem_alloc(size_t size, int mmflag)
 {
 	void *ret;
 	
-	if (FLAG_ON(mmflag, MM_ALIGN_F)) {
+	if (FLAG_ON(mmflag, MM_ALIGN)) {
 		ret = kmem_alloc_int(size, TRUE, NULL);
 	} else {
 		ret = kmem_alloc_int(size, FALSE, NULL);
@@ -98,7 +98,7 @@ void *kmem_alloc_p(size_t size, phys_addr_t *phys, int mmflag)
 {
 	void *ret;
 
-	if (FLAG_ON(mmflag, MM_ALIGN_F)) {
+	if (FLAG_ON(mmflag, MM_ALIGN)) {
 		ret = kmem_alloc_int(size, TRUE, phys);
 	} else {
 		ret = kmem_alloc_int(size, FALSE, phys);

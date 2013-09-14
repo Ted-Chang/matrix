@@ -4,6 +4,11 @@
 #include "debug.h"
 #include "rtl/radixtree.h"
 
+void *radix_tree_lookup(struct radix_tree *tree, const char *key)
+{
+	return NULL;
+}
+
 void radix_tree_init(struct radix_tree *tree)
 {
 	/* Clear the root node */

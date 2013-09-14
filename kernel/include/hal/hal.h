@@ -99,9 +99,42 @@ struct tss {
 				// redirection bit maps
 } __attribute__((packed));
 
-extern void outportb(uint16_t port, uint8_t value);
-extern uint8_t inportb(uint16_t port);
-extern uint16_t inportw(uint16_t port);
+static INLINE uint8_t inportb(uint16_t port)
+{
+	uint8_t ret;
+	asm volatile("inb %1, %0" : "=a" (ret) : "dN" (port));
+	return ret;
+}
+
+static INLINE void outportb(uint16_t port, uint8_t val)
+{
+	asm volatile("outb %1, %0" : : "dN" (port), "a" (val));
+}
+
+static INLINE uint16_t inportw(uint16_t port)
+{
+	uint16_t ret;
+	asm volatile("inw %1, %0" : "=a" (ret) : "dN" (port));
+	return ret;
+}
+
+static INLINE void outportw(uint16_t port, uint16_t val)
+{
+	asm volatile("outw %1, %0" : : "dN" (port), "a" (val));
+}
+
+static INLINE uint32_t inportdw(uint16_t port)
+{
+	uint32_t ret;
+	asm volatile("inl %1, %0" : "=a" (ret) : "dN" (port));
+	return ret;
+}
+
+static INLINE void outportdw(uint16_t port, uint32_t val)
+{
+	asm volatile("outl %1, %0" : : "dN" (port), "a" (val));
+}
+
 extern boolean_t irq_enable();
 extern boolean_t irq_disable();
 extern boolean_t irq_state();

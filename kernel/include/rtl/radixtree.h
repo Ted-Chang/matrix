@@ -17,6 +17,7 @@ struct radix_tree {
 	struct radix_tree_node root;
 };
 
+extern void *radix_tree_lookup(struct radix_tree *tree, const char *key);
 extern void radix_tree_init(struct radix_tree *tree);
 extern void radix_tree_uninit();
 

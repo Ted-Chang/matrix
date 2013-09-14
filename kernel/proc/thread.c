@@ -190,7 +190,7 @@ static void thread_wake_internal(struct thread *t)
 
 	/* Remove the thread from the list and wake it up */
 	list_del(&t->wait_link);
-	CLEAR_FLAG(t->flags, THREAD_INTERRUPTIBLE_F);
+	CLEAR_FLAG(t->flags, THREAD_INTERRUPTIBLE);
 	t->wait_lock = NULL;
 
 	t->state = THREAD_READY;
@@ -210,13 +210,13 @@ static boolean_t thread_interrupt_internal(struct thread *t, int flags)
 	spinlock_acquire(&t->lock);
 	
 	if ((t->state == THREAD_SLEEPING) &&
-	    FLAG_ON(t->flags, THREAD_INTERRUPTIBLE_F)) {
+	    FLAG_ON(t->flags, THREAD_INTERRUPTIBLE)) {
 		t->sleep_status = -1;
 		thread_wake_internal(t);
 		ret = TRUE;
 	} else {
 		/* The thread is either not sleeping or not interruptible. */
-		SET_FLAG(t->flags, THREAD_INTERRUPTED_F);
+		SET_FLAG(t->flags, THREAD_INTERRUPTED);
 	}
 
 	spinlock_release(&t->lock);
@@ -280,7 +280,7 @@ int thread_create(const char *name, struct process *owner, int flags,
 	t->name[T_NAME_LEN - 1] = 0;
 	
 	/* Allocate kernel stack for the process */
-	t->kstack = kmalloc(KSTACK_SIZE, MM_ALIGN_F) + KSTACK_SIZE;
+	t->kstack = kmalloc(KSTACK_SIZE, MM_ALIGN) + KSTACK_SIZE;
 	if (!t->kstack) {
 		DEBUG(DL_INF, ("kmalloc kstack failed.\n"));
 		goto out;
@@ -406,7 +406,7 @@ void thread_kill(struct thread *t)
 	DEBUG(DL_DBG, ("killing thread(%s:%d).\n", t->name, t->id));
 	
 	if (t->owner != _kernel_proc) {
-		thread_interrupt_internal(t, THREAD_KILLED_F);
+		thread_interrupt_internal(t, THREAD_KILLED);
 	}
 }
 

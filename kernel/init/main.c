@@ -179,19 +179,19 @@ void load_modules()
 	struct boot_module *mod;
 
 	/* Populate our module list with the module details */
-	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
+	mod = kmalloc(sizeof(struct boot_module), MM_BOOT);
 	LIST_INIT(&mod->link);
 	mod->name = kstrdup("ramfs", 0);
 	mod->handle = KMOD_RAMFS;	// TODO: use file handle in the future
 	list_add_tail(&mod->link, &_boot_module_list);
 
-	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
+	mod = kmalloc(sizeof(struct boot_module), MM_BOOT);
 	LIST_INIT(&mod->link);
 	mod->name = kstrdup("devfs", 0);
 	mod->handle = KMOD_DEVFS;	// TODO: use file handle in the future
 	list_add_tail(&mod->link, &_boot_module_list);
 
-	mod = kmalloc(sizeof(struct boot_module), MM_BOOT_F);
+	mod = kmalloc(sizeof(struct boot_module), MM_BOOT);
 	LIST_INIT(&mod->link);
 	mod->name = kstrdup("procfs", 0);
 	mod->handle = KMOD_PROCFS;	// TODO: use file handle in the future
