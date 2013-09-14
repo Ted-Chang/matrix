@@ -153,7 +153,7 @@ void kmem_unmap(void *addr, size_t size, boolean_t shared)
 	for (i = 0; i < size; i += PAGE_SIZE) {
 		rc = mmu_unmap(&_kernel_mmu_ctx, virt + i, shared, &phys);
 		if (rc != 0) {
-			PANIC("Unmapping unmapped page");
+			PANIC("Unmapping page failed");
 		}
 	}
 

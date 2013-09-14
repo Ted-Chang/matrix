@@ -8,6 +8,8 @@
 #define INLINE	inline
 #endif
 
+#define STATIC_ASSERT(expr)	typedef char assert_type[(expr) ? 1 : -1];
+
 #define FLAG_ON(_x, _f)		((_x) & (_f))
 
 #define SET_FLAG(_x, _f)	((_x) |= (_f))

@@ -14,5 +14,6 @@ extern size_t strnlen(const char *str, size_t num);
 extern char *strchr(const char *str, int ch);
 extern void *memset(void *dst, char val, size_t count);
 extern void *memcpy(void *dst, const void *src, size_t count);
+extern int memcmp(const void *s1, const void *s2, size_t count);
 
 #endif	/* __STRING_H__ */

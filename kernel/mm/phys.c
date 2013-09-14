@@ -48,7 +48,7 @@ void phys_unmap(void *addr, size_t size, boolean_t shared)
 {
 	ptr_t base;
 	ptr_t end;
-	
+
 	/* If the memory range lies within the physical map area, we don't
 	 * need to do anything. Otherwise, unmap and free the kernel memory.
 	 */
@@ -56,7 +56,11 @@ void phys_unmap(void *addr, size_t size, boolean_t shared)
 	    ((uint32_t)addr > (KERNEL_PMAP_START + KERNEL_PMAP_SIZE))) {
 		base = ROUND_DOWN((ptr_t)addr, PAGE_SIZE);
 		end = ROUND_UP((ptr_t)addr + size, PAGE_SIZE);
+
+		DEBUG(DL_DBG, ("addr(%p), size(%x), base(%x), end(%x)\n",
+			       addr, size, base, end));
+	
 		ASSERT(end > base);
-		kmem_unmap(addr, end - base, shared);
+		kmem_unmap(base, end - base, shared);
 	}
 }

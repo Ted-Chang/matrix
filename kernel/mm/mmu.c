@@ -150,7 +150,7 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t virt, phys_addr_t phys, int flags)
 	}
 
 	/* Set the page table entry */
-	p->frame = phys;
+	p->frame = phys / PAGE_SIZE;
 	p->present = 1;
 	p->user = IS_KERNEL_CTX(ctx) ? FALSE : TRUE;
 	p->rw = FLAG_ON(flags, MMU_MAP_WRITE) ? TRUE : FALSE;
