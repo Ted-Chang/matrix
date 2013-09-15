@@ -335,13 +335,6 @@ void init_mmu()
 		mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
 	}
 
-	/* Allocate some pages in the physical map area. */
-	for (i = KERNEL_PMAP_START;
-	     (i < (KERNEL_PMAP_START + KERNEL_PMAP_SIZE)) && (i != 0);
-	     i += PAGE_SIZE) {
-		mmu_get_page(&_kernel_mmu_ctx, i, TRUE, 0);
-	}
-
 	/* Do identity map (physical addr == virtual addr) for the memory we
 	 * have used.
 	 */
@@ -360,18 +353,6 @@ void init_mmu()
 		page = mmu_get_page(&_kernel_mmu_ctx, i, FALSE, 0);
 		ASSERT(page != NULL);
 		page_alloc(page, 0);
-		page->user = FALSE;
-		page->rw = FALSE;
-	}
-
-	/* Allocate those pages we mapped for physical map area */
-	for (i = KERNEL_PMAP_START;
-	     (i < (KERNEL_PMAP_START + KERNEL_PMAP_SIZE)) && (i != 0);
-	     i += PAGE_SIZE) {
-		page = mmu_get_page(&_kernel_mmu_ctx, i, FALSE, 0);
-		ASSERT(page != NULL);
-		page->present = TRUE;
-		page->frame = i / PAGE_SIZE;	// We are mapping to the physical address
 		page->user = FALSE;
 		page->rw = FALSE;
 	}

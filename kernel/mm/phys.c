@@ -7,9 +7,11 @@
 #include "mm/page.h"
 #include "mm/kmem.h"
 
-#define PMAP_CONTAINS(addr, size)					\
-	((addr >= KERNEL_PMAP_START) &&					\
-	 ((addr + size) <= (KERNEL_PMAP_START + KERNEL_PMAP_SIZE)))
+extern uint32_t _placement_addr;
+
+#define PMAP_CONTAINS(addr, size)		\
+	((addr >= PAGE_SIZE) &&			\
+	 ((addr + size) <= _placement_addr))
 
 void *phys_map(phys_addr_t addr, size_t size, int mmflag)
 {
@@ -53,8 +55,7 @@ void phys_unmap(void *addr, size_t size, boolean_t shared)
 	/* If the memory range lies within the physical map area, we don't
 	 * need to do anything. Otherwise, unmap and free the kernel memory.
 	 */
-	if (((uint32_t)addr < KERNEL_PMAP_START) ||
-	    ((uint32_t)addr > (KERNEL_PMAP_START + KERNEL_PMAP_SIZE))) {
+	if (((uint32_t)addr < PAGE_SIZE) || ((uint32_t)addr > _placement_addr)) {
 		base = ROUND_DOWN((ptr_t)addr, PAGE_SIZE);
 		end = ROUND_UP((ptr_t)addr + size, PAGE_SIZE);
 

@@ -2,19 +2,25 @@
 #include "mm/malloc.h"
 #include "mm/kmem.h"
 
+/* Tag for each allocation */
+struct alloc_tag {
+	size_t size;		// Size of the allocation
+};
+
 void *kmalloc(size_t size, int mmflag)
 {
 	void *addr;
 
 	addr = kmem_alloc(size, mmflag);
 	if (!addr) {
-		return NULL;
+		goto out;
 	}
 	
 	if (mmflag & MM_ZERO) {
 		memset(addr, 0, size);
 	}
 
+ out:
 	return addr;
 }
 
@@ -28,13 +34,14 @@ void *krealloc(void *addr, size_t size, int mmflag)
 	void *mem;
 
 	if (!addr) {
-		return kmalloc(size, mmflag);
+		mem = kmalloc(size, mmflag);
+		goto out;
 	}
 
 	/* Make a new allocation */
 	mem = kmalloc(size, mmflag & ~MM_ZERO);
 	if (!mem) {
-		return mem;
+		goto out;
 	}
 
 	/* Copy the block data using the smallest of the two sizes */
@@ -46,6 +53,7 @@ void *krealloc(void *addr, size_t size, int mmflag)
 	/* Free the original allocation */
 	kfree(addr);
 
+ out:
 	return mem;
 }
 

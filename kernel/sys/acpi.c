@@ -192,10 +192,13 @@ void init_acpi()
 	phys_addr_t ebda;
 	struct acpi_rsdp *rsdp;
 
-	/* Get the base address of the Extended BIOS Data Area (EBDA). Note
-	 * that we have done identity map while initialize kernel MMU so we
-	 * don't need to map it again.
+	/* FixMe: As we have done identity map while initialize kernel MMU so
+	 * we don't need to map it again. But the first 4K should be reserved
+	 * for all address space, so we couldn't access it directly. We should
+	 * do a physical map and then access it.
 	 */
+	
+	/* Get the base address of the Extended BIOS Data Area (EBDA). */
 	mapping = (uint16_t *)0x40e;
 	ebda = (*mapping) << 4;
 	
