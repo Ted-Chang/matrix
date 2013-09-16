@@ -56,6 +56,7 @@ void *kmem_alloc_int(size_t size, boolean_t align, phys_addr_t *phys)
 		if (align) {
 			ASSERT(((uint32_t)addr % PAGE_SIZE) == 0);
 		}
+		
 		return addr;
 	} else {	// The pool manager was not initialized
 		uint32_t tmp;
@@ -77,6 +78,7 @@ void *kmem_alloc_int(size_t size, boolean_t align, phys_addr_t *phys)
 		if (align) {
 			ASSERT((tmp % PAGE_SIZE) == 0);
 		}
+		
 		return (void *)tmp;
 	}
 }
@@ -89,19 +91,6 @@ void *kmem_alloc(size_t size, int mmflag)
 		ret = kmem_alloc_int(size, TRUE, NULL);
 	} else {
 		ret = kmem_alloc_int(size, FALSE, NULL);
-	}
-	
-	return ret;
-}
-
-void *kmem_alloc_p(size_t size, phys_addr_t *phys, int mmflag)
-{
-	void *ret;
-
-	if (FLAG_ON(mmflag, MM_ALIGN)) {
-		ret = kmem_alloc_int(size, TRUE, phys);
-	} else {
-		ret = kmem_alloc_int(size, FALSE, phys);
 	}
 	
 	return ret;

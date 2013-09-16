@@ -4,6 +4,7 @@
 #include "list.h"
 #include "mutex.h"
 #include "debug.h"
+#include "mm/malloc.h"
 #include "pci.h"
 
 #define PCI_CFG_ADDR	0xCF8		// Configuration Address Register
@@ -78,16 +79,33 @@ void platform_pci_cfg_write16(uint8_t bus, uint8_t dev, uint8_t func,
 	spinlock_release(&_pci_cfg_lock);
 }
 
+uint32_t platform_pci_cfg_read32(uint8_t bus, uint8_t dev,
+				 uint8_t func, uint8_t reg)
+{
+	uint32_t ret;
+
+	spinlock_acquire(&_pci_cfg_lock);
+	outportdw(PCI_CFG_ADDR, PCI_ADDR(bus, dev, func, reg));
+	ret = inportdw(PCI_CFG_DATA);
+	spinlock_release(&_pci_cfg_lock);
+
+	return ret;
+}
+
+void platform_pci_cfg_write32(uint8_t bus, uint8_t dev, uint8_t func,
+			      uint8_t reg, uint32_t val)
+{
+	spinlock_acquire(&_pci_cfg_lock);
+	outportdw(PCI_CFG_ADDR, PCI_ADDR(bus, dev, func, reg));
+	outportdw(PCI_CFG_DATA, val);
+	spinlock_release(&_pci_cfg_lock);
+}
+
 static int pci_scan_dev(int id, int dev, int func, int indent)
 {
 	int rc;
 	uint16_t ret;
-	uint16_t vendor_id;
-	uint16_t device_id;
-	uint8_t base_class;
-	uint8_t sub_class;
-	uint8_t prog_iface;
-	uint8_t revision;
+	struct pci_dev *device;
 	uint8_t dest;
 
 	/* Check vendor ID to determine if device exists */
@@ -97,20 +115,33 @@ static int pci_scan_dev(int id, int dev, int func, int indent)
 		goto out;
 	}
 
+	device = (struct pci_dev *)kmalloc(sizeof(*device), 0);
+	if (!device) {
+		rc = 0;
+		DEBUG(DL_DBG, ("kmalloc pci device failed.\n"));
+		goto out;
+	}
+
+	LIST_INIT(&device->link);
+	device->bus = (uint8_t)id;
+	device->dev = (uint8_t)dev;
+	device->func = (uint8_t)func;
+
 	/* Retrieve the device information */
-	vendor_id = pci_cfg_read16(PCI_CFG_VENDOR_ID);
-	device_id = pci_cfg_read16(PCI_CFG_DEVICE_ID);
-	base_class = pci_cfg_read8(PCI_CFG_BASE_CLASS);
-	sub_class = pci_cfg_read8(PCI_CFG_SUB_CLASS);
-	prog_iface = pci_cfg_read8(PCI_CFG_PIFACE);
-	revision = pci_cfg_read8(PCI_CFG_REVISION);
+	device->vendor_id = pci_cfg_read16(device, PCI_CFG_VENDOR_ID);
+	device->dev_id = pci_cfg_read16(device, PCI_CFG_DEVICE_ID);
+	device->base_class = pci_cfg_read8(device, PCI_CFG_BASE_CLASS);
+	device->sub_class = pci_cfg_read8(device, PCI_CFG_SUB_CLASS);
+	device->prog_iface = pci_cfg_read8(device, PCI_CFG_PIFACE);
+	device->revision = pci_cfg_read8(device, PCI_CFG_REVISION);
 
 	kprintf("pci: V%u (vendor:%x device:%x class:%x %x)\n",
-		revision, vendor_id, device_id, base_class, sub_class);
+		device->revision, device->vendor_id, device->dev_id, device->base_class,
+		device->sub_class);
 
 	/* Check for a PCI-to-PCI bridge */
-	if (base_class == 0x06 && sub_class == 0x04) {
-		dest = pci_cfg_read8(0x19);
+	if (device->base_class == 0x06 && device->sub_class == 0x04) {
+		dest = pci_cfg_read8(device, 0x19);
 		kprintf("pci: device %d is a PCI-to-PCI bridge to %u\n",
 			id, dest);
 	}
@@ -150,18 +181,34 @@ static int pci_scan_bus(int id, int indent)
 	return rc;
 }
 
-uint8_t pci_cfg_read8(uint8_t reg)
+uint8_t pci_cfg_read8(struct pci_dev *dev, uint8_t reg)
 {
-	uint8_t ret = 0;
-
-	return ret;
+	return platform_pci_cfg_read8(dev->bus, dev->dev, dev->func, reg);
 }
 
-uint16_t pci_cfg_read16(uint8_t reg)
+void pci_cfg_write8(struct pci_dev *dev, uint8_t reg, uint8_t val)
 {
-	uint16_t ret = 0;
+	platform_pci_cfg_write8(dev->bus, dev->dev, dev->func, reg, val);
+}
 
-	return ret;
+uint16_t pci_cfg_read16(struct pci_dev *dev, uint8_t reg)
+{
+	return platform_pci_cfg_read16(dev->bus, dev->dev, dev->func, reg);
+}
+
+void pci_cfg_write16(struct pci_dev *dev, uint8_t reg, uint16_t val)
+{
+	platform_pci_cfg_write16(dev->bus, dev->dev, dev->func, reg, val);
+}
+
+uint32_t pci_cfg_read32(struct pci_dev *dev, uint8_t reg)
+{
+	return platform_pci_cfg_read32(dev->bus, dev->dev, dev->func, reg);
+}
+
+void pci_cfg_write32(struct pci_dev *dev, uint8_t reg, uint32_t val)
+{
+	platform_pci_cfg_write32(dev->bus, dev->dev, dev->func, reg, val);
 }
 
 int pci_drivers_register()

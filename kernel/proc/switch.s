@@ -8,37 +8,8 @@ read_eip:			; When read_eip is called, the current instruction location
 	jmp eax			; Return. Can't use RET because return
 				; address popped off the stack
 
-[GLOBAL x86_context_switch]
-x86_context_switch:
-	push ebx		; According to __cdecl convention, we must preserve the contents
-	pushf			; of EBX and push EFLAGS so we can pop it and reenable interrupts
-
-	push ebp		; Save ebp to current stack
-	mov [esp+12], esp	; Save esp to current stack
-	
-	mov esp, [esp+16]	; Previous process
-	pop ebp			; Restore ebp
-	
-	popf			; Pop EFLAGS back
-	pop ebx			; Get original EBX value back
-	ret
-
-
-[GLOBAL x86_context_restore]
-x86_context_restore:
-	push ebx
-	pushf
-
-	mov esp, [esp+12]	; Set stack pointer to current process
-	pop ebp			; Restore ebp
-	
-	popf
-	pop ebx
-	ret
-
-
-[GLOBAL copy_page_physical]
-copy_page_physical:
+[GLOBAL page_copy]
+page_copy:
 	push ebx		; According to __cdecl, we must preserve the contents of EBX
 	pushf			; push EFLAGS, so we can pop it and reenable interrupts
 				; later, if they were enabled anyway.

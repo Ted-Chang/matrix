@@ -28,6 +28,7 @@ extern phys_addr_t _placement_addr;
 
 extern void page_alloc(struct page *p, int flags);
 extern void page_free(struct page *p);
+extern void page_copy(phys_addr_t dst, phys_addr_t src);
 extern void init_page();
 
 #endif	/* __PAGE_H__ */

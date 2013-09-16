@@ -41,11 +41,25 @@ struct pdir {
 };
 
 struct mmu_ctx _kernel_mmu_ctx;
+
 static struct irq_hook _pf_hook;
 
 extern uint32_t _placement_addr;
 
-extern void copy_page_physical(uint32_t dst, uint32_t src);
+void *kmem_alloc_int(size_t size, boolean_t align, phys_addr_t *phys);
+
+void *alloc_structure(size_t size, phys_addr_t *phys, int mmflag)
+{
+	void *ret;
+
+	if (FLAG_ON(mmflag, MM_ALIGN)) {
+		ret = kmem_alloc_int(size, TRUE, phys);
+	} else {
+		ret = kmem_alloc_int(size, FALSE, phys);
+	}
+	
+	return ret;
+}
 
 static struct ptbl *clone_ptbl(struct ptbl *src, phys_addr_t *phys_addr)
 {
@@ -53,7 +67,8 @@ static struct ptbl *clone_ptbl(struct ptbl *src, phys_addr_t *phys_addr)
 	struct ptbl *ptbl;
 	
 	/* Make a new page table, which is page aligned */
-	ptbl = (struct ptbl *)kmem_alloc_p(sizeof(struct ptbl), phys_addr, MM_ALIGN);
+	ptbl = (struct ptbl *)alloc_structure(sizeof(struct ptbl), phys_addr,
+					      MM_ALIGN);
 	
 	/* Clear the content of the new page table */
 	memset(ptbl, 0, sizeof(struct ptbl));
@@ -74,8 +89,8 @@ static struct ptbl *clone_ptbl(struct ptbl *src, phys_addr_t *phys_addr)
 			if (src->pte[i].dirty) ptbl->pte[i].dirty = 1;
 
 			/* Physically copy the data accross */
-			copy_page_physical(ptbl->pte[i].frame * 0x1000, 
-					   src->pte[i].frame * 0x1000);
+			page_copy(ptbl->pte[i].frame * 0x1000, 
+				  src->pte[i].frame * 0x1000);
 		}
 	}
 
@@ -111,7 +126,7 @@ struct page *mmu_get_page(struct mmu_ctx *ctx, ptr_t virt, boolean_t make, int m
 		
 		/* Allocate a new page table */
 		pdir->ptbl[dir_idx] = (struct ptbl *)
-			kmem_alloc_p(sizeof(struct ptbl), &tmp, MM_ALIGN);
+			alloc_structure(sizeof(struct ptbl), &tmp, MM_ALIGN);
 		
 		/* Clear the content of the page table */
 		memset(pdir->ptbl[dir_idx], 0, sizeof(struct ptbl));
@@ -287,7 +302,7 @@ struct mmu_ctx *mmu_create_ctx()
 		goto out;
 	}
 
-	ctx->pdir = kmem_alloc_p(sizeof(struct pdir), &pdbr, MM_ALIGN);
+	ctx->pdir = alloc_structure(sizeof(struct pdir), &pdbr, MM_ALIGN);
 	if (!ctx->pdir) {
 		kmem_free(ctx);
 		goto out;
@@ -317,7 +332,7 @@ void init_mmu()
 	struct page *page;
 
 	/* Initialize the kernel MMU context structure */
-	_kernel_mmu_ctx.pdir = kmem_alloc_p(sizeof(struct pdir), &pdbr, MM_ALIGN);
+	_kernel_mmu_ctx.pdir = alloc_structure(sizeof(struct pdir), &pdbr, MM_ALIGN);
 	_kernel_mmu_ctx.pdbr = pdbr;
 	memset(_kernel_mmu_ctx.pdir, 0, sizeof(struct pdir));
 	
