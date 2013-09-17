@@ -21,6 +21,6 @@
 /* Start address of the kernel memory pool */
 #define KERNEL_KMEM_START	0xC0000000
 /* Minimum size of the kernel memory pool */
-#define KERNEL_KMEM_SIZE	0x00400000
+#define KERNEL_KMEM_SIZE	0x00800000
 
 #endif	/* __MLAYOUT_H__ */

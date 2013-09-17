@@ -34,7 +34,7 @@ static slab_t *slab_create(slab_cache_t *cache, int mmflag)
 	slab_t *slab;
 
 	/* Allocate a new slab */
-	slab = (slab_t *)kmem_alloc(cache->obj_size + sizeof(slab_t), mmflag);
+	slab = (slab_t *)kmalloc(cache->obj_size + sizeof(slab_t), mmflag);
 	if (slab) {
 		slab->magic = SLAB_MAGIC;
 		LIST_INIT(&slab->link);
@@ -56,7 +56,7 @@ static void slab_destroy(slab_cache_t *cache, slab_t *slab)
 	spinlock_acquire(&cache->lock);
 	cache->nr_slabs--;
 	spinlock_release(&cache->lock);
-	kmem_free(slab);
+	kfree(slab);
 }
 
 void *slab_cache_alloc(slab_cache_t *cache)

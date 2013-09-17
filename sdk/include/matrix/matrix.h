@@ -12,6 +12,8 @@
 
 #define FLAG_ON(_x, _f)		((_x) & (_f))
 
+#define IS_FLAG_ON(_x, _f)	(((_x) & (_f)) ? 1 : 0)
+
 #define SET_FLAG(_x, _f)	((_x) |= (_f))
 
 #define CLEAR_FLAG(_x, _f)	((_x) &= ~(_f))

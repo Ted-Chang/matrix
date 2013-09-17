@@ -59,6 +59,22 @@ static uint32_t first_frame()
 	return frame;
 }
 
+void page_early_alloc(phys_addr_t *phys, size_t size, boolean_t align)
+{
+	/* If the address is not already page-aligned */
+	if ((align) && (_placement_addr & 0xFFF)) {
+		/* Align the placement address */
+		_placement_addr &= 0xFFFFF000;
+		_placement_addr += 0x1000;
+	}
+
+	if (phys) {
+		*phys = _placement_addr;
+	}
+
+	_placement_addr += size;
+}
+
 void page_alloc(struct page *p, int flags)
 {
 	uint32_t idx;
@@ -114,6 +130,7 @@ void page_free(struct page *p)
 
 void init_page()
 {
+	phys_addr_t addr;
 	phys_size_t mem_size = 0;
 	struct multiboot_mmap_entry *mmap;
 	
@@ -122,17 +139,20 @@ void init_page()
 	 */
 	_placement_addr = *((uint32_t *)(_mbi->mods_addr + 4));
 
-	DEBUG(DL_DBG, ("Placement address: 0x%x\n", _placement_addr));
-
+	kprintf("page: placement address at 0x%x\n", _placement_addr);
+	
 	/* Detect the amount of physical memory by parse the memory map entry */
-	for (mmap = (struct multiboot_mmap_entry *)_mbi->mmap_addr;
-	     (u_long)mmap < (_mbi->mmap_addr + _mbi->mmap_length);
-	     mmap = (struct multiboot_mmap_entry *)
-		     ((u_long)mmap + mmap->size + sizeof(mmap->size))) {
+	for (addr = _mbi->mmap_addr;
+	     addr < (_mbi->mmap_addr + _mbi->mmap_length);
+	     addr += (mmap->size + sizeof(mmap->size))) {
+		mmap = (struct multiboot_mmap_entry *)addr;
+		DEBUG(DL_DBG, ("mmap type(%d) addr(%llx) len(%llx)\n",
+			       mmap->type, mmap->addr, mmap->len));
 		mem_size += mmap->len;
 	}
 
-	DEBUG(DL_DBG, ("Detected physical memory size: %uMB.\n", mem_size/(1024*1024)));
+	kprintf("page: available physical memory size: %uMB.\n",
+		mem_size / (1024 * 1024));
 
 	spinlock_init(&_pages_lock, "pages-lock");
 
@@ -140,9 +160,14 @@ void init_page()
 	_nr_total_pages = mem_size / PAGE_SIZE;
 
 	/* Allocate the bitmap for the physical pages */
-	_pages = kmem_alloc(_nr_total_pages/(4*8), 0);
-	ASSERT(_pages != NULL);
+	page_early_alloc(&addr, _nr_total_pages/(4*8), FALSE);
+	ASSERT(addr != 0);
 
-	/* Clear the pages bitmap */
+	_pages = (uint32_t *)addr;
+
+	/* Clear the pages bitmap. The identity map we done in init_mmu will
+	 * consume the pages we already used. So don't need to do anything
+	 * here.
+	 */
 	memset(_pages, 0, _nr_total_pages/(4*8));
 }

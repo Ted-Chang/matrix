@@ -12,6 +12,7 @@
 #include "mm/mlayout.h"
 #include "mm/mmu.h"
 #include "mm/kmem.h"
+#include "mm/malloc.h"
 #include "debug.h"
 #include "proc/process.h"
 #include "proc/thread.h"
@@ -31,8 +32,7 @@ struct ptbl {
  */
 struct pdir {
 	/* Page directory entry for the page table below, this must be
-	 * the first member of pdir structure because we use the physical
-	 * address of this structure as the PDBR.
+	 * page aligned.
 	 */
 	uint32_t pde[1024];
 
@@ -46,16 +46,29 @@ static struct irq_hook _pf_hook;
 
 extern uint32_t _placement_addr;
 
-void *kmem_alloc_int(size_t size, boolean_t align, phys_addr_t *phys);
-
-void *alloc_structure(size_t size, phys_addr_t *phys, int mmflag)
+static void *alloc_structure(size_t size, phys_addr_t *phys, int mmflag)
 {
 	void *ret;
 
-	if (FLAG_ON(mmflag, MM_ALIGN)) {
-		ret = kmem_alloc_int(size, TRUE, phys);
+	/* Try to allocate from kernel memory pool first, if failed then do
+	 * page early alloc
+	 */
+	if (_kmem_init_done) {
+		ret = kmem_alloc(size, mmflag);
+		if (ret) {
+			struct page *page;
+			page = mmu_get_page(&_kernel_mmu_ctx, (uint32_t)ret, FALSE, 0);
+			ASSERT(page != NULL);
+			(*phys) = page->frame * PAGE_SIZE + ((uint32_t)ret & 0xFFF);
+		}
 	} else {
-		ret = kmem_alloc_int(size, FALSE, phys);
+		page_early_alloc(phys, size, IS_FLAG_ON(mmflag, MM_ALIGN));
+		ret = (void *)(*phys);
+		ASSERT(ret != NULL);
+	}
+	
+	if (FLAG_ON(mmflag, MM_ALIGN)) {
+		ASSERT((((ptr_t)ret) % PAGE_SIZE) == 0);
 	}
 	
 	return ret;
@@ -297,14 +310,14 @@ struct mmu_ctx *mmu_create_ctx()
 	struct mmu_ctx *ctx;
 	phys_addr_t pdbr;
 
-	ctx = kmem_alloc(sizeof(struct mmu_ctx), 0);
+	ctx = kmalloc(sizeof(struct mmu_ctx), 0);
 	if (!ctx) {
 		goto out;
 	}
 
 	ctx->pdir = alloc_structure(sizeof(struct pdir), &pdbr, MM_ALIGN);
 	if (!ctx->pdir) {
-		kmem_free(ctx);
+		kfree(ctx);
 		goto out;
 	}
 	memset(ctx->pdir, 0, sizeof(struct pdir));
@@ -322,7 +335,7 @@ void mmu_destroy_ctx(struct mmu_ctx *ctx)
 	ASSERT(!IS_KERNEL_CTX(ctx));
 
 	kmem_free(ctx->pdir);
-	kmem_free(ctx);
+	kfree(ctx);
 }
 
 void init_mmu()

@@ -4,17 +4,18 @@
 #include "hal/core.h"
 #include "mm/page.h"
 #include "mm/kmem.h"
+#include "mm/malloc.h"
 #include "mm/va.h"
 
 struct va_space *va_create()
 {
 	struct va_space *vas;
 
-	vas = kmem_alloc(sizeof(struct va_space), 0);
+	vas = kmalloc(sizeof(struct va_space), 0);
 	if (vas) {
 		vas->mmu = mmu_create_ctx();
 		if (!vas->mmu) {
-			kmem_free(vas);
+			kfree(vas);
 			vas = NULL;
 		}
 	}
@@ -134,7 +135,7 @@ void va_clone(struct va_space *dst, struct va_space *src)
 void va_destroy(struct va_space *vas)
 {
 	mmu_destroy_ctx(vas->mmu);
-	kmem_free(vas);
+	kfree(vas);
 }
 
 void init_va()

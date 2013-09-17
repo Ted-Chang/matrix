@@ -4,6 +4,7 @@
 #include "hal/isr.h"
 #include "debug.h"
 #include "util.h"
+#include "timer.h"
 #include "keyboard.h"
 
 /* Keyboard I/O ports */

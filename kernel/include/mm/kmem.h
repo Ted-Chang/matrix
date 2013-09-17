@@ -7,6 +7,8 @@
 #define POOL_MAGIC		0x123890AB
 #define POOL_MIN_SIZE		0x70000
 
+extern boolean_t _kmem_init_done;
+
 /*
  * Routines for allocate a chunk of memory
  */

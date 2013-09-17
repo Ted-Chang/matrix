@@ -36,63 +36,32 @@ struct kmem_pool {
 
 struct kmem_pool *_kpool = NULL;
 struct mutex _kmem_lock;	// Lock for the kernel memory pool
+boolean_t _kmem_init_done = FALSE;
 
 void *alloc(struct kmem_pool *pool, size_t size, boolean_t page_align);
 
-void *kmem_alloc_int(size_t size, boolean_t align, phys_addr_t *phys)
-{
-	if (_kpool) {	// The pool manager was initialized
-		void *addr;
-
-		/* Allocate virtual address from the kernel memory pool */
-		addr = alloc(_kpool, size, (uint8_t)align);
-		if (phys) {
-			struct page *page;
-
-			page = mmu_get_page(&_kernel_mmu_ctx, (uint32_t)addr, FALSE, 0);
-			*phys = page->frame * 0x1000 + ((uint32_t)addr & 0xFFF);
-		}
-
-		if (align) {
-			ASSERT(((uint32_t)addr % PAGE_SIZE) == 0);
-		}
-		
-		return addr;
-	} else {	// The pool manager was not initialized
-		uint32_t tmp;
-
-		/* If the address is not already page-aligned */
-		if ((align) && (_placement_addr & 0xFFF)) {
-			/* Align the placement address */
-			_placement_addr &= 0xFFFFF000;
-			_placement_addr += 0x1000;
-		}
-
-		if (phys) {
-			*phys = _placement_addr;
-		}
-
-		tmp = _placement_addr;
-		_placement_addr += size;
-
-		if (align) {
-			ASSERT((tmp % PAGE_SIZE) == 0);
-		}
-		
-		return (void *)tmp;
-	}
-}
-
 void *kmem_alloc(size_t size, int mmflag)
 {
-	void *ret;
-	
-	if (FLAG_ON(mmflag, MM_ALIGN)) {
-		ret = kmem_alloc_int(size, TRUE, NULL);
-	} else {
-		ret = kmem_alloc_int(size, FALSE, NULL);
+	void *ret = NULL;
+	boolean_t align;
+
+	if (!_kpool) {
+		goto out;
 	}
 	
+	align = FLAG_ON(mmflag, MM_ALIGN) ? TRUE : FALSE;
+
+	/* Allocate virtual address from the kernel memory pool */
+	ret = alloc(_kpool, size, align);
+	if (!ret) {
+		goto out;
+	}
+	
+	if (align) {
+		ASSERT(((uint32_t)ret % PAGE_SIZE) == 0);
+	}
+
+ out:
 	return ret;
 }
 
@@ -234,13 +203,17 @@ static int8_t header_compare(void *x, void *y)
 struct kmem_pool *create_pool(uint32_t start, uint32_t end, uint32_t max,
 			      uint8_t supervisor, uint8_t readonly)
 {
+	phys_addr_t addr;
 	struct kmem_pool *pool;
 	struct header *hole;
 
 	ASSERT(start % PAGE_SIZE == 0);
 	ASSERT(end % PAGE_SIZE == 0);
 
-	pool = (struct kmem_pool *)kmem_alloc(sizeof(struct kmem_pool), 0);
+	page_early_alloc(&addr, sizeof(struct kmem_pool), 0);
+	ASSERT(addr != 0);
+	
+	pool = (struct kmem_pool *)addr;
 
 	/* Initialize the index of the pool, size of index is fixed */
 	place_vector(&pool->index, (void *)start, POOL_INDEX_SIZE, header_compare);
@@ -281,6 +254,7 @@ static uint32_t find_smallest_hole(struct kmem_pool *pool, size_t size, boolean_
 	while (iterator < pool->index.size) {
 		struct header *header;
 		header = (struct header *)lookup_vector(&pool->index, iterator);
+
 		/* If the user has requested the memory be page-aligned */
 		if (page_align) {
 			/* Page-align the starting point of this header */
@@ -301,6 +275,7 @@ static uint32_t find_smallest_hole(struct kmem_pool *pool, size_t size, boolean_
 		} else if (header->size >= size) {
 			break;
 		}
+		
 		iterator++;
 	}
 
@@ -542,7 +517,10 @@ void init_kmem()
 	/* Initialize the kernel memory pool lock */
 	mutex_init(&_kmem_lock, "kmem-mutex", 0);
 	
-	/* Create kernel pool */
+	/* Create kernel memory pool */
 	_kpool = create_pool(KERNEL_KMEM_START, KERNEL_KMEM_START + KERNEL_KMEM_SIZE,
 			     0xCFFFF000, FALSE, FALSE);
+	ASSERT(_kpool != NULL);
+	
+	_kmem_init_done = TRUE;
 }
