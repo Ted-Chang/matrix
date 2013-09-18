@@ -620,8 +620,6 @@ static void kbd_callback(struct registers *regs)
 		irq_enable();	// Reenable interrupts
 		postprocess();	// Do post process
 	}
-	
-	irq_done(regs->int_no);
 }
 
 int keyboard_init(void)

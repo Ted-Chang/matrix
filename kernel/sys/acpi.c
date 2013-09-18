@@ -67,10 +67,18 @@ static struct acpi_rsdp *acpi_find_rsdp(phys_addr_t start, size_t size)
 static void acpi_copy_table(phys_addr_t addr)
 {
 	struct acpi_header *hdr;
+	boolean_t map_success = FALSE;
 
-	//hdr = (struct acpi_header *)phys_map(addr, 2 * PAGE_SIZE, 0);
-	//ASSERT(hdr != NULL);
-	hdr = (struct acpi_header *)addr;
+	/* Try to map the address first */
+	hdr = (struct acpi_header *)phys_map(addr, 2 * PAGE_SIZE, 0);
+	if (hdr) {
+		map_success = TRUE;
+	} else {
+		/* If map failed, then the page must already be mapped, so
+		 * just access it directly.
+		 */
+		hdr = (struct acpi_header *)addr;
+	}
 
 	/* Sanity check */
 	if (!verify_chksum(hdr, hdr->length)) {
@@ -85,7 +93,9 @@ static void acpi_copy_table(phys_addr_t addr)
 	//memcpy(_acpi_tables[], hdr, hdr->length);
 	
  out:
-	//phys_unmap(hdr, 2 * PAGE_SIZE, TRUE);
+	if (map_success) {
+		phys_unmap(hdr, 2 * PAGE_SIZE, TRUE);
+	}
 	return;
 }
 
@@ -97,7 +107,7 @@ static boolean_t acpi_parse_xsdt(uint32_t addr)
 	size_t i, cnt;
 
 	/* Map 1 page table entry to the specified address */
-	xsdt = (struct acpi_xsdt *)phys_map(addr, PAGE_SIZE, 0);
+	xsdt = (struct acpi_xsdt *)phys_map(addr, 2 * PAGE_SIZE, 0);
 	ASSERT(xsdt != NULL);
 
 	hdr = &xsdt->header;
@@ -126,7 +136,7 @@ static boolean_t acpi_parse_xsdt(uint32_t addr)
 	ret = TRUE;
 
  out:
-	phys_unmap(xsdt, PAGE_SIZE, TRUE);
+	phys_unmap(xsdt, 2 * PAGE_SIZE, TRUE);
 	return ret;
 }
 
@@ -138,7 +148,7 @@ static boolean_t acpi_parse_rsdt(uint32_t addr)
 	size_t i, cnt;
 
 	/* Map 1 page table entry to the specified address */
-	rsdt = (struct acpi_rsdt *)phys_map(addr, PAGE_SIZE, 0);
+	rsdt = (struct acpi_rsdt *)phys_map(addr, 2 * PAGE_SIZE, 0);
 	ASSERT(rsdt != NULL);
 
 	hdr = &rsdt->header;
@@ -167,7 +177,7 @@ static boolean_t acpi_parse_rsdt(uint32_t addr)
 	ret = TRUE;
 
  out:
-	phys_unmap(rsdt, PAGE_SIZE, TRUE);
+	phys_unmap(rsdt, 2 * PAGE_SIZE, TRUE);
 	return ret;
 }
 

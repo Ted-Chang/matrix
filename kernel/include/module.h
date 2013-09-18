@@ -26,7 +26,7 @@ struct module {
 };
 
 extern int module_load(int handle);
-extern int module_unload();
+extern int module_unload(const char *name);
 extern void init_module();
 
 #endif	/* __MODULE_H__ */

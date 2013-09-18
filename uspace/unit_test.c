@@ -13,6 +13,7 @@ static void cat_test();
 static void mkdir_test();
 static void date_test();
 static void clear_test();
+static void lsmod_test();
 static void multi_processes_test();
 static void shutdown_test();
 
@@ -58,6 +59,8 @@ int main(int argc, char **argv)
 	cat_test();
 
 	date_test();
+
+	lsmod_test();
 
 	clear_test();
 
@@ -234,6 +237,31 @@ void date_test()
 	rc = waitpid(rc, &status, 0);
 	if (rc == -1) {
 		printf("waiting %s failed, err(%d).\n", date[0], rc);
+	}
+
+ out:
+	return;
+}
+
+void lsmod_test()
+{
+	int rc, status;
+	char *lsmod[] = {
+		"/lsmod",
+		NULL
+	};
+
+	printf("unit_test list modules.\n");
+
+	rc = create_process(lsmod[0], lsmod, 0, 16);
+	if (rc == -1) {
+		printf("create_process(%s) failed, err(%d).\n", lsmod[0], rc);
+		goto out;
+	}
+
+	rc = waitpid(rc, &status, 0);
+	if (rc == -1) {
+		printf("waiting %s failed, err(%d).\n", lsmod[0], rc);
 	}
 
  out:

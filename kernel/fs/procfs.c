@@ -19,6 +19,25 @@ struct vfs_type _procfs_type = {
 	.mount = procfs_mount
 };
 
+static int procfs_create(struct vfs_node *parent, const char *name,
+			 uint32_t type, struct vfs_node **np)
+{
+	int rc = -1;
+
+	DEBUG(DL_DBG, ("create(%s), type(%d).\n", name, type));
+
+	return rc;
+}
+
+static int procfs_close(struct vfs_node *node)
+{
+	int rc = 0;
+
+	DEBUG(DL_DBG, ("close(%s:%d)\n", node->name, node->ino));
+
+	return rc;
+}
+
 static int procfs_readdir(struct vfs_node *node, uint32_t index, struct dirent **dentry)
 {
 	int rc = -1;
@@ -59,8 +78,8 @@ static int procfs_finddir(struct vfs_node *node, const char *name, ino_t *id)
 static struct vfs_node_ops _procfs_node_ops = {
 	.read = NULL,
 	.write = NULL,
-	.create = NULL,
-	.close = NULL,
+	.create = procfs_create,
+	.close = procfs_close,
 	.readdir = procfs_readdir,
 	.finddir = procfs_finddir,
 };

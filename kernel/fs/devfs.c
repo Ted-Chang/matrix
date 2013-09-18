@@ -149,9 +149,13 @@ static int devfs_finddir(struct vfs_node *n, const char *name, ino_t *id)
 {
 	int rc = -1, i;
 
-	ASSERT(id != NULL);
+	ASSERT((id != NULL) && (name != NULL));
 
 	for (i = 0; i < NR_MAX_DEVS; i++) {
+		if (!_devfs_nodes[i]) {
+			continue;
+		}
+		
 		if (strcmp(name, _devfs_nodes[i]->name) == 0) {
 			*id = _devfs_nodes[i]->ino;
 			rc = 0;

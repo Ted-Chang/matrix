@@ -174,7 +174,10 @@ int mmu_map(struct mmu_ctx *ctx, ptr_t virt, phys_addr_t phys, int flags)
 
 	/* The page should not be present */
 	if (p->present) {
-		PANIC("Mapping a page which already allocated");
+		DEBUG(DL_WRN, ("Mapping already mapped address(%x) ctx(%p)\n",
+			       virt, ctx));
+		rc = EMAPPED;
+		goto out;
 	}
 
 	/* Set the page table entry */
@@ -310,14 +313,14 @@ struct mmu_ctx *mmu_create_ctx()
 	struct mmu_ctx *ctx;
 	phys_addr_t pdbr;
 
-	ctx = kmalloc(sizeof(struct mmu_ctx), 0);
+	ctx = kmem_alloc(sizeof(struct mmu_ctx), 0);
 	if (!ctx) {
 		goto out;
 	}
 
 	ctx->pdir = alloc_structure(sizeof(struct pdir), &pdbr, MM_ALIGN);
 	if (!ctx->pdir) {
-		kfree(ctx);
+		kmem_free(ctx);
 		goto out;
 	}
 	memset(ctx->pdir, 0, sizeof(struct pdir));
@@ -335,7 +338,7 @@ void mmu_destroy_ctx(struct mmu_ctx *ctx)
 	ASSERT(!IS_KERNEL_CTX(ctx));
 
 	kmem_free(ctx->pdir);
-	kfree(ctx);
+	kmem_free(ctx);
 }
 
 void init_mmu()

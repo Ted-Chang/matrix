@@ -4,6 +4,7 @@
 #include <types.h>
 #include <stddef.h>
 #include <string.h>
+#include <errno.h>
 #include "matrix/matrix.h"
 #include "sys/time.h"
 #include "hal/isr.h"
@@ -565,6 +566,7 @@ int do_mknod(const char *path, mode_t mode, dev_t dev)
 	/* Lookup file system node */
 	n = vfs_lookup(path, -1);
 	if (n) {
+		DEBUG(DL_INF, ("node(%s) already exist.\n", path));
 		rc = -1;
 		goto out;
 	}
@@ -595,11 +597,11 @@ int do_create_module(int handle)
 	return rc;
 }
 
-int do_delete_module()
+int do_delete_module(const char *name)
 {
 	int rc = -1;
 
-	rc = module_unload();
+	rc = module_unload(name);
 	if (rc != 0) {
 		DEBUG(DL_INF, ("unload module failed, err(%x).\n",
 			       rc));

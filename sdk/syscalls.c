@@ -42,7 +42,7 @@ DEFN_SYSCALL1(umount, 29, const char *)
 DEFN_SYSCALL3(mknod, 30, const char *, mode_t, dev_t)
 DEFN_SYSCALL1(create_module, 31, int)
 DEFN_SYSCALL2(query_module, 32, const char *, void *)
-DEFN_SYSCALL0(delete_module, 33)
+DEFN_SYSCALL1(delete_module, 33, const char *)
 DEFN_SYSCALL4(ioctl, 34, int, int, void *, void *)
 
 int null()
@@ -218,9 +218,9 @@ int query_module(const char *name, void *data)
 	return mtx_query_module(name, data);
 }
 
-int delete_module()
+int delete_module(const char *name)
 {
-	return mtx_delete_module();
+	return mtx_delete_module(name);
 }
 
 int ioctl(int d, int request, void *input, void *output)

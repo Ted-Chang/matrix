@@ -51,5 +51,6 @@ extern int errno;
 #define ENOLCK		(_SIGN 37)	/* No locks available */
 #define ENOSYS		(_SIGN 38)	/* Function not implemented */
 #define ENOTEMPTY	(_SIGN 39)	/* Directory not empty */
+#define EMAPPED		(_SIGN 40)	/* Address already mapped */
 
 #endif	/* __ERRNO_H__ */

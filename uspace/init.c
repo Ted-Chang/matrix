@@ -140,16 +140,20 @@ void make_nodes()
 {
 	int rc = -1;
 
-	rc = mknod("/dev/null", 0, 0);
+	rc = mknod("/dev/null", 0755, 0);
 	if (rc != 0) {
 		printf("init: mknod(/dev/null) failed.\n");
 		goto out;
+	} else {
+		printf("init: /dev/null created.\n");
 	}
 
-	rc = mknod("/dev/zero", 0, 0);
+	rc = mknod("/dev/zero", 0755, 0);
 	if (rc != 0) {
 		printf("init: mknod(/dev/zero) failed.\n");
 		goto out;
+	} else {
+		printf("init: /dev/zero created.\n");
 	}
 
  out:

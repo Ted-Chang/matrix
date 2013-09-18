@@ -167,7 +167,7 @@ int module_load(int handle)
 	return rc;
 }
 
-int module_unload()
+int module_unload(const char *name)
 {
 	int rc = -1;
 
