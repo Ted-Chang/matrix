@@ -64,9 +64,11 @@ static struct core *sched_alloc_core(struct thread *t)
 	struct core *core, *other;
 	struct list *l;
 
+	core = CURR_CORE;
+	
 	/* On UP systems, the only choice is current CORE */
 	if (_nr_cores == 1) {
-		return CURR_CORE;
+		goto out;
 	}
 
 	/* Add 1 to the total number of threads to account for the thread we
@@ -84,7 +86,8 @@ static struct core *sched_alloc_core(struct thread *t)
 			break;
 		}
 	}
-	
+
+ out:
 	return core;
 }
 

@@ -424,6 +424,7 @@ extern uint64_t calculate_core_freq();
 extern uint64_t calculate_freq(uint64_t (*func)());
 extern void dump_core(struct core *c);
 extern core_id_t core_id();
+extern struct core *core_register(core_id_t id, int state);
 extern void preinit_core_percore();
 extern void preinit_core();
 extern void init_core_percore();

@@ -6,6 +6,7 @@
 #include "debug.h"
 #include "mm/page.h"
 #include "mm/phys.h"
+#include "mm/malloc.h"
 #include "acpi.h"
 
 STATIC_ASSERT(sizeof(struct acpi_rsdp) == 36);
@@ -64,7 +65,7 @@ static struct acpi_rsdp *acpi_find_rsdp(phys_addr_t start, size_t size)
 	return rsdp;
 }
 
-static void acpi_copy_table(phys_addr_t addr)
+static void acpi_copy_table(phys_addr_t addr, struct acpi_header **h)
 {
 	struct acpi_header *hdr;
 	boolean_t map_success = FALSE;
@@ -82,15 +83,19 @@ static void acpi_copy_table(phys_addr_t addr)
 
 	/* Sanity check */
 	if (!verify_chksum(hdr, hdr->length)) {
+		DEBUG(DL_WRN, ("verify chksum failed, address(%x), length(%x)\n",
+			       hdr, hdr->length));
 		goto out;
 	}
 
-	kprintf("acpi: table %x V%d %.6s %.8s %d\n",
-		addr, hdr->revision, hdr->oem_id, hdr->oem_table_id,
-		hdr->oem_revision);
+	kprintf("acpi: table %x %.4s V%d %.6s %.8s %d\n",
+		addr, hdr->signature, hdr->revision, hdr->oem_id,
+		hdr->oem_table_id, hdr->oem_revision);
 
-	//_acpi_tables[] = krealloc();
-	//memcpy(_acpi_tables[], hdr, hdr->length);
+	(*h) = (struct acpi_header *)kmalloc(hdr->length, 0);
+	if (*h) {
+		memcpy(*h, hdr, hdr->length);
+	}
 	
  out:
 	if (map_success) {
@@ -128,11 +133,20 @@ static boolean_t acpi_parse_xsdt(uint32_t addr)
 	      ("acpi: XSDT %x (V%d %.6s %.8s) %d\n",
 	       xsdt, hdr->revision, hdr->oem_id, hdr->oem_table_id, cnt));
 	
-	/* Load each table */
-	for (i = 0; i < cnt; i++) {
-		acpi_copy_table((phys_addr_t)xsdt->entry[i]);
+	_acpi_tables = kmalloc(sizeof(struct acpi_header *) * cnt, 0);
+	if (!_acpi_tables) {
+		goto out;
 	}
 
+	memset(_acpi_tables, 0, sizeof(struct acpi_header *) * cnt);
+	_nr_acpi_table = cnt;
+	
+	/* Load each table */
+	for (i = 0; i < cnt; i++) {
+		acpi_copy_table((phys_addr_t)xsdt->entry[i], &_acpi_tables[i]);
+	}
+
+	_acpi_supported = TRUE;
 	ret = TRUE;
 
  out:
@@ -169,11 +183,20 @@ static boolean_t acpi_parse_rsdt(uint32_t addr)
 	      ("acpi: RSDT %x (V%d %.6s %.8s) %d\n",
 	       rsdt, hdr->revision, hdr->oem_id, hdr->oem_table_id, cnt));
 
-	/* Load each table */
-	for (i = 0; i < cnt; i++) {
-		acpi_copy_table((phys_addr_t)rsdt->entry[i]);
+	_acpi_tables = kmalloc(sizeof(struct acpi_header *) * cnt, 0);
+	if (!_acpi_tables) {
+		goto out;
 	}
 
+	memset(_acpi_tables, 0, sizeof(struct acpi_header *) * cnt);
+	_nr_acpi_table = cnt;
+	
+	/* Load each table */
+	for (i = 0; i < cnt; i++) {
+		acpi_copy_table((phys_addr_t)rsdt->entry[i], &_acpi_tables[i]);
+	}
+
+	_acpi_supported = TRUE;
 	ret = TRUE;
 
  out:
@@ -186,12 +209,18 @@ struct acpi_header *acpi_find_table(const char *signature)
 	size_t i;
 
 	for (i = 0; i < _nr_acpi_table; i++) {
+		if (!_acpi_tables[i]) {
+			continue;
+		}
+		
 		if (strncmp((char *)_acpi_tables[i]->signature, signature, 4) != 0) {
 			continue;
 		}
 
 		return _acpi_tables[i];
 	}
+
+	DEBUG(DL_DBG, ("%s not found\n", signature));
 	
 	return NULL;
 }

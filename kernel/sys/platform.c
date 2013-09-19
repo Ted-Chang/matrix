@@ -52,11 +52,13 @@ void platform_detect_smp()
 	if (!lapic_enabled()) {
 		return;
 	} else if (!_acpi_supported) {
+		kprintf("platform: ACPI not supported\n");
 		return;
 	}
 
 	madt = (struct acpi_madt *)acpi_find_table(ACPI_MADT_SIGNATURE);
 	if (!madt) {
+		kprintf("platform: Multiple ACPI Description Table not found\n");
 		return;
 	}
 
@@ -69,10 +71,13 @@ void platform_detect_smp()
 			/* Ignore disabled cores */
 			continue;
 		} else if (lapic->lapic_id == CURR_CORE->id) {
+			DEBUG(DL_DBG, ("current core(%d)\n", CURR_CORE->id));
 			continue;
 		}
 
+		DEBUG(DL_DBG, ("register core(%d)\n", lapic->lapic_id));
+
 		/* Register the core */
-		// TODO: Register the core
+		core_register(lapic->lapic_id, CORE_OFFLINE);
 	}
 }

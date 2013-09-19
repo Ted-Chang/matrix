@@ -47,6 +47,12 @@ int do_unit_test(uint32_t round)
 	char *path = "/dev";
 	struct avl_tree avltree;
 	char *val = NULL;
+	char *str1 = "ACPIA";
+	char *str2 = "ACPIB";
+
+	/* String function test */
+	ASSERT(strncmp(str1, str2, 4) == 0);
+	
 
 	/* Kernel memory pool test */
 	memset(buf_ptr, 0, sizeof(buf_ptr));

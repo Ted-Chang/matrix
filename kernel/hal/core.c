@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "mm/mlayout.h"
 #include "mm/page.h"
+#include "mm/malloc.h"
 #include "div64.h"
 
 #define FREQ_ATTEMPTS	9
@@ -272,6 +273,40 @@ uint64_t calculate_freq(uint64_t (*func)())
 	}
 
 	return ret;
+}
+
+struct core *core_register(core_id_t id, int state)
+{
+	size_t s;
+	struct core *c;
+	struct core **cores;
+
+	c = kmalloc(sizeof(*c), 0);
+	if (!c) {
+		goto out;
+	}
+	
+	core_ctor(c, id, state);
+
+	if (id > _highest_core_id) {
+		s = sizeof(struct core *) * (id + 1);
+		cores = kmalloc(s, 0);
+		if (!cores) {
+			goto out;
+		}
+		
+		memset(cores, 0, s);
+		s = sizeof(struct core *) * (_highest_core_id + 1);
+		memcpy(cores, _cores, s);
+		
+		_highest_core_id = id;
+	}
+
+	_cores[id] = c;
+	_nr_cores++;
+
+ out:
+	return c;
 }
 
 void preinit_core_percore(struct core *c)
