@@ -1,5 +1,6 @@
 #include <types.h>
 #include <stddef.h>
+#include <string.h>
 #include <errno.h>
 #include "matrix/matrix.h"
 #include "debug.h"

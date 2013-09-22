@@ -70,6 +70,35 @@ uint32_t lapic_id()
 	return (_lapic_mapping) ? (lapic_read(LAPIC_REG_APIC_ID) >> 24) : 0;
 }
 
+void lapic_ipi(uint8_t dest, uint8_t id, uint8_t mode, uint8_t vector)
+{
+	boolean_t state;
+
+	if (!_lapic_mapping) {
+		return;
+	}
+
+	state = irq_disable();
+
+	/* Write the destination ID to the high part of the ICR */
+	lapic_write(LAPIC_REG_ICR1, ((uint32_t)id << 24));
+
+	/* Send the IPI:
+	 * Destination mode: physical
+	 * Level: Assert (bit 14)
+	 * Trigger mode: Edge
+	 */
+	lapic_write(LAPIC_REG_ICR0, (1<<14) | ((uint32_t)dest << 18) |
+		    ((uint32_t)mode << 8) | (uint32_t)vector);
+
+	/* Wait for the IPI to be sent (Check the Delivery Status Bit)*/
+	while (lapic_read(LAPIC_REG_ICR0) & (1<<12)) {
+		core_spin_hint();
+	}
+
+	irq_restore(state);
+}
+
 void init_lapic()
 {
 	uint64_t base;

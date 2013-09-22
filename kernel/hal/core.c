@@ -292,6 +292,7 @@ struct core *core_register(core_id_t id, int state)
 		s = sizeof(struct core *) * (id + 1);
 		cores = kmalloc(s, 0);
 		if (!cores) {
+			kfree(c);
 			goto out;
 		}
 		
@@ -343,6 +344,11 @@ void init_core()
 	/* Get the ID of the boot CORE */
 	_boot_core.id = _highest_core_id = core_id();
 	_nr_cores = 1;
+
+	/* Create the initial CORE array and add the boot CORE to it */
+	_cores = (struct core **)kmalloc((_highest_core_id+1) * sizeof(struct core *), 0);
+	ASSERT(_cores != NULL);
+	_cores[_boot_core.id] = &_boot_core;
 
 	/* We are called on boot CORE */
 	init_core_percore();

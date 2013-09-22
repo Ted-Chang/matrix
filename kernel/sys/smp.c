@@ -3,9 +3,16 @@
 #include <string.h>
 #include "debug.h"
 #include "list.h"
+#include "hal/hal.h"
+#include "hal/core.h"
+#include "hal/lapic.h"
+#include "mm/mlayout.h"
+#include "mm/mmu.h"
+#include "mm/kmem.h"
 #include "mm/malloc.h"
 #include "platform.h"
 #include "smp.h"
+#include "pit.h"
 
 #define SMP_CALLS_PER_CORE	4
 
@@ -21,8 +28,105 @@ struct smp_call {
 	int ref_count;		// Reference count
 };
 
+/* Page reserved to copy the AC bootstrap code to */
+static phys_addr_t _ac_bootstrap_page = 0;
+
+/* MMU context used by ACs while booting */
+static struct mmu_ctx *_ac_mmu_ctx = NULL;
+
 static struct smp_call *_smp_call_pool = NULL;
 static boolean_t _smp_call_enabled = FALSE;
+
+/* Variable used to synchronize the stages of the SMP boot process */
+volatile uint32_t _smp_boot_status = 0;
+
+void arch_smp_boot_prepare()
+{
+	/* Allocate a low memory page for the trampoline code */
+
+	/* Create a temporary MMU context for ACs to use */
+	_ac_mmu_ctx = mmu_create_ctx();
+}
+
+static boolean_t boot_core_and_wait(core_id_t id)
+{
+	boolean_t ret = FALSE;
+	useconds_t delay = 0;
+	
+	/* Send an INIT IPI to the AC to reset its state and delay 10ms */
+	lapic_ipi(LAPIC_IPI_DEST_SINGLE, id, LAPIC_IPI_INIT, 0x00);
+	spin(10000);
+
+	/* Send a SIPI */
+	lapic_ipi(LAPIC_IPI_DEST_SINGLE, id, LAPIC_IPI_SIPI, _ac_bootstrap_page >> 12);
+	spin(10000);
+
+	/* If the CORE is up then return */
+	if (_smp_boot_status > SMP_BOOT_INIT) {
+		ret = TRUE;
+		goto out;
+	}
+
+	/* Sends a second SIPI and then check in 10ms intervals to see if
+	 * it has booted. If it hasn't booted after 5 seconds, fail.
+	 */
+	lapic_ipi(LAPIC_IPI_DEST_SINGLE, id, LAPIC_IPI_SIPI, _ac_bootstrap_page >> 12);
+	for (delay = 0; delay < 500000; delay += 10000) {
+		if (_smp_boot_status > SMP_BOOT_INIT) {
+			ret = TRUE;
+			goto out;
+		}
+		spin(10000);
+	}
+
+ out:
+	return ret;
+}
+
+void arch_smp_boot_core(struct core *c)
+{
+	kprintf("smp: booting CORE %d...\n", c->id);
+	ASSERT(lapic_enabled());
+
+	/* Allocate a double fault stack for the new CORE. This is also
+	 * used as the initial stack while initializing the AC, before it
+	 * enters the scheduler.
+	 */
+	c->arch.double_fault_stack = kmem_alloc(KSTACK_SIZE, 0);
+	ASSERT(c->arch.double_fault_stack != NULL);
+
+	/* Wakeup the CORE */
+	if (!boot_core_and_wait(c->id)) {
+		DEBUG(DL_ERR, ("boot CORE %d failed.\n", c->id));
+	}
+}
+
+void arch_smp_boot_cleanup()
+{
+	/* Destroy the temporary MMU context */
+	mmu_destroy_ctx(_ac_mmu_ctx);
+
+	/* Free the bootstrap page */
+}
+
+void smp_boot_cores()
+{
+	core_id_t i;
+	boolean_t state;
+
+	state = irq_disable();
+	arch_smp_boot_prepare();
+
+	for (i = 0; i <= _highest_core_id; i++) {
+		if (_cores[i] && _cores[i]->state == CORE_OFFLINE) {
+			arch_smp_boot_core(_cores[i]);
+		}
+	}
+
+	arch_smp_boot_cleanup();
+
+	irq_restore(state);
+}
 
 void init_smp()
 {
@@ -58,3 +162,4 @@ void init_smp()
  out:
 	return;
 }
+

@@ -231,6 +231,7 @@ extern struct core _boot_core;
 extern size_t _nr_cores;
 extern size_t _highest_core_id;
 extern struct list _running_cores;
+extern struct core **_cores;
 
 /* Read DR0 */
 static INLINE uint32_t x86_read_dr0()
