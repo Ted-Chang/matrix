@@ -3,10 +3,11 @@
 #include "hal/core.h"
 #include "hal/hal.h"
 #include "hal/lapic.h"
+#include "div64.h"
 #include "debug.h"
 #include "mm/page.h"
 #include "mm/phys.h"
-#include "div64.h"
+#include "smp.h"
 
 #define LAPIC_TIMER_PERIODIC	0x20000
 
@@ -56,7 +57,7 @@ void lapic_timer_handler(struct registers * regs)
 
 void lapic_ipi_handler(struct registers *regs)
 {
-	DEBUG(DL_INF, ("lapic received ipi interrupt\n"));
+	smp_ipi_handler();
 	lapic_eoi();
 }
 
@@ -78,7 +79,7 @@ void lapic_ipi(uint8_t dest, uint8_t id, uint8_t mode, uint8_t vector)
 		return;
 	}
 
-	state = irq_disable();
+	state = local_irq_disable();
 
 	/* Write the destination ID to the high part of the ICR */
 	lapic_write(LAPIC_REG_ICR1, ((uint32_t)id << 24));
@@ -96,7 +97,7 @@ void lapic_ipi(uint8_t dest, uint8_t id, uint8_t mode, uint8_t vector)
 		core_spin_hint();
 	}
 
-	irq_restore(state);
+	local_irq_restore(state);
 }
 
 void init_lapic()

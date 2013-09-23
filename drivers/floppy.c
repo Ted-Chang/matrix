@@ -102,13 +102,15 @@ static void lba2chs(uint32_t lba, struct chs *chs_ptr, uint32_t sectors_per_trac
 static int dma_xfer(uint32_t physical_addr, uint32_t len, boolean_t read)
 {
 	uint32_t page, off;
+	boolean_t state = FALSE;
 
 	/* Calculate DMA page and offset */
 	page = physical_addr >> 16;
 	off = physical_addr & 0xFFFF;
 	len -= 1;	// With DMA, if you want k bytes, you need to ask for k-1 bytes
 
-	irq_disable();
+	state = local_irq_disable();
+	
 	outportb(DMA_FLIPFLOP, DMA_CHANNEL | 4);	// Set channel mask bit
 	outportb(DMA_FLIPFLOP, 0);			// Clear flip flop
 	outportb(DMA_MODE, (read ? 0x48 : 0x44) + DMA_CHANNEL); // Mode
@@ -118,7 +120,8 @@ static int dma_xfer(uint32_t physical_addr, uint32_t len, boolean_t read)
 	outportb(DMA_LENGTH, len & 0xFF);		// Length: low bytes
 	outportb(DMA_LENGTH, len >> 8);			// Length: high bytes
 	outportb(DMA_FLIPFLOP, DMA_CHANNEL);		// Clear channel mask bit
-	irq_enable();
+	
+	local_irq_restore(state);
 	
 	return -1;
 }

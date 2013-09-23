@@ -40,6 +40,8 @@ static boolean_t _smp_call_enabled = FALSE;
 /* Variable used to synchronize the stages of the SMP boot process */
 volatile uint32_t _smp_boot_status = 0;
 
+extern void kmain_ac(struct core *c);
+
 void arch_smp_boot_prepare()
 {
 	/* Allocate a low memory page for the trampoline code */
@@ -51,15 +53,15 @@ void arch_smp_boot_prepare()
 static boolean_t boot_core_and_wait(core_id_t id)
 {
 	boolean_t ret = FALSE;
-	useconds_t delay = 0;
+	//useconds_t delay = 0;
 	
 	/* Send an INIT IPI to the AC to reset its state and delay 10ms */
 	lapic_ipi(LAPIC_IPI_DEST_SINGLE, id, LAPIC_IPI_INIT, 0x00);
 	spin(10000);
 
 	/* Send a SIPI */
-	lapic_ipi(LAPIC_IPI_DEST_SINGLE, id, LAPIC_IPI_SIPI, _ac_bootstrap_page >> 12);
-	spin(10000);
+	/* lapic_ipi(LAPIC_IPI_DEST_SINGLE, id, LAPIC_IPI_SIPI, _ac_bootstrap_page >> 12); */
+	/* spin(10000); */
 
 	/* If the CORE is up then return */
 	if (_smp_boot_status > SMP_BOOT_INIT) {
@@ -67,17 +69,19 @@ static boolean_t boot_core_and_wait(core_id_t id)
 		goto out;
 	}
 
-	/* Sends a second SIPI and then check in 10ms intervals to see if
-	 * it has booted. If it hasn't booted after 5 seconds, fail.
-	 */
-	lapic_ipi(LAPIC_IPI_DEST_SINGLE, id, LAPIC_IPI_SIPI, _ac_bootstrap_page >> 12);
-	for (delay = 0; delay < 500000; delay += 10000) {
-		if (_smp_boot_status > SMP_BOOT_INIT) {
-			ret = TRUE;
-			goto out;
-		}
-		spin(10000);
-	}
+	/* /\* Sends a second SIPI and then check in 10ms intervals to see if */
+	/*  * it has booted. If it hasn't booted after 5 seconds, fail. */
+	/*  *\/ */
+	/* lapic_ipi(LAPIC_IPI_DEST_SINGLE, id, LAPIC_IPI_SIPI, _ac_bootstrap_page >> 12); */
+	/* for (delay = 0; delay < 500000; delay += 10000) { */
+	/* 	if (_smp_boot_status > SMP_BOOT_INIT) { */
+	/* 		ret = TRUE; */
+	/* 		goto out; */
+	/* 	} */
+	/* 	spin(10000); */
+	/* } */
+
+	ret = TRUE;
 
  out:
 	return ret;
@@ -98,7 +102,14 @@ void arch_smp_boot_core(struct core *c)
 	/* Wakeup the CORE */
 	if (!boot_core_and_wait(c->id)) {
 		DEBUG(DL_ERR, ("boot CORE %d failed.\n", c->id));
+		goto out;
 	}
+
+	/* Sync the TSC of the AC with the boot CORE */
+	tsc_init_source();
+
+ out:
+	return;
 }
 
 void arch_smp_boot_cleanup()
@@ -114,7 +125,7 @@ void smp_boot_cores()
 	core_id_t i;
 	boolean_t state;
 
-	state = irq_disable();
+	state = local_irq_disable();
 	arch_smp_boot_prepare();
 
 	for (i = 0; i <= _highest_core_id; i++) {
@@ -125,7 +136,14 @@ void smp_boot_cores()
 
 	arch_smp_boot_cleanup();
 
-	irq_restore(state);
+	local_irq_restore(state);
+}
+
+void smp_ipi_handler()
+{
+	ASSERT(_smp_call_enabled);
+
+	DEBUG(DL_DBG, ("received IPI.\n"));
 }
 
 void init_smp()
@@ -158,6 +176,9 @@ void init_smp()
 	}
 
 	_smp_call_enabled = TRUE;
+
+	/* Boot all the application COREs in the system */
+	smp_boot_cores();
 
  out:
 	return;

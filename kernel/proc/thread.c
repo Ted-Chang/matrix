@@ -349,7 +349,7 @@ int thread_sleep(struct spinlock *lock, useconds_t timeout, const char *name, in
 	}
 
 	/* We are definitely going to sleep. Get the interrupt state to restore */
-	state = lock ? lock->state : irq_disable();
+	state = lock ? lock->state : local_irq_disable();
 
 	spinlock_acquire_noirq(&CURR_THREAD->lock);
 	CURR_THREAD->sleep_status = 0;
@@ -472,7 +472,7 @@ void thread_exit()
 	/* Notify the waiter that we are exiting */
 	notifier_run(&CURR_THREAD->death_notifier);
 
-	state = irq_disable();
+	state = local_irq_disable();
 	spinlock_acquire_noirq(&CURR_THREAD->lock);
 	
 	CURR_THREAD->state = THREAD_DEAD;

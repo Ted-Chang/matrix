@@ -13,6 +13,7 @@ extern volatile uint32_t _smp_boot_status;
 #define SMP_BOOT_BOOTED		2	// AC has completed kmain_ac()
 #define SMP_BOOT_COMPLETE	3	// All ACs have been booted
 
+extern void smp_ipi_handler();
 extern void init_smp();
 
 #endif

@@ -115,7 +115,7 @@ void va_switch(struct va_space *vas)
 			       vas, CURR_ASPACE, CURR_CORE->id));
 #endif	/* _DEBUG_MM */
 
-		state = irq_disable();
+		state = local_irq_disable();
 
 		/* Update the current mmu context */
 		CURR_ASPACE = vas;
@@ -123,7 +123,7 @@ void va_switch(struct va_space *vas)
 		/* Load the page directory base */
 		mmu_load_ctx(vas->mmu);
 
-		irq_restore(state);
+		local_irq_restore(state);
 	}
 }
 

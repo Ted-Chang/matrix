@@ -276,12 +276,12 @@ int kd_main(int reason, struct registers *regs, u_long index)
 	kd_filter_t *filter;
 	
 	/* Disable the interrupts while we're running */
-	state = irq_disable();
+	state = local_irq_disable();
 
 	/* Check if we're already running. This shouldn't happen */
 	if (!atomic_tas(&_kd_running, 0, 1)) {
 		kd_printf("Multiple entries to KD.\n");
-		irq_restore(state);
+		local_irq_restore(state);
 		return -1;
 	}
 
@@ -329,7 +329,7 @@ int kd_main(int reason, struct registers *regs, u_long index)
 	}
 
 	_kd_running = 0;
-	irq_restore(state);
+	local_irq_restore(state);
 
 	return rc;
 }

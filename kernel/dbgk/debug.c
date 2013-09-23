@@ -25,14 +25,14 @@ const char *dbglevel_string(uint32_t level)
 
 void panic(const char *file, uint32_t line, const char *msg)
 {
-	irq_disable();	// Disable all interrupts
+	local_irq_disable();	// Disable all interrupts
 	kprintf("KERNEL PANIC(%s) at %s:%d", msg, file, line);
 	for (; ; ) ;
 }
 
 void panic_assert(const char *file, uint32_t line, const char *desc)
 {
-	irq_disable();
+	local_irq_disable();
 	kprintf("ASSERTION FAILED(%s) at %s:%d\n", desc, file, line);
 	for (; ; ) ;
 }

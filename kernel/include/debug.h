@@ -20,14 +20,14 @@
 #define DEBUG(level, params) do { \
 		if (_debug_level <= (level)) { \
 			boolean_t state;						\
-			state = irq_disable();						\
+			state = local_irq_disable();					\
 			if (_debug_level > DL_DBG) {					\
 				kprintf("[%s] %s: ", dbglevel_string(level), __FUNC__);	\
 				kprintf params;						\
 			}								\
 			kd_printf("[%s] %s: ", dbglevel_string(level), __FUNC__);	\
 			kd_printf params;						\
-			irq_restore(state);						\
+			local_irq_restore(state);					\
 		}									\
 	} while (0)
 

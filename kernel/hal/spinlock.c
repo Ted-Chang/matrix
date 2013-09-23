@@ -42,7 +42,7 @@ void spinlock_acquire(struct spinlock *lock)
 	/* Disable interrupts while locked to ensure that nothing else will
 	 * run on the current CORE for the duration of the lock.
 	 */
-	state = irq_disable();
+	state = local_irq_disable();
 
 	spinlock_lock_internal(lock);
 	lock->state = state;
@@ -67,12 +67,12 @@ void spinlock_release(struct spinlock *lock)
 
 	leave_cs_barrier();
 	lock->value = 1;
-	irq_restore(state);
+	local_irq_restore(state);
 }
 
 void spinlock_acquire_noirq(struct spinlock *lock)
 {
-	ASSERT(!irq_state());
+	ASSERT(!local_irq_state());
 
 	spinlock_lock_internal(lock);
 

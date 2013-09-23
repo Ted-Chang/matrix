@@ -237,7 +237,7 @@ void mmu_load_ctx(struct mmu_ctx *ctx)
 }
 
 /*
- * We don't call irq_done here, check this when we implementing
+ * We don't call local_irq_done here, check this when we implementing
  * the paging feature of our kernel.
  */
 void page_fault(struct registers *regs)

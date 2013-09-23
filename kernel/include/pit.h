@@ -14,6 +14,7 @@ extern useconds_t time_to_unix(uint32_t year, uint32_t mon, uint32_t day,
 extern useconds_t sys_time();
 extern void spin(useconds_t us);
 extern void tsc_init_target();
+extern void tsc_init_source();
 extern useconds_t platform_time_from_cmos();
 extern void init_pit();
 

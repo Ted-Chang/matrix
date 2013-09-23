@@ -257,7 +257,9 @@ static void kbd_state_reset()
 
 static void rawq_put(int8_t code)
 {
-	irq_disable();
+	boolean_t state = FALSE;
+	
+	state = local_irq_disable();
 	
 	/* Put the key into the key queue and update the raw queue with
 	 * new scan code.
@@ -268,7 +270,7 @@ static void rawq_put(int8_t code)
 		_rawq_head = (_rawq_head + 2) % KBD_Q_MAX_SIZE;
 	}
 	
-	irq_enable();
+	local_irq_restore(state);
 }
 
 static uint8_t rawq_read()
@@ -295,15 +297,19 @@ static void keyq_put(uint16_t code)
 {
 	uint16_t keyq_index;
 	uint16_t rawq_index;
+	boolean_t state = FALSE;
 
 	keyq_index = _kbd_buftail;
 	rawq_index = (keyq_index + 1) % KBD_Q_MAX_SIZE;
-	irq_disable();
+	
+	state = local_irq_disable();
+	
 	_kbd_buf[keyq_index] = (uint8_t)code;
 	_kbd_buf[rawq_index] = (uint8_t)code >> 8;
 	/* Update key queue buffer tail */
 	_kbd_buftail = keyq_index;
-	irq_enable();
+	
+	local_irq_restore(state);
 }
 
 static uint8_t keyq_get()
@@ -313,10 +319,16 @@ static uint8_t keyq_get()
 		return 0;
 	} else {
 		uint32_t i;
+		boolean_t state = FALSE;
+		
 		i = _kbd_bufhead;
-		irq_disable();
+		
+		state = local_irq_disable();
+		
 		_kbd_bufhead = (i + 2) % KBD_Q_MAX_SIZE;
-		irq_enable();
+		
+		local_irq_restore(state);
+		
 		_scan_code = _kbd_buf[i+1];
 		return _kbd_buf[i];
 	}
@@ -617,7 +629,7 @@ static void kbd_callback(struct registers *regs)
 
 	/* We don't check the error code here */
 	if (!preprocess(scan_code)) {
-		irq_enable();	// Reenable interrupts
+		local_irq_enable();	// Reenable interrupts
 		postprocess();	// Do post process
 	}
 }

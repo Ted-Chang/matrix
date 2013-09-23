@@ -86,7 +86,7 @@ void irq_handler(struct registers regs)
 	/* Notify the PIC that we have done so we can accept >= priority
 	 * IRQs now
 	 */
-	irq_done(int_no);
+	local_irq_done(int_no);
 
 	if (!processed) {
 #ifdef _DEBUG_HAL
@@ -105,7 +105,7 @@ void register_irq_handler(uint8_t irq, struct irq_hook *hook, isr_t handler)
 	while (*line) {
 		/* Check if the hook has been registered already */
 		if (hook == (*line)) {
-			irq_enable();
+			local_irq_enable();
 			return;
 		}
 		line = &((*line)->next);
@@ -255,7 +255,7 @@ void simd_fpu_fault(struct registers *regs)
 
 /*
  * Initialize the exception handlers. Exception handlers don't need to
- * call irq_done now as we didn't go that far.
+ * call local_irq_done now as we didn't go that far.
  */
 void init_irqs()
 {

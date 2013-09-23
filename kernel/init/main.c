@@ -89,7 +89,7 @@ int kmain(u_long addr, uint32_t initial_stack)
 	kprintf("CORE preinitialization... done.\n");
 
 	/* Enable interrupt so our timer can work */
-	irq_enable();
+	local_irq_enable();
 	kprintf("Interrupt enabled.\n");
 
 	/* Initialize our memory manager */
@@ -157,6 +157,20 @@ int kmain(u_long addr, uint32_t initial_stack)
 	sched_enter();
 
 	return rc;
+}
+
+void kmain_ac(struct core *c)
+{
+	/* Signal that we have reached the kernel */
+	_smp_boot_status = SMP_BOOT_ALIVE;
+
+	/* Signal that we're up */
+	_smp_boot_status = SMP_BOOT_BOOTED;
+
+	/* Wait for remaining COREs to be brought up */
+	while (_smp_boot_status != SMP_BOOT_COMPLETE) {
+		core_spin_hint();
+	}
 }
 
 static void load_boot_module(struct boot_module *mod)

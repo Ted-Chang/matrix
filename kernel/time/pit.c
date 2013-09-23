@@ -35,6 +35,9 @@ static int _days_before_month[] = {
 	31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30,
 };
 
+/* Boot CORE system time value */
+static useconds_t _sys_time_sync = 0;
+
 useconds_t time_to_unix(uint32_t year, uint32_t mon, uint32_t day,
 			uint32_t hour, uint32_t min, uint32_t sec)
 {
@@ -88,8 +91,23 @@ void tsc_init_target()
 	if (CURR_CORE == &_boot_core) {
 		CURR_CORE->arch.sys_time_offset = x86_rdtsc();
 	} else {
-		ASSERT(FALSE);
+		/* Tell the boot CORE that we are in phrase TSC_SYNC1 */
+		//...
+		
+		/* Calculate the offset we need to use */
+		CURR_CORE->arch.sys_time_offset =
+			-((_sys_time_sync * CURR_CORE->arch.cycles_per_us) -
+			  x86_rdtsc());
 	}
+}
+
+void tsc_init_source()
+{
+	/* Wait for the AC to get into tsc_init_target() */
+	//...
+
+	/* Save our sys_time() value */
+	_sys_time_sync = sys_time();
 }
 
 void init_pit()

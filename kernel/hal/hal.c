@@ -20,7 +20,7 @@ extern void gdt_flush(uint32_t);
 /*
  * Enable the hardware interrupts
  */
-boolean_t irq_enable()
+boolean_t local_irq_enable()
 {
 	unsigned long flags;
 	
@@ -31,7 +31,7 @@ boolean_t irq_enable()
 /*
  * Disable the hardware interrupts
  */
-boolean_t irq_disable()
+boolean_t local_irq_disable()
 {
 	unsigned long flags;
 	
@@ -42,7 +42,7 @@ boolean_t irq_disable()
 /*
  * Get current interrupt state
  */
-boolean_t irq_state()
+boolean_t local_irq_state()
 {
 	unsigned long flags;
 
@@ -53,7 +53,7 @@ boolean_t irq_state()
 /*
  * Restore the hardware interrupts
  */
-void irq_restore(boolean_t state)
+void local_irq_restore(boolean_t state)
 {
 	if (state) {
 		asm volatile("sti");
@@ -65,7 +65,7 @@ void irq_restore(boolean_t state)
 /*
  * Notify the HAL interrupt handler was done
  */
-void irq_done(uint32_t int_no)
+void local_irq_done(uint32_t int_no)
 {
 	if (int_no >= 32) {
 		outportb(PIC2_CMD, PIC_EOI);

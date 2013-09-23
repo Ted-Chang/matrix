@@ -228,7 +228,7 @@ void sched_reschedule(boolean_t state)
 	struct thread *next;
 
 	/* We need interrupt disabled so we don't get bothered by interrupts */
-	ASSERT(irq_state() == FALSE);
+	ASSERT(local_irq_state() == FALSE);
 	
 	/* Get current schedule CORE */
 	c = CURR_CORE->sched;
@@ -317,7 +317,7 @@ void sched_reschedule(boolean_t state)
 		sched_post_switch(state);
 	} else {
 		spinlock_release_noirq(&CURR_THREAD->lock);
-		irq_restore(state);
+		local_irq_restore(state);
 	}
 }
 
@@ -351,7 +351,7 @@ void sched_post_switch(boolean_t state)
 		}
 	}
 
-	irq_restore(state);
+	local_irq_restore(state);
 }
 
 static void sched_reaper_thread(void *ctx)
@@ -386,7 +386,7 @@ static void sched_idle_thread(void *ctx)
 	/* We run the loop with interrupts disabled. The core_idle() function
 	 * is expected to re-enable interrupts as required.
 	 */
-	irq_disable();
+	local_irq_disable();
 
 	while (TRUE) {
 		spinlock_acquire_noirq(&CURR_THREAD->lock);
@@ -455,7 +455,7 @@ void init_sched()
 void sched_enter()
 {
 	/* Disable irq first */
-	irq_disable();
+	local_irq_disable();
 
 	// TODO: Find a better place to do the following
 	CURR_CORE->timer_enabled = TRUE;
