@@ -46,6 +46,7 @@ extern int mmu_unmap(struct mmu_ctx *ctx, ptr_t virt, boolean_t shared, phys_add
 extern void mmu_load_ctx(struct mmu_ctx *ctx);
 extern void mmu_clone_ctx(struct mmu_ctx *dst, struct mmu_ctx *src);
 extern void mmu_destroy_ctx(struct mmu_ctx *ctx);
+extern void init_mmu_percore();
 extern void init_mmu();
 
 #endif	/* __MMU_H__ */

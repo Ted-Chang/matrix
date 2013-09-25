@@ -1,5 +1,5 @@
 ;
-; boot.s -- Kernel start location. Also defines multiboot header.
+; entry.s -- Kernel start location. Also defines multiboot header.
 ;
 
 ; Multiboot constant definitions
@@ -16,7 +16,7 @@ MBOOT_HEADER_FLAGS	equ MBOOT_PAGE_ALIGN | MBOOT_MEM_INFO
 MBOOT_CHECKSUM		equ -(MBOOT_HEADER_MAGIC + MBOOT_HEADER_FLAGS)
 
 section .__mbHeader
-align 4
+align 	4
 mboot:
 	dd MBOOT_HEADER_MAGIC	; GRUB will search for this magic
 				; 4-byte boundary in your kernel file
@@ -33,10 +33,10 @@ mboot:
 [GLOBAL start]			; Kernel entry point.
 [EXTERN kmain]			; The entry point of our C code
 start:
-	push esp		; We need to know exactly where the current stack starts
-	push ebx		; Load multiboot header location
+	push 	esp		; We need to know exactly where the current stack starts
+	push 	ebx		; Load multiboot header location
 
 	;; Execute our kernel defined in main.c
 	cli
-	call kmain
+	call 	kmain
 	jmp $

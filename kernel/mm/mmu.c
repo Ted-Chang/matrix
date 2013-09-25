@@ -341,6 +341,15 @@ void mmu_destroy_ctx(struct mmu_ctx *ctx)
 	kmem_free(ctx);
 }
 
+void init_mmu_percore()
+{
+	/* Load kernel mmu context into this core */
+	mmu_load_ctx(&_kernel_mmu_ctx);
+	
+	/* Enable paging */
+	x86_write_cr0(x86_read_cr0() | X86_CR0_PG);
+}
+
 void init_mmu()
 {
 	phys_addr_t i;
@@ -391,8 +400,8 @@ void init_mmu()
 	/* Before we enable paging, we must register our page fault handler */
 	register_irq_handler(14, &_pf_hook, page_fault);
 
-	/* Enable paging and switch to our kernel mmu context, kernel mmu context
-	 * will be used by every process.
+	/* Switch to our kernel mmu context, kernel mmu context will be used
+	 * by every process.
 	 */
 	mmu_load_ctx(&_kernel_mmu_ctx);
 

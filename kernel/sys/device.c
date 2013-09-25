@@ -24,6 +24,7 @@ int dev_create(int flags, void *ext, struct dev **dp)
 	device->data = ext;
 	device->ref_count = 1;	// Initial refcnt of the device is 1
 	*dp = device;
+	
 	rc = 0;
 
  out:

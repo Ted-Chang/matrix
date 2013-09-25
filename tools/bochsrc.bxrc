@@ -1,6 +1,9 @@
 # how much memory the emulated machine will have 
 megs: 256
 
+# CPU model
+cpu: count=1:2:1
+
 # filename of ROM images
 romimage: file=$BXSHARE/BIOS-bochs-latest
 vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest

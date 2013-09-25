@@ -44,7 +44,10 @@ extern void kmain_ac(struct core *c);
 
 void arch_smp_boot_prepare()
 {
-	/* Allocate a low memory page for the trampoline code */
+	/* Allocate a low memory page for the trampoline code. At this time
+	 * the application core is in real mode and only can access memory
+	 * lower than 1MB. Also the AC will start execution from 0x000VV000.
+	 */
 
 	/* Create a temporary MMU context for ACs to use */
 	_ac_mmu_ctx = mmu_create_ctx();
@@ -59,7 +62,10 @@ static boolean_t boot_core_and_wait(core_id_t id)
 	lapic_ipi(LAPIC_IPI_DEST_SINGLE, id, LAPIC_IPI_INIT, 0x00);
 	spin(10000);
 
-	/* Send a SIPI */
+	/* Send a Start-up IPI. The vector argument specifies where to look
+	 * for the bootstrap code. As the SIPI will start execution from 0x000VV000,
+	 * where VV is the vector specified in the IPI.
+	 */
 	/* lapic_ipi(LAPIC_IPI_DEST_SINGLE, id, LAPIC_IPI_SIPI, _ac_bootstrap_page >> 12); */
 	/* spin(10000); */
 
@@ -69,9 +75,9 @@ static boolean_t boot_core_and_wait(core_id_t id)
 		goto out;
 	}
 
-	/* /\* Sends a second SIPI and then check in 10ms intervals to see if */
-	/*  * it has booted. If it hasn't booted after 5 seconds, fail. */
-	/*  *\/ */
+	/* Sends a second Start-up IPI and then check in 10ms intervals to
+	 * see if it has booted. If it hasn't booted after 5 seconds, fail.
+	 */
 	/* lapic_ipi(LAPIC_IPI_DEST_SINGLE, id, LAPIC_IPI_SIPI, _ac_bootstrap_page >> 12); */
 	/* for (delay = 0; delay < 500000; delay += 10000) { */
 	/* 	if (_smp_boot_status > SMP_BOOT_INIT) { */
@@ -98,6 +104,12 @@ void arch_smp_boot_core(struct core *c)
 	 */
 	c->arch.double_fault_stack = kmem_alloc(KSTACK_SIZE, 0);
 	ASSERT(c->arch.double_fault_stack != NULL);
+
+	/* Fill in details required by the bootstrap code */
+	/* (*(uint32_t *)(mapping + 16)) = (ptr_t)kmain_ac; */
+	/* (*(uint32_t *)(mapping + 20)) = (ptr_t)c; */
+	/* (*(uint32_t *)(mapping + 24)) = (ptr_t)c->arch.double_fault_stack + KSTACK_SIZE; */
+	/* (*(uint32_t *)(mapping + 28)) = (ptr_t)_ac_mmu_ctx->pdbr; */
 
 	/* Wakeup the CORE */
 	if (!boot_core_and_wait(c->id)) {

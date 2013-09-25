@@ -164,6 +164,11 @@ void kmain_ac(struct core *c)
 	/* Signal that we have reached the kernel */
 	_smp_boot_status = SMP_BOOT_ALIVE;
 
+	/* Initialize all the required stuff */
+	preinit_core_percore(c);
+	init_mmu_percore();
+	//init_sched_percore();
+
 	/* Signal that we're up */
 	_smp_boot_status = SMP_BOOT_BOOTED;
 

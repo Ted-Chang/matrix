@@ -24,8 +24,11 @@
 #define X86_MSR_K_GS_BASE	0xC0000102	// GS base switch to with SWAPGS
 
 /* Flags in CR0 */
+#define X86_CR0_PE		(1<<0)		// Protected Mode Enable
 #define X86_CR0_MP		(1<<1)		// Monitor Coprocessor
 #define X86_CR0_EM		(1<<2)		// Emulation
+#define X86_CR0_TS		(1<<3)		// Task Switched
+#define X86_CR0_ET		(1<<4)		// Extension Type
 #define X86_CR0_NE		(1<<5)		// Numeric Error
 #define X86_CR0_WP		(1<<16)		// Write Protect
 #define X86_CR0_PG		(1<<31)		// Paging Enabled
@@ -426,7 +429,7 @@ extern uint64_t calculate_freq(uint64_t (*func)());
 extern void dump_core(struct core *c);
 extern core_id_t core_id();
 extern struct core *core_register(core_id_t id, int state);
-extern void preinit_core_percore();
+extern void preinit_core_percore(struct core *c);
 extern void preinit_core();
 extern void init_core_percore();
 extern void init_core();
