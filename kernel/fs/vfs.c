@@ -633,6 +633,8 @@ int vfs_mount(const char *dev, const char *path, const char *type, const void *d
 		PANIC("Mount with root not set");
 	}
 
+	ASSERT(mnt->root->ref_count >= 1);
+
 	/* Make the mnt_point point to the new mount */
 	if (mnt->mnt_point) {
 		mnt->mnt_point->mounted = mnt;

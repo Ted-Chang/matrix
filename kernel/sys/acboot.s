@@ -4,6 +4,7 @@
 
 [BITS 16]			; The boot instruction for this phase is 16bit
 
+section	.__ac_init_trampoline
 [GLOBAL acstart]
 acstart:
 	jmp	ac_boot		; Make the jump
@@ -24,6 +25,9 @@ ac_boot:
 	mov 	ds, ax
 	mov	es, ax
 	mov	fs, ax
+
+	;; Following is the debug code, remove it when you are able to go on
+	jmp	$
 
 	;; Set the correct base address of the GDT and load it
 	mov	eax, _base

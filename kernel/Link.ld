@@ -22,7 +22,7 @@ SECTIONS
 	{
 		code = .; _code = .; __code = .;
 		*(.text)
-		. = ALIGN(4096);
+		. = ALIGN(0x1000);
 	}
 
 	.data :
@@ -30,14 +30,23 @@ SECTIONS
 		data = .; _data = .; __data = .;
 		*(.data)
 		*(.rodata)
-		. = ALIGN(4096);
+		. = ALIGN(0x1000);
 	}
 
 	.bss :
 	{
 		bss = .; _bss = .; __bss = .;
 		*(.bss)
-		. = ALIGN(4096);
+		. = ALIGN(0x1000);
+	}
+
+	.init :
+	{
+		__ac_trampoline_start = .;
+		init = .; _init = .; __init = .;
+		*(.__ac_init_trampoline)
+		__ac_trampoline_end = .;
+		. = ALIGN(0x1000);
 	}
 
 	end = .; _end = .; __end = .;

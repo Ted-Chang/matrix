@@ -31,26 +31,30 @@ struct smp_call {
 /* Page reserved to copy the AC bootstrap code to */
 static phys_addr_t _ac_bootstrap_page = 0;
 
-/* MMU context used by ACs while booting */
-static struct mmu_ctx *_ac_mmu_ctx = NULL;
-
 static struct smp_call *_smp_call_pool = NULL;
 static boolean_t _smp_call_enabled = FALSE;
 
 /* Variable used to synchronize the stages of the SMP boot process */
 volatile uint32_t _smp_boot_status = 0;
 
+extern char __ac_trampoline_start[], __ac_trampoline_end[];
 extern void kmain_ac(struct core *c);
 
 void arch_smp_boot_prepare()
 {
+	void *mapping;
+	
 	/* Allocate a low memory page for the trampoline code. At this time
 	 * the application core is in real mode and only can access memory
 	 * lower than 1MB. Also the AC will start execution from 0x000VV000.
 	 */
-
-	/* Create a temporary MMU context for ACs to use */
-	_ac_mmu_ctx = mmu_create_ctx();
+	mapping = (void *)0x00090000;	// FixMe: we are using a fixed addresss for
+	_ac_bootstrap_page = 0x00090000;// now as we have identity mapped the memory.
+					// You should do physical alloc.
+	
+	ASSERT(__ac_trampoline_end - __ac_trampoline_start < PAGE_SIZE);
+	DEBUG(DL_DBG, ("start(%x), end(%x).\n", __ac_trampoline_start, __ac_trampoline_end));
+	memcpy(mapping, __ac_trampoline_start, __ac_trampoline_end - __ac_trampoline_start);
 }
 
 static boolean_t boot_core_and_wait(core_id_t id)
@@ -66,8 +70,8 @@ static boolean_t boot_core_and_wait(core_id_t id)
 	 * for the bootstrap code. As the SIPI will start execution from 0x000VV000,
 	 * where VV is the vector specified in the IPI.
 	 */
-	/* lapic_ipi(LAPIC_IPI_DEST_SINGLE, id, LAPIC_IPI_SIPI, _ac_bootstrap_page >> 12); */
-	/* spin(10000); */
+	lapic_ipi(LAPIC_IPI_DEST_SINGLE, id, LAPIC_IPI_SIPI, _ac_bootstrap_page >> 12);
+	spin(10000);
 
 	/* If the CORE is up then return */
 	if (_smp_boot_status > SMP_BOOT_INIT) {
@@ -126,9 +130,6 @@ void arch_smp_boot_core(struct core *c)
 
 void arch_smp_boot_cleanup()
 {
-	/* Destroy the temporary MMU context */
-	mmu_destroy_ctx(_ac_mmu_ctx);
-
 	/* Free the bootstrap page */
 }
 

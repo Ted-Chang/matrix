@@ -31,17 +31,49 @@ int dev_create(int flags, void *ext, struct dev **dp)
 	return rc;
 }
 
-int dev_read(struct dev *d)
+int dev_open()
 {
 	int rc = -1;
 
 	return rc;
 }
 
-int dev_write(struct dev *d)
+int dev_close(struct dev *d)
 {
 	int rc = -1;
 
+	if (!d) {
+		rc = EINVAL;
+		goto out;
+	}
+
+ out:
+	return rc;
+}
+
+int dev_read(struct dev *d, off_t off, size_t size)
+{
+	int rc = -1;
+
+	if (!d) {
+		rc = EINVAL;
+		goto out;
+	}
+
+ out:
+	return rc;
+}
+
+int dev_write(struct dev *d, off_t off, size_t size)
+{
+	int rc = -1;
+
+	if (!d) {
+		rc = EINVAL;
+		goto out;
+	}
+
+ out:
 	return rc;
 }
 
