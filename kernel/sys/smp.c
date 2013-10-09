@@ -43,18 +43,25 @@ extern void kmain_ac(struct core *c);
 void arch_smp_boot_prepare()
 {
 	void *mapping;
+	size_t s;
 	
 	/* Allocate a low memory page for the trampoline code. At this time
 	 * the application core is in real mode and only can access memory
 	 * lower than 1MB. Also the AC will start execution from 0x000VV000.
 	 */
-	mapping = (void *)0x00090000;	// FixMe: we are using a fixed addresss for
-	_ac_bootstrap_page = 0x00090000;// now as we have identity mapped the memory.
-					// You should do physical alloc.
+	phys_alloc(PAGE_SIZE, 0, 0, 0x100000, 0, &_ac_bootstrap_page);
+
+	/* As we have already identity mapped the pages we required, so just
+	 * access it directly. You should find a better way to do this.
+	 */
+	mapping = (void *)_ac_bootstrap_page;
+
+	s = __ac_trampoline_end - __ac_trampoline_start;
+	ASSERT((s > 0) && (s < PAGE_SIZE));
+	DEBUG(DL_DBG, ("start(%x), end(%x).\n",
+		       __ac_trampoline_start, __ac_trampoline_end));
 	
-	ASSERT(__ac_trampoline_end - __ac_trampoline_start < PAGE_SIZE);
-	DEBUG(DL_DBG, ("start(%x), end(%x).\n", __ac_trampoline_start, __ac_trampoline_end));
-	memcpy(mapping, __ac_trampoline_start, __ac_trampoline_end - __ac_trampoline_start);
+	memcpy(mapping, __ac_trampoline_start, s);
 }
 
 static boolean_t boot_core_and_wait(core_id_t id)

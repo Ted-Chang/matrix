@@ -38,6 +38,8 @@ extern void page_early_alloc(phys_addr_t *phys, size_t size, boolean_t align);
 extern void page_alloc(struct page *p, int flags);
 extern void page_free(struct page *p);
 extern void page_copy(phys_addr_t dst, phys_addr_t src);
+extern void phys_alloc(phys_size_t size, phys_addr_t align, phys_addr_t minaddr,
+		       phys_addr_t maxaddr, int flags, phys_addr_t *basep);
 extern void init_page();
 
 #endif	/* __PAGE_H__ */

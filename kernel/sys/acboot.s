@@ -2,11 +2,11 @@
 ; acboot.s -- Application core boot code
 ;
 
-[BITS 16]			; The boot instruction for this phase is 16bit
+[BITS 16]			; The application core in this phase is 16bit real mode
 
 section	.__ac_init_trampoline
 [GLOBAL acstart]
-acstart:
+acstart:			; Entry for the application core
 	jmp	ac_boot		; Make the jump
 	
 align 	16

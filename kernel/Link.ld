@@ -42,8 +42,8 @@ SECTIONS
 
 	.init :
 	{
-		__ac_trampoline_start = .;
 		init = .; _init = .; __init = .;
+		__ac_trampoline_start = .;
 		*(.__ac_init_trampoline)
 		__ac_trampoline_end = .;
 		. = ALIGN(0x1000);

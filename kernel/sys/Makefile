@@ -26,7 +26,7 @@ all: $(TARGETOBJ)
 $(OBJ)/%.o: %.c
 	$(CC) -DCONFIG_SERIAL_PORT=2 -DBITS_PER_LONG=32 -m32 -I../include -I../../sdk/include $(CFLAGS_global) -c -o $@ $<
 
-$(OBJ)/acboot.o: 
+$(OBJ)/acboot.o: acboot.s
 	nasm $(ASFLAGS) -o $(OBJ)/acboot.o acboot.s
 
 clean:

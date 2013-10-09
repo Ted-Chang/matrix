@@ -128,6 +128,14 @@ void page_free(struct page *p)
 	}
 }
 
+void phys_alloc(phys_size_t size, phys_addr_t align, phys_addr_t minaddr,
+		phys_addr_t maxaddr, int flags, phys_addr_t *basep)
+{
+	ASSERT(basep != NULL);
+
+	(*basep) = 0x00090000;
+}
+
 void init_page()
 {
 	phys_addr_t addr;
