@@ -137,3 +137,10 @@ int procfs_init(void)
 
 	return rc;
 }
+
+int procfs_unload(void)
+{
+	int rc = -1;
+
+	return rc;
+}

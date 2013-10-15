@@ -138,6 +138,10 @@ Please choose one: [13] 9
 Enter the ID of the device to edit, or -1 to return: [-1] 28
 Enter action for DEBUG event: [ignore] ask
 
+* Debugging SMP machine
+<bochs:1> set $cpu = 1
+<bochs:1> pb 0x90020
+
 
 [Debugging with GDB+QEMU]
 usage: qemu [options] [disk_image]

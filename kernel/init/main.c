@@ -167,7 +167,7 @@ void kmain_ac(struct core *c)
 	/* Initialize all the required stuff */
 	preinit_core_percore(c);
 	init_mmu_percore();
-	//init_sched_percore();
+	init_sched_percore();
 
 	/* Signal that we're up */
 	_smp_boot_status = SMP_BOOT_BOOTED;
@@ -253,7 +253,7 @@ void sys_init_thread(void *ctx)
 	init_module();
 	kprintf("Module system manager initialization... done.\n");
 
-	/* Load the modules */
+	/* Load the boot modules */
 	load_modules();
 	kprintf("Load boot modules... done.\n");
 	

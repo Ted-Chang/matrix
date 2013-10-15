@@ -445,3 +445,10 @@ int floppy_init(void)
 	
 	return 0;
 }
+
+int floppy_unload(void)
+{
+	int rc = -1;
+
+	return rc;
+}

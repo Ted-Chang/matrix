@@ -9,6 +9,7 @@ TARGETOBJ := \
 	$(OBJ)/floppy.o \
 	$(OBJ)/cmos.o \
 	$(OBJ)/pci.o \
+	$(OBJ)/null.o \
 
 .PHONY: clean
 

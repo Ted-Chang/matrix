@@ -13,10 +13,17 @@
 // TODO: The following functions should be get from the driver files
 extern int initrd_init(void);
 extern int devfs_init(void);
+extern int devfs_unload(void);
 extern int procfs_init(void);
+extern int procfs_unload(void);
 extern int pci_init(void);
+extern int pci_unload(void);
 extern int keyboard_init(void);
+extern int keyboard_unload(void);
 extern int floppy_init(void);
+extern int floppy_unload(void);
+extern int null_init(void);
+extern int null_unload(void);
 
 /* List of loaded modules */
 static struct list _module_list = {
@@ -41,31 +48,37 @@ static int load_module_stub(struct module *m)
 		m->name = "devfs";
 		m->desc = "Device File System";
 		m->init = devfs_init;
-		m->unload = NULL;
+		m->unload = devfs_unload;
 		break;
 	case KMOD_PROCFS:
 		m->name = "procfs";
 		m->desc = "Process File System";
 		m->init = procfs_init;
-		m->unload = NULL;
+		m->unload = procfs_unload;
 		break;
 	case KMOD_PCI:
 		m->name = "pci";
 		m->desc = "PCI bus driver";
 		m->init = pci_init;
-		m->unload = NULL;
+		m->unload = pci_unload;
 		break;
 	case KMOD_KBD:
 		m->name = "kbd";
 		m->desc = "Keyboard driver";
 		m->init = keyboard_init;
-		m->unload = NULL;
+		m->unload = keyboard_unload;
 		break;
 	case KMOD_FLPY:
 		m->name = "flpy";
 		m->desc = "Floppy disk driver";
 		m->init = floppy_init;
-		m->unload = NULL;
+		m->unload = floppy_unload;
+		break;
+	case KMOD_NULL:
+		m->name = "null";
+		m->desc = "NULL device driver";
+		m->init = null_init;
+		m->unload = null_unload;
 		break;
 	default:
 		DEBUG(DL_INF, ("unknown module(%s:%d).\n", m->name, m->handle));

@@ -134,6 +134,18 @@ static int pci_scan_dev(int id, int dev, int func, int indent)
 	device->sub_class = pci_cfg_read8(device, PCI_CFG_SUB_CLASS);
 	device->prog_iface = pci_cfg_read8(device, PCI_CFG_PIFACE);
 	device->revision = pci_cfg_read8(device, PCI_CFG_REVISION);
+	device->cache_line_size = pci_cfg_read8(device, PCI_CFG_CACHE_LINE_SIZE);
+	device->hdr_type = pci_cfg_read8(device, PCI_CFG_HDR_TYPE);
+	device->subsys_vendor = pci_cfg_read16(device, PCI_CFG_SUBSYS_VENDOR);
+	device->subsys_id = pci_cfg_read16(device, PCI_CFG_SUBSYS_ID);
+	device->int_line = pci_cfg_read8(device, PCI_CFG_INT_LINE);
+	device->int_pin = pci_cfg_read8(device, PCI_CFG_INT_PIN);
+
+	/* Create a device for it */
+	rc = dev_create(0, NULL, &device->node);
+	if (rc != 0) {
+		goto out;
+	}
 
 	kprintf("pci: V%u (vendor:%x device:%x class:%x %x)\n",
 		device->revision, device->vendor_id, device->dev_id, device->base_class,
@@ -157,6 +169,13 @@ static int pci_scan_bus(int id, int indent)
 	int rc;
 	int i, j;
 	uint8_t ret;
+	struct dev *devp = NULL;
+
+	/* Create the bus device */
+	rc = dev_create(0, NULL, &devp);
+	if (rc != 0) {
+		goto out;
+	}
 
 	kprintf("pci: scanning bus %d for devices...\n", id);
 	
@@ -178,6 +197,7 @@ static int pci_scan_bus(int id, int indent)
 		}
 	}
 
+ out:
 	return rc;
 }
 
@@ -211,16 +231,18 @@ void pci_cfg_write32(struct pci_dev *dev, uint8_t reg, uint32_t val)
 	platform_pci_cfg_write32(dev->bus, dev->dev, dev->func, reg, val);
 }
 
-int pci_drivers_register()
+int pci_driver_register()
 {
 	int rc = 0;
 
 	return rc;
 }
 
-int pci_drivers_unregister()
+int pci_driver_unregister()
 {
 	int rc = 0;
+
+	ASSERT(0);	// TODO: Unregister driver
 
 	return rc;
 }
@@ -242,5 +264,12 @@ int pci_init(void)
 	rc = pci_scan_bus(0, 0);
 
  out:
+	return rc;
+}
+
+int pci_unload(void)
+{
+	int rc = -1;
+
 	return rc;
 }

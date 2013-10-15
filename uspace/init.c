@@ -134,26 +134,34 @@ void load_modules()
 	} else {
 		printf("init: floppy module loaded successfully.\n");
 	}
+
+	handle = 7;
+	rc = create_module(handle);
+	if (rc != 0) {
+		printf("init: load null module failed.\n");
+	} else {
+		printf("init: null module loaded successfully.\n");
+	}
 }
 
 void make_nodes()
 {
 	int rc = -1;
 
-	rc = mknod("/dev/null", 0755, 0);
+	rc = mknod("/dev/test1", 0755, 0);
 	if (rc != 0) {
-		printf("init: mknod(/dev/null) failed.\n");
+		printf("init: mknod(/dev/test1) failed.\n");
 		goto out;
 	} else {
-		printf("init: /dev/null created.\n");
+		printf("init: /dev/test1 created.\n");
 	}
 
-	rc = mknod("/dev/zero", 0755, 0);
+	rc = mknod("/dev/test2", 0755, 0);
 	if (rc != 0) {
-		printf("init: mknod(/dev/zero) failed.\n");
+		printf("init: mknod(/dev/test2) failed.\n");
 		goto out;
 	} else {
-		printf("init: /dev/zero created.\n");
+		printf("init: /dev/test2 created.\n");
 	}
 
  out:

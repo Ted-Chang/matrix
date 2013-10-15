@@ -14,9 +14,27 @@
 #define PCI_CFG_CACHE_LINE_SIZE	0x0C	// Cache line size
 #define PCI_CFG_LATENCY		0x0D	// Latency timer
 #define PCI_CFG_HDR_TYPE	0x0E	// Header type
+#define PCI_CFG_BIST		0x0F	// BIST
+#define PCI_CFG_BAR0		0x10	// BAR0
+#define PCI_CFG_BAR1		0x14	// BAR1
+#define PCI_CFG_BAR2		0x18	// BAR2
+#define PCI_CFG_BAR3		0x1C	// BAR3
+#define PCI_CFG_BAR4		0x20	// BAR4
+#define PCI_CFG_BAR5		0x24	// BAR5
+#define PCI_CFG_CARDBUS_CIS	0x28	// Cardbus CIS Ptr
+#define PCI_CFG_SUBSYS_VENDOR	0x2C	// Subsystem vendor
+#define PCI_CFG_SUBSYS_ID	0x2E	// Subsystem ID
+#define PCI_CFG_ROM_ADDR	0x30	// ROM base address
+#define PCI_CFG_INT_LINE	0x3C	// Interrupt line
+#define PCI_CFG_INT_PIN		0x3D	// Interrupt pin
+#define PCI_CFG_MIN_GRANT	0x3E	// Min grant
+#define PCI_CFG_MAX_LATENCY	0x3F	// Max latency
+
+struct dev;
 
 struct pci_dev {
 	struct list link;
+	struct dev *node;		// Pointer to the device node
 
 	/* Location of the device */
 	uint8_t bus;			// Bus ID
@@ -45,4 +63,4 @@ extern void pci_cfg_write16(struct pci_dev *dev, uint8_t reg, uint16_t val);
 extern uint32_t pci_cfg_read32(struct pci_dev *dev, uint8_t reg);
 extern void pci_cfg_write32(struct pci_dev *dev, uint8_t reg, uint32_t val);
 
-#endif
+#endif	/* __PCI_H__ */

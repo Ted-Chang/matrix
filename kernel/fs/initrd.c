@@ -225,7 +225,7 @@ static int initrd_read_node(struct vfs_mount *mnt, ino_t id, struct vfs_node **n
 	return rc;
 }
 
-void init_initrd(uint32_t location)
+void init_ramdisk(uint32_t location)
 {
 	int i;
 	size_t size;
@@ -282,7 +282,7 @@ int initrd_mount(struct vfs_mount *mnt, int flags, const void *data)
 	/* Don't forget to reference the root node */
 	vfs_node_refer(mnt->root);
 
-	init_initrd((uint32_t)data);
+	init_ramdisk((uint32_t)data);
 	
 	rc = 0;
 
