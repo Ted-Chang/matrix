@@ -82,7 +82,8 @@ int list_directory(int fd, char *path, enum ls_option opt)
 				if (rc == -1) {
 					printf("lstat %s failed.\n", fullname);
 				} else {
-					printf("%s %s\n", mode_to_str(st.st_mode, str, BUF_SIZE), d.d_name);
+					printf("%s %s\n", mode_to_str(st.st_mode, str, BUF_SIZE),
+					       d.d_name);
 				}
 
 				close(fd_tmp);

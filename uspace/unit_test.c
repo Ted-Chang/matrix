@@ -14,6 +14,7 @@ static void mkdir_test();
 static void date_test();
 static void clear_test();
 static void lsmod_test();
+static void null_dev_test();
 static void multi_processes_test();
 static void shutdown_test();
 
@@ -61,6 +62,8 @@ int main(int argc, char **argv)
 	date_test();
 
 	lsmod_test();
+
+	null_dev_test();
 
 	clear_test();
 
@@ -266,6 +269,30 @@ void lsmod_test()
 
  out:
 	return;
+}
+
+void null_dev_test()
+{
+	int rc, fd;
+	char buf[512];
+	size_t len = 512;
+
+	fd = open("/dev/null", 0, 0);
+	if (fd == -1) {
+		printf("open /dev/null failed.\n");
+	} else {
+		rc = read(fd, buf, len);
+		if (rc != 0) {
+			printf("read /dev/null failed.\n");
+		}
+
+		rc = write(fd, buf, len);
+		if (rc != 0) {
+			printf("write /dev/null failed.\n");
+		}
+		
+		close(fd);
+	}
 }
 
 void clear_test()

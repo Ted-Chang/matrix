@@ -33,6 +33,8 @@ static int procfs_close(struct vfs_node *node)
 {
 	int rc = 0;
 
+	vfs_node_deref(node);
+	
 	DEBUG(DL_DBG, ("close(%s:%d)\n", node->name, node->ino));
 
 	return rc;

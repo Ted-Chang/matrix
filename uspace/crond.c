@@ -16,7 +16,9 @@ int main(int argc, char **argv)
 			printf("crond: open crontab failed.\n");
 		} else {
 			/* Parse crontab */
-			;
+			//...
+			
+			close(fd);
 		}
 		
 	} while (FALSE);

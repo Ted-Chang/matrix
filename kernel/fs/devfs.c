@@ -14,6 +14,7 @@
 struct devfs_node {
 	char name[128];
 	uint32_t type;
+	uint32_t mask;
 	uint32_t ino;
 };
 
@@ -72,6 +73,7 @@ static int devfs_create(struct vfs_node *parent, const char *name,
 	strncpy(_devfs_nodes[i].name, name, 127);
 	_devfs_nodes[i].type = type;
 	_devfs_nodes[i].ino = id_alloc();
+	_devfs_nodes[i].mask = 0755;
 	
 	strncpy(n->name, name, 127);
 	n->ino = _devfs_nodes[i].ino;
@@ -192,10 +194,41 @@ static struct vfs_node_ops _devfs_node_ops = {
 	.finddir = devfs_finddir,
 };
 
+static int devfs_read_node(struct vfs_mount *mnt, ino_t id, struct vfs_node **np)
+{
+	int rc = -1, i;
+	struct vfs_node *node;
+
+	ASSERT(np != NULL);
+	
+	for (i = 0; i < NR_MAX_DEVS; i++) {
+		if (_devfs_nodes[i].ino == id) {
+			// TODO: devfs node should has a context with it
+			node = vfs_node_alloc(mnt, _devfs_nodes[i].type,
+					      &_devfs_node_ops, NULL);
+			if (!node) {
+				rc = ENOMEM;
+				break;
+			}
+
+			node->ino = id;
+			node->mask = _devfs_nodes[i].mask;
+			node->length = 0;
+			strncpy(node->name, _devfs_nodes[i].name, 128);
+
+			*np = node;
+			rc = 0;
+			break;
+		}
+	}
+
+	return rc;
+}
+
 static struct vfs_mount_ops _devfs_mount_ops = {
 	.umount = NULL,
 	.flush = NULL,
-	.read_node = NULL,
+	.read_node = devfs_read_node,
 };
 
 int devfs_mount(struct vfs_mount *mnt, int flags, const void *data)
@@ -259,16 +292,14 @@ int devfs_register(devfs_handle_t dir, const char *name, int flags, void *ops,
 	n = (struct vfs_node *)dir;
 	if (n->type != VFS_DIRECTORY) {
 		rc = EINVAL;
-		DEBUG(DL_INF,
-		      ("register device on non-directory, node(%s:%d).\n",
+		DEBUG(DL_INF, ("register device on non-directory, node(%s:%d).\n",
 		       n->name, n->type));
 		goto out;
 	}
 
 	if (strcmp(n->mount->type->name, "devfs") != 0) {
 		rc = EINVAL;
-		DEBUG(DL_INF,
-		      ("register device on non-devfs, node(%s), fstype(%s).\n",
+		DEBUG(DL_INF, ("register device on non-devfs, node(%s), fstype(%s).\n",
 		       n->name, n->mount->type->name));
 		goto out;
 	}
@@ -276,8 +307,7 @@ int devfs_register(devfs_handle_t dir, const char *name, int flags, void *ops,
 	type = VFS_CHARDEVICE;	// TODO: type should be retrieved from parameter
 	rc = devfs_create(n, name, type, &dev);
 	if (rc != 0 || dev == NULL) {
-		DEBUG(DL_WRN,
-		      (" register device failed, node(%s), name(%s).\n",
+		DEBUG(DL_WRN, (" register device failed, node(%s), name(%s).\n",
 		       n->name, name));
 		goto out;
 	}

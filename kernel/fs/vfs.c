@@ -200,6 +200,8 @@ int vfs_create(const char *path, uint32_t type, struct vfs_node **np)
 	rc = parent->ops->create(parent, name, type, &n);
 	if (rc != 0) {
 		goto out;
+	} else {
+		vfs_node_refer(n);
 	}
 
 	ASSERT(n != NULL);
@@ -224,6 +226,7 @@ int vfs_create(const char *path, uint32_t type, struct vfs_node **np)
 	if (name) {
 		kfree(name);
 	}
+	
 	return rc;
 }
 
@@ -238,10 +241,7 @@ int vfs_close(struct vfs_node *node)
 	if (node->ops->close != NULL) {
 		rc = node->ops->close(node);
 		if (rc != 0) {
-			DEBUG(DL_DBG, ("close (%p:%d) failed.\n",
-				       node, node->ref_count));
-		} else {
-			vfs_node_deref(node);
+			DEBUG(DL_DBG, ("close (%s) failed.\n", node->name));
 		}
 	}
 
@@ -415,7 +415,7 @@ static struct vfs_node *vfs_lookup_internal(struct vfs_node *n, char *path)
 				return NULL;
 			}
 
-			ASSERT(n->ops != NULL);
+			ASSERT(n && n->ops != NULL);
 			/* Insert the node into the node cache */
 			avl_tree_insert(&m->nodes, ino, n);
 			vfs_node_refer(n);
@@ -461,6 +461,8 @@ struct vfs_node *vfs_lookup(const char *path, int type)
 				       n->name, n->type, type));
 			vfs_node_deref(n);
 			n = NULL;
+		} else {
+			DEBUG(DL_DBG, ("node(%s) ref_count(%d).\n", n->name, n->ref_count));
 		}
 	} else {
 		DEBUG(DL_DBG, ("current node(%s), path(%s) not found.\n",
