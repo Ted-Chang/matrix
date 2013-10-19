@@ -5,6 +5,7 @@
 #include "mutex.h"
 #include "debug.h"
 #include "mm/malloc.h"
+#include "device.h"
 #include "pci.h"
 
 #define PCI_CFG_ADDR	0xCF8		// Configuration Address Register

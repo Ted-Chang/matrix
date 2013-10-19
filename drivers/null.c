@@ -3,6 +3,7 @@
 #include <errno.h>
 #include "debug.h"
 #include "fs.h"
+#include "device.h"
 #include "devfs.h"
 
 int null_open()
@@ -42,7 +43,6 @@ int null_init(void)
 {
 	int rc = 0;
 	struct vfs_node *n;
-	devfs_handle_t h;
 
 	n = vfs_lookup("/dev", VFS_DIRECTORY);
 	if (!n) {
@@ -51,7 +51,7 @@ int null_init(void)
 		goto out;
 	}
 
-	rc = devfs_register((devfs_handle_t)n, "null", 0, NULL, NULL, &h);
+	rc = devfs_register((devfs_handle_t)n, "null", 0, NULL, 0);
 	if (rc != 0) {
 		DEBUG(DL_ERR, ("register device(null) failed, error:%x\n", rc));
 		goto out;

@@ -12,6 +12,7 @@ struct dev_ops {
 };
 
 struct dev {
+	dev_t dev_id;		// ID for this device
 	int ref_count;
 	int flags;		// Flags for this device
 	void *data;		// Pointer to private data

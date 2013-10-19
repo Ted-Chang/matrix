@@ -126,7 +126,8 @@ int vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buf
 	}
 
 	if (node->type != VFS_FILE) {
-		DEBUG(DL_DBG, ("read node failed, type(%d).\n", node->type));
+		DEBUG(DL_DBG, ("read node(%s) failed, type(%d).\n",
+			       node->name, node->type));
 		goto out;
 	}
 	

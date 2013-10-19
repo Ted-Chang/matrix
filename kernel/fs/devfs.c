@@ -16,6 +16,7 @@ struct devfs_node {
 	uint32_t type;
 	uint32_t mask;
 	uint32_t ino;
+	dev_t dev_id;
 };
 
 struct devfs_node _devfs_nodes[NR_MAX_DEVS];
@@ -36,11 +37,35 @@ struct vfs_type _devfs_type = {
 	.mount = devfs_mount,
 };
 
+static int devfs_node_create(struct devfs_node **dnp)
+{
+	int i, rc = 0;
+
+	ASSERT(dnp != NULL);
+	
+	for (i = 0; i < NR_MAX_DEVS; i++) {
+		if (_devfs_nodes[i].ino == 0) {
+			break;
+		}
+	}
+
+	if (i >= NR_MAX_DEVS) {
+		rc = EGENERIC;
+		goto out;
+	}
+
+	*dnp = &_devfs_nodes[i];
+
+ out:
+	return rc;
+}
+
 static int devfs_create(struct vfs_node *parent, const char *name,
 			uint32_t type, struct vfs_node **np)
 {
-	int i, rc = -1;
+	int rc = -1;
 	struct vfs_node *n;
+	struct devfs_node *dn;
 
 	ASSERT(parent->type == VFS_DIRECTORY);
 
@@ -52,14 +77,8 @@ static int devfs_create(struct vfs_node *parent, const char *name,
 
 	DEBUG(DL_DBG, ("create(%s), type(%d).\n", name, type));
 
-	for (i = 0; i < NR_MAX_DEVS; i++) {
-		if (_devfs_nodes[i].ino == 0) {
-			break;
-		}
-	}
-
-	if (i >= NR_MAX_DEVS) {
-		rc = EGENERIC;
+	rc = devfs_node_create(&dn);
+	if (rc != 0) {
 		goto out;
 	}
 	
@@ -70,13 +89,13 @@ static int devfs_create(struct vfs_node *parent, const char *name,
 	}
 
 	/* Add to our devfs nodes */
-	strncpy(_devfs_nodes[i].name, name, 127);
-	_devfs_nodes[i].type = type;
-	_devfs_nodes[i].ino = id_alloc();
-	_devfs_nodes[i].mask = 0755;
+	strncpy(dn->name, name, 127);
+	dn->type = type;
+	dn->ino = id_alloc();
+	dn->mask = 0755;
 	
 	strncpy(n->name, name, 127);
-	n->ino = _devfs_nodes[i].ino;
+	n->ino = dn->ino;
 	n->length = 0;
 	n->mask = 0755;
 
@@ -281,38 +300,42 @@ int devfs_unload(void)
 }
 
 int devfs_register(devfs_handle_t dir, const char *name, int flags, void *ops,
-		   void *info, devfs_handle_t *handle)
+		   dev_t dev_id)
 {
 	int rc = -1;
 	uint32_t type;
-	struct vfs_node *n, *dev = NULL;
-
-	ASSERT(handle != NULL);
+	struct devfs_node *dn;
+	struct vfs_node *n = NULL;
 
 	n = (struct vfs_node *)dir;
 	if (n->type != VFS_DIRECTORY) {
 		rc = EINVAL;
 		DEBUG(DL_INF, ("register device on non-directory, node(%s:%d).\n",
-		       n->name, n->type));
+			       n->name, n->type));
 		goto out;
 	}
 
 	if (strcmp(n->mount->type->name, "devfs") != 0) {
 		rc = EINVAL;
 		DEBUG(DL_INF, ("register device on non-devfs, node(%s), fstype(%s).\n",
-		       n->name, n->mount->type->name));
+			       n->name, n->mount->type->name));
 		goto out;
 	}
 
 	type = VFS_CHARDEVICE;	// TODO: type should be retrieved from parameter
-	rc = devfs_create(n, name, type, &dev);
-	if (rc != 0 || dev == NULL) {
-		DEBUG(DL_WRN, (" register device failed, node(%s), name(%s).\n",
-		       n->name, name));
+	rc = devfs_node_create(&dn);
+	if (rc != 0) {
+		DEBUG(DL_WRN, ("create devfs node failed, node(%s), name(%s).\n",
+			       n->name, name));
 		goto out;
 	}
 
-	*handle = dev;
+	strncpy(dn->name, name, 127);
+	dn->type = type;
+	dn->ino = id_alloc();
+	dn->mask = 0755;
+	dn->dev_id = dev_id;
+	
 	rc = 0;
 
  out:
@@ -326,30 +349,6 @@ int devfs_register(devfs_handle_t dir, const char *name, int flags, void *ops,
 int devfs_unregister(devfs_handle_t handle)
 {
 	int rc = -1;
-	struct vfs_node *n;
 
-	if (handle == INVALID_DEVFS_HANDLE) {
-		rc = EINVAL;
-		goto out;
-	}
-
-	n = (struct vfs_node *)handle;
-	if (n->type == VFS_DIRECTORY) {
-		rc = EINVAL;
-		DEBUG(DL_INF, ("unregister directory node(%s).\n", n->name));
-		goto out;
-	}
-
-	/* Check the File System type */
-	if (strcmp(n->mount->type->name, "devfs") != 0) {
-		DEBUG(DL_INF, ("unregister directory node(%s), fstype(%s).\n",
-			       n->name, n->mount->type->name));
-	}
-
-	vfs_node_deref(n);	// Dereference the node
-
-	rc = 0;
-
- out:
 	return rc;
 }
