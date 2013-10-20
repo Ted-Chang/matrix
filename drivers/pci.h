@@ -3,6 +3,8 @@
 
 #include "list.h"
 
+#define PCI_MAJOR	3
+
 #define PCI_CFG_VENDOR_ID	0x00	// Vendor ID
 #define PCI_CFG_DEVICE_ID	0x02	// Device ID
 #define PCI_CFG_COMMAND		0x04	// Command
@@ -34,7 +36,7 @@ struct dev;
 
 struct pci_dev {
 	struct list link;
-	dev_t id;			// Device ID
+	dev_t devno;			// Device ID
 
 	/* Location of the device */
 	uint8_t bus;			// Bus ID

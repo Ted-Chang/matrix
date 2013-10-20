@@ -143,7 +143,7 @@ static int pci_scan_dev(int id, int dev, int func, int indent)
 	device->int_pin = pci_cfg_read8(device, PCI_CFG_INT_PIN);
 
 	/* Create a device for it */
-	rc = dev_create(3, 0, NULL, &device->id);
+	rc = dev_create(PCI_MAJOR, 0, NULL, &device->devno);
 	if (rc != 0) {
 		goto out;
 	}
@@ -170,10 +170,10 @@ static int pci_scan_bus(int id, int indent)
 	int rc;
 	int i, j;
 	uint8_t ret;
-	dev_t dev_id;
+	dev_t devno;
 
 	/* Create the bus device */
-	rc = dev_create(3, 0, NULL, &dev_id);
+	rc = dev_create(PCI_MAJOR, 0, NULL, &devno);
 	if (rc != 0) {
 		goto out;
 	}

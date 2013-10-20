@@ -6,30 +6,32 @@
 #include "device.h"
 #include "devfs.h"
 
+#define NULL_MAJOR	1
+
 int null_open()
 {
-	int rc = 0;
+	int rc = -1;
 
 	return rc;
 }
 
 int null_close(struct dev *d)
 {
-	int rc = 0;
+	int rc = -1;
 
 	return rc;
 }
 
 int null_read(struct dev *d, off_t off, size_t size)
 {
-	int rc = 0;
+	int rc = -1;
 
 	return rc;
 }
 
 int null_write(struct dev *d, off_t off, size_t size)
 {
-	int rc = 0;
+	int rc = -1;
 
 	return rc;
 }
@@ -42,9 +44,9 @@ void null_destroy(struct dev *d)
 int null_init(void)
 {
 	int rc = 0;
-	dev_t dev_id = 0;
+	dev_t devno = 0;
 	struct vfs_node *n;
-	uint16_t major;
+	uint32_t major;
 
 	/* Open the root of devfs */
 	n = vfs_lookup("/dev", VFS_DIRECTORY);
@@ -55,15 +57,15 @@ int null_init(void)
 	}
 
 	/* Major number of null is 1 */
-	major = 1;
-	rc = dev_create(major, 0, NULL, &dev_id);
+	major = NULL_MAJOR;
+	rc = dev_create(major, 0, NULL, &devno);
 	if (rc != 0) {
 		DEBUG(DL_ERR, ("create device failed.\n"));
 		goto out;
 	}
 
 	/* Register a node in devfs */
-	rc = devfs_register((devfs_handle_t)n, "null", 0, NULL, dev_id);
+	rc = devfs_register((devfs_handle_t)n, "null", 0, NULL, devno);
 	if (rc != 0) {
 		DEBUG(DL_ERR, ("register device(null) failed, error:%x\n", rc));
 		goto out;
@@ -75,8 +77,8 @@ int null_init(void)
 	}
 	
 	if (rc != 0) {
-		if (dev_id != 0) {
-			dev_destroy(dev_id);
+		if (devno != 0) {
+			dev_destroy(devno);
 		}
 	}
 	

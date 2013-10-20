@@ -7,6 +7,7 @@ OBJ := ../../bin/obji386
 TARGETOBJ := \
 	$(OBJ)/avltree.o \
 	$(OBJ)/radixtree.o \
+	$(OBJ)/hashtable.o \
 	$(OBJ)/notifier.o \
 	$(OBJ)/object.o \
 	$(OBJ)/bitmap.o \

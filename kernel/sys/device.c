@@ -6,11 +6,22 @@
 #include "debug.h"
 #include "mm/malloc.h"
 #include "device.h"
+#include "rtl/hashtable.h"
 
-int dev_create(uint16_t major, int flags, void *ext, dev_t *dp)
+int dev_create(uint32_t major, int flags, void *ext, dev_t *dp)
 {
 	int rc = -1;
+	dev_t devno;
+	uint32_t minor;
 	struct dev *device;
+
+	if ((major == 0) || (dp == NULL)) {
+		rc = EINVAL;
+		goto out;
+	}
+
+	minor = 0;
+	devno = MKDEV(major, minor);
 
 	device = kmalloc(sizeof(*device), 0);
 	if (!device) {
@@ -23,8 +34,9 @@ int dev_create(uint16_t major, int flags, void *ext, dev_t *dp)
 	device->flags = flags;
 	device->data = ext;
 	device->ref_count = 1;	// Initial refcnt of the device is 1
+	device->dev = devno;
 
-	// TODO: generate a device ID
+	*dp = devno;
 	
 	rc = 0;
 
@@ -32,9 +44,19 @@ int dev_create(uint16_t major, int flags, void *ext, dev_t *dp)
 	return rc;
 }
 
-int dev_open(dev_t dev_id, struct dev **dp)
+int dev_open(dev_t dev, struct dev **dp)
 {
 	int rc = -1;
+	uint32_t major, minor;
+	struct hashtable *ht = NULL;
+
+	major = MAJOR(dev);
+	minor = MINOR(dev);
+
+	/* rc = hashtable_lookup(ht, &minor, dp); */
+	/* if (rc != 0) { */
+	/* 	rc = ENOENT; */
+	/* } */
 
 	return rc;
 }
@@ -99,9 +121,9 @@ int dev_write(struct dev *d, off_t off, size_t size)
 	return rc;
 }
 
-void dev_destroy(dev_t dev_id)
+void dev_destroy(dev_t dev)
 {
-	ASSERT(dev_id != 0);
+	ASSERT(dev != 0);
 }
 
 void init_dev()
