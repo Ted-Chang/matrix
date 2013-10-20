@@ -143,14 +143,14 @@ static int pci_scan_dev(int id, int dev, int func, int indent)
 	device->int_pin = pci_cfg_read8(device, PCI_CFG_INT_PIN);
 
 	/* Create a device for it */
-	rc = dev_create(0, NULL, &device->node);
+	rc = dev_create(3, 0, NULL, &device->id);
 	if (rc != 0) {
 		goto out;
 	}
 
 	kprintf("pci: V%u (vendor:%x device:%x class:%x %x)\n",
-		device->revision, device->vendor_id, device->dev_id, device->base_class,
-		device->sub_class);
+		device->revision, device->vendor_id, device->dev_id,
+		device->base_class, device->sub_class);
 
 	/* Check for a PCI-to-PCI bridge */
 	if (device->base_class == 0x06 && device->sub_class == 0x04) {
@@ -170,10 +170,10 @@ static int pci_scan_bus(int id, int indent)
 	int rc;
 	int i, j;
 	uint8_t ret;
-	struct dev *devp = NULL;
+	dev_t dev_id;
 
 	/* Create the bus device */
-	rc = dev_create(0, NULL, &devp);
+	rc = dev_create(3, 0, NULL, &dev_id);
 	if (rc != 0) {
 		goto out;
 	}

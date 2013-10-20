@@ -58,7 +58,6 @@ int do_open(const char *file, int flags, int mode)
 	/* Lookup file system node, if success the node will be referenced */
 	n = vfs_lookup(file, -1);
 	if (!n && FLAG_ON(flags, 0x600)) {
-
 		DEBUG(DL_DBG, ("%s not found, create it.\n", file));
 		
 		/* The file was not found, make one */
@@ -69,10 +68,12 @@ int do_open(const char *file, int flags, int mode)
 		}
 	}
 
-	DEBUG(DL_DBG, ("file(%s), n(%s:%p) found.\n", file, n->name, n));
 	if (n) {
+		DEBUG(DL_DBG, ("file(%s) node(%s) open.\n", file, n->name));
 		/* Attach the file descriptor to the process */
 		fd = fd_attach((struct process *)CURR_PROC, n);
+	} else {
+		DEBUG(DL_DBG, ("file(%s) open failed.\n", file));
 	}
 
 	return fd;

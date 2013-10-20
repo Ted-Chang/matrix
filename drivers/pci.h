@@ -34,7 +34,7 @@ struct dev;
 
 struct pci_dev {
 	struct list link;
-	struct dev *node;		// Pointer to the device node
+	dev_t id;			// Device ID
 
 	/* Location of the device */
 	uint8_t bus;			// Bus ID

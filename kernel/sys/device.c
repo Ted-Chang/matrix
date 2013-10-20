@@ -7,7 +7,7 @@
 #include "mm/malloc.h"
 #include "device.h"
 
-int dev_create(int flags, void *ext, struct dev **dp)
+int dev_create(uint16_t major, int flags, void *ext, dev_t *dp)
 {
 	int rc = -1;
 	struct dev *device;
@@ -23,7 +23,8 @@ int dev_create(int flags, void *ext, struct dev **dp)
 	device->flags = flags;
 	device->data = ext;
 	device->ref_count = 1;	// Initial refcnt of the device is 1
-	*dp = device;
+
+	// TODO: generate a device ID
 	
 	rc = 0;
 
@@ -31,7 +32,7 @@ int dev_create(int flags, void *ext, struct dev **dp)
 	return rc;
 }
 
-int dev_open()
+int dev_open(dev_t dev_id, struct dev **dp)
 {
 	int rc = -1;
 
@@ -47,6 +48,13 @@ int dev_close(struct dev *d)
 		goto out;
 	}
 
+	if (!d->ops || !d->ops->close) {
+		rc = EGENERIC;
+		goto out;
+	}
+	
+	rc = d->ops->close(d);
+
  out:
 	return rc;
 }
@@ -59,6 +67,13 @@ int dev_read(struct dev *d, off_t off, size_t size)
 		rc = EINVAL;
 		goto out;
 	}
+
+	if (!d->ops || !d->ops->read) {
+		rc = EGENERIC;
+		goto out;
+	}
+
+	rc = d->ops->read(d, off, size);
 
  out:
 	return rc;
@@ -73,14 +88,20 @@ int dev_write(struct dev *d, off_t off, size_t size)
 		goto out;
 	}
 
+	if (!d->ops || !d->ops->write) {
+		rc = EGENERIC;
+		goto out;
+	}
+
+	rc = d->ops->write(d, off, size);
+
  out:
 	return rc;
 }
 
-void dev_destroy(struct dev *d)
+void dev_destroy(dev_t dev_id)
 {
-	ASSERT(d != NULL);
-	kfree(d);
+	ASSERT(dev_id != 0);
 }
 
 void init_dev()

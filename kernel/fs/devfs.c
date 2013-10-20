@@ -8,6 +8,7 @@
 #include "fs.h"
 #include "dirent.h"
 #include "devfs.h"
+#include "device.h"
 
 #define NR_MAX_DEVS	64
 
@@ -93,11 +94,13 @@ static int devfs_create(struct vfs_node *parent, const char *name,
 	dn->type = type;
 	dn->ino = id_alloc();
 	dn->mask = 0755;
+	dn->dev_id = 0;
 	
 	strncpy(n->name, name, 127);
 	n->ino = dn->ino;
 	n->length = 0;
 	n->mask = 0755;
+	n->data = NULL;
 
 	vfs_node_refer(n);
 
@@ -112,9 +115,14 @@ static int devfs_close(struct vfs_node *node)
 {
 	int rc = 0;
 
-	if (!node) {
+	if (!node || !node->data) {
 		rc = EINVAL;
 		goto out;
+	}
+
+	/* Close the device since we are the last reference */
+	if (node->ref_count == 1) {
+		dev_close((struct dev *)node->data);
 	}
 
 	vfs_node_deref(node);
@@ -130,7 +138,22 @@ static int devfs_read(struct vfs_node *node, uint32_t offset,
 		      uint32_t size, uint8_t *buffer)
 {
 	int rc = -1;
+	struct dev *d;
 
+	if (!node->data) {
+		rc = EINVAL;
+		DEBUG(DL_ERR, ("dev(%s) not open.\n", node->name));
+		goto out;
+	}
+	
+	d = (struct dev *)node->data;
+	rc = dev_read(d, offset, size);
+	if (rc != 0) {
+		DEBUG(DL_INF, ("read dev(%s) failed.\n", node->name));
+		goto out;
+	}
+
+ out:
 	return rc;
 }
 
@@ -138,7 +161,22 @@ static int devfs_write(struct vfs_node *node, uint32_t offset,
 		       uint32_t size, uint8_t *buffer)
 {
 	int rc = -1;
+	struct dev *d;
 
+	if (!node->data) {
+		rc = EINVAL;
+		DEBUG(DL_DBG, ("dev(%s) not open.\n", node->name));
+		goto out;
+	}
+
+	d = (struct dev *)node->data;
+	rc = dev_write(d, offset, size);
+	if (rc != 0) {
+		DEBUG(DL_INF, ("write dev(%s) failed.\n", node->name));
+		goto out;
+	}
+
+ out:
 	return rc;
 }
 
@@ -217,6 +255,7 @@ static int devfs_read_node(struct vfs_mount *mnt, ino_t id, struct vfs_node **np
 {
 	int rc = -1, i;
 	struct vfs_node *node;
+	struct dev *dev;
 
 	ASSERT(np != NULL);
 	
@@ -234,6 +273,16 @@ static int devfs_read_node(struct vfs_mount *mnt, ino_t id, struct vfs_node **np
 			node->mask = _devfs_nodes[i].mask;
 			node->length = 0;
 			strncpy(node->name, _devfs_nodes[i].name, 128);
+
+			rc = dev_open(_devfs_nodes[i].dev_id, &dev);
+			if (rc != 0) {
+				DEBUG(DL_WRN, ("open dev(%s:%x) failed.\n",
+					       _devfs_nodes[i].name,
+					       _devfs_nodes[i].dev_id));
+				break;
+			}
+			
+			node->data = dev;
 
 			*np = node;
 			rc = 0;
