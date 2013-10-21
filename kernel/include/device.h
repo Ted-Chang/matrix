@@ -2,6 +2,7 @@
 #define __DEVICE_H__
 
 #include <types.h>
+#include "list.h"
 
 #define MINORBITS	20
 #define MINORMASK	((1U << MINORBITS) - 1)
@@ -20,6 +21,7 @@ struct dev_ops {
 };
 
 struct dev {
+	struct list dev_link;
 	dev_t dev;		// ID for this device
 	
 	int ref_count;		// Reference count for this device
