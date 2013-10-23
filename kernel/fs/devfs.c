@@ -274,7 +274,7 @@ static int devfs_read_node(struct vfs_mount *mnt, ino_t id, struct vfs_node **np
 			node->length = 0;
 			strncpy(node->name, _devfs_nodes[i].name, 128);
 
-			rc = dev_open(_devfs_nodes[i].dev_id, &dev);
+			rc = dev_create(_devfs_nodes[i].dev_id, 0, NULL, &dev);
 			if (rc != 0) {
 				DEBUG(DL_WRN, ("open dev(%s:%x) failed.\n",
 					       _devfs_nodes[i].name,

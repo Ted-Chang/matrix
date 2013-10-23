@@ -44,9 +44,16 @@ void null_destroy(struct dev *d)
 int null_init(void)
 {
 	int rc = 0;
-	dev_t devno = 0;
 	struct vfs_node *n;
-	uint32_t major;
+	struct dev *d;
+	dev_t devno;
+
+	/* Register NULL device class */
+	rc = dev_register(NULL_MAJOR, "null");
+	if (rc != 0) {
+		DEBUG(DL_ERR, ("register NULL device class failed.\n"));
+		goto out;
+	}
 
 	/* Open the root of devfs */
 	n = vfs_lookup("/dev", VFS_DIRECTORY);
@@ -57,8 +64,8 @@ int null_init(void)
 	}
 
 	/* Major number of null is 1 */
-	major = NULL_MAJOR;
-	rc = dev_create(major, 0, NULL, &devno);
+	devno = MKDEV(NULL_MAJOR, 0);
+	rc = dev_create(devno, DEV_CREATE, NULL, &d);
 	if (rc != 0) {
 		DEBUG(DL_ERR, ("create device failed.\n"));
 		goto out;
@@ -80,6 +87,7 @@ int null_init(void)
 		if (devno != 0) {
 			dev_destroy(devno);
 		}
+		dev_unregister(NULL_MAJOR);
 	}
 	
 	return rc;

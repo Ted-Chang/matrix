@@ -23,93 +23,88 @@ struct dev_db_hash_info {
 };
 
 struct dev_db_hash_info *_dev_db[NR_MAX_MAJOR];
-struct mutex _dev_db_lock;
 
 static uint32_t dev_hash(void *key, uint32_t nr_buckets)
 {
 	uint32_t ret = ULONG_MAX;
+	dev_t e = *((dev_t *)key);
+
+	ret = e % nr_buckets;
 
 	return ret;
 }
 
 static int dev_compare(void *key, void *entry)
 {
-	int ret = -1;
+	int ret;
+	struct dev *d;
+	dev_t dev;
+
+	dev = *((dev_t *)key);
+	d = (struct dev *)entry;
+
+	if (dev == d->dev) {
+		ret = 0;
+	} else if (dev < d->dev) {
+		ret = -1;
+	} else {
+		ret = 1;
+	}
 
 	return ret;
 }
 
-int dev_create(uint32_t major, int flags, void *ext, dev_t *dp)
+int dev_create(dev_t dev, int flags, void *ext, struct dev **dp)
 {
 	int rc = -1;
-	dev_t devno;
-	uint32_t minor;
+	uint32_t major;
 	struct dev *device;
-
-	if ((major == 0) || (dp == NULL)) {
-		rc = EINVAL;
-		goto out;
-	}
-
-	minor = 0;
-	devno = MKDEV(major, minor);
-
-	device = kmalloc(sizeof(*device), 0);
-	if (!device) {
-		rc = ENOMEM;
-		goto out;
-	}
-
-	memset(device, 0, sizeof(*device));
-
-	device->flags = flags;
-	device->data = ext;
-	device->ref_count = 1;	// Initial refcnt of the device is 1
-	device->dev = devno;
-
-	*dp = devno;
-	
-	rc = 0;
-
- out:
-	return rc;
-}
-
-int dev_open(dev_t dev, struct dev **dp)
-{
-	int rc = -1;
-	uint32_t major, minor;
-	struct hashtable *ht = NULL;
-	boolean_t lock_acquired = FALSE;
+	struct dev_db_hash_info *hash_info = NULL;
 
 	major = MAJOR(dev);
-	minor = MINOR(dev);
 
-	if (major > NR_MAX_MAJOR) {
-		rc = EINVAL;
-		goto out;
-	}
-
-	mutex_acquire(&_dev_db_lock);
-	lock_acquired = TRUE;
-
-	if (!_dev_db[major]) {
+	/* Check whether the major was registered */
+	hash_info = _dev_db[major];
+	if (!hash_info) {
+		DEBUG(DL_INF, ("invalid major %x.\n", major));
 		rc = ENOENT;
 		goto out;
 	}
 
-	ht = &_dev_db[major]->ht;
+	if (FLAG_ON(flags, DEV_CREATE)) {
+		/* We are creating a device */
+		device = kmalloc(sizeof(*device), 0);
+		if (!device) {
+			rc = ENOMEM;
+			goto out;
+		}
 
-	rc = hashtable_lookup(ht, &minor, (void **)dp);
-	if (rc != 0) {
-	 	rc = ENOENT;
+		memset(device, 0, sizeof(*device));
+
+		device->flags = 0;
+		device->data = ext;
+		device->ref_count = 1;	// Initial refcnt of the device is 1
+		device->dev = dev;
+
+		rc = hashtable_insert(&hash_info->ht, &dev, (void *)device);
+		if (rc != 0) {
+			goto out;
+		}
+		
+		*dp = device;
+	} else {
+		/* We are opening a device */
+		rc = hashtable_lookup(&hash_info->ht, &dev, (void **)&device);
+		if (rc != 0) {
+			rc = ENOENT;
+			goto out;
+		}
+		
+		device->ref_count++;
+		*dp = device;
 	}
 
  out:
-	if (lock_acquired) {
-		mutex_release(&_dev_db_lock);
-	}
-	
 	return rc;
 }
 
@@ -182,47 +177,46 @@ int dev_register(uint32_t major, const char *name)
 {
 	int rc = -1;
 	uint32_t nr_buckets;
-	
-	mutex_acquire(&_dev_db_lock);
+	struct dev_db_hash_info *hash_info = NULL;
 
-	do {
-		if (_dev_db[major]) {
-			rc = EGENERIC;
-			break;
-		}
+	if (_dev_db[major]) {
+		rc = EGENERIC;
+		goto out;
+	}
 
-		_dev_db[major] = kmalloc(sizeof(struct dev_db_hash_info), 0);
-		if (!_dev_db[major]) {
-			rc = ENOMEM;
-			break;
-		}
+	hash_info = kmalloc(sizeof(*hash_info), 0);
+	if (!hash_info) {
+		rc = ENOMEM;
+		goto out;
+	}
 
-		nr_buckets = 5;	// TODO: Tune the number of buckets
-		_dev_db[major]->name = name;
-		_dev_db[major]->nr_hash_buckets = nr_buckets;
-		_dev_db[major]->buckets_ptr = kmalloc(sizeof(struct list) * nr_buckets, 0);
-		if (!_dev_db[major]->buckets_ptr) {
-			rc = ENOMEM;
-			break;
-		}
+	nr_buckets = 5;	// TODO: Tune the number of buckets
+	hash_info->name = name;
+	hash_info->nr_hash_buckets = nr_buckets;
+	hash_info->buckets_ptr = kmalloc(sizeof(struct list) * nr_buckets, 0);
+	if (!hash_info->buckets_ptr) {
+		rc = ENOMEM;
+		goto out;
+	}
 
-		hashtable_init(&_dev_db[major]->ht, _dev_db[major]->buckets_ptr,
-				    nr_buckets, offsetof(struct dev, dev_link),
-				    dev_hash, dev_compare, 0);
-	} while (FALSE);
+	hashtable_init(&hash_info->ht, hash_info->buckets_ptr,
+		       nr_buckets, offsetof(struct dev, dev_link),
+		       dev_hash, dev_compare, 0);
 
+	_dev_db[major] = hash_info;
+	rc = 0;
+
+ out:
 	if ((rc != 0) && (rc != EGENERIC)) {
-		if (_dev_db[major]) {
-			if (_dev_db[major]->buckets_ptr) {
-				kfree(_dev_db[major]->buckets_ptr);
+		DEBUG(DL_WRN, ("register dev %s failed, err(%x).\n", rc));
+		if (hash_info) {
+			if (hash_info->buckets_ptr) {
+				kfree(hash_info->buckets_ptr);
 			}
-			kfree(_dev_db[major]);
-			_dev_db[major] = NULL;
+			kfree(hash_info);
 		}
 	}
 	
-	mutex_release(&_dev_db_lock);
-
 	return rc;
 }
 
@@ -236,5 +230,4 @@ int dev_unregister(uint32_t major)
 void init_dev()
 {
 	memset(_dev_db, 0, sizeof(_dev_db));
-	mutex_init(&_dev_db_lock, "devdb-mutex", 0);
 }

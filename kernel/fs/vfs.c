@@ -125,12 +125,12 @@ int vfs_read(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buf
 		goto out;
 	}
 
-	if (node->type != VFS_FILE) {
-		DEBUG(DL_DBG, ("read node(%s) failed, type(%d).\n",
-			       node->name, node->type));
+	if (!node->ops) {
+		rc = EGENERIC;
+		DEBUG(DL_INF, ("no ops on node %s.\n", node->name));
 		goto out;
 	}
-	
+
 	if (node->ops->read != NULL) {
 		rc = node->ops->read(node, offset, size, buffer);
 	} else {
@@ -149,12 +149,14 @@ int vfs_write(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *bu
 		goto out;
 	}
 
-	if (node->type != VFS_FILE) {
+	if (!node->ops) {
+		rc = EGENERIC;
+		DEBUG(DL_INF, ("no ops on node %s.\n", node->name));
 		goto out;
 	}
-	
+
 	if (node->ops->write != NULL) {
-		rc = node->ops->read(node, offset, size, buffer);
+		rc = node->ops->write(node, offset, size, buffer);
 	} else {
 		rc = 0;
 	}

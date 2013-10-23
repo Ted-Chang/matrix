@@ -26,6 +26,7 @@ static int hashtable_lookup_bucket(struct hashtable *ht, void *key,
 	LIST_FOR_EACH(link, &ht->buckets[index]) {
 		value = LINK_2_ENTRY(ht, link);
 		if ((*ht->compare_func)(key, value) == 0) {
+			*val = value;
 			found = TRUE;
 			break;
 		}

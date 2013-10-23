@@ -23,6 +23,7 @@ static struct list _pci_drivers = {
 	.next = &_pci_drivers
 };
 static struct mutex _pci_drivers_lock;
+static uint32_t _pci_instance;
 
 int platform_init_pci()
 {
@@ -106,8 +107,10 @@ static int pci_scan_dev(int id, int dev, int func, int indent)
 {
 	int rc;
 	uint16_t ret;
+	struct dev *d;
 	struct pci_dev *device;
 	uint8_t dest;
+	dev_t devno;
 
 	/* Check vendor ID to determine if device exists */
 	ret = platform_pci_cfg_read16(id, dev, func, PCI_CFG_VENDOR_ID);
@@ -143,7 +146,8 @@ static int pci_scan_dev(int id, int dev, int func, int indent)
 	device->int_pin = pci_cfg_read8(device, PCI_CFG_INT_PIN);
 
 	/* Create a device for it */
-	rc = dev_create(PCI_MAJOR, 0, NULL, &device->devno);
+	devno = MKDEV(PCI_MAJOR, _pci_instance++);
+	rc = dev_create(devno, DEV_CREATE, NULL, &d);
 	if (rc != 0) {
 		goto out;
 	}
@@ -170,10 +174,12 @@ static int pci_scan_bus(int id, int indent)
 	int rc;
 	int i, j;
 	uint8_t ret;
+	struct dev *d;
 	dev_t devno;
 
 	/* Create the bus device */
-	rc = dev_create(PCI_MAJOR, 0, NULL, &devno);
+	devno = MKDEV(PCI_MAJOR, _pci_instance++);
+	rc = dev_create(devno, DEV_CREATE, NULL, &d);
 	if (rc != 0) {
 		goto out;
 	}
@@ -252,12 +258,22 @@ int pci_init(void)
 {
 	int rc = 0;
 
+	/* Initial instance count is 0 */
+	_pci_instance = 0;
+	
+	/* Register PCI device class */
+	rc = dev_register(PCI_MAJOR, "pci");
+	if (rc != 0) {
+		DEBUG(DL_WRN, ("pci: register PCI device class failed.\n"));
+		goto out;
+	}
+
 	mutex_init(&_pci_drivers_lock, "pci-mutex", 0);
 
 	/* Detect PCI presence */
 	rc = platform_init_pci();
 	if (rc != 0) {
-		DEBUG(DL_WRN, ("pci: PCI not present or not usable\n"));
+		DEBUG(DL_WRN, ("pci: PCI not present or not usable.\n"));
 		goto out;
 	}
 
