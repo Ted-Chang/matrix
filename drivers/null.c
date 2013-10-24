@@ -1,12 +1,15 @@
 #include <types.h>
 #include <stddef.h>
 #include <errno.h>
+#include <string.h>
 #include "debug.h"
 #include "fs.h"
 #include "device.h"
 #include "devfs.h"
 
 #define NULL_MAJOR	1
+
+struct dev_ops _null_ops;
 
 int null_open()
 {
@@ -22,16 +25,20 @@ int null_close(struct dev *d)
 	return rc;
 }
 
-int null_read(struct dev *d, off_t off, size_t size)
+int null_read(struct dev *d, off_t off, size_t size, uint8_t *buf)
 {
 	int rc = -1;
+
+	DEBUG(DL_DBG, ("off(%x) size(%x).\n", off, size));
 
 	return rc;
 }
 
-int null_write(struct dev *d, off_t off, size_t size)
+int null_write(struct dev *d, off_t off, size_t size, uint8_t *buf)
 {
 	int rc = -1;
+
+	DEBUG(DL_DBG, ("off(%x) size(%x).\n", off, size));
 
 	return rc;
 }
@@ -70,6 +77,15 @@ int null_init(void)
 		DEBUG(DL_ERR, ("create device failed.\n"));
 		goto out;
 	}
+
+	/* Initialize the entry point of all requests */
+	memset(&_null_ops, 0, sizeof(_null_ops));
+	_null_ops.open = null_open;
+	_null_ops.close = null_close;
+	_null_ops.read = null_read;
+	_null_ops.write = null_write;
+	_null_ops.destroy = null_destroy;
+	d->ops = &_null_ops;
 
 	/* Register a node in devfs */
 	rc = devfs_register((devfs_handle_t)n, "null", 0, NULL, devno);

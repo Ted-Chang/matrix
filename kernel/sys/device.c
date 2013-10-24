@@ -128,7 +128,7 @@ int dev_close(struct dev *d)
 	return rc;
 }
 
-int dev_read(struct dev *d, off_t off, size_t size)
+int dev_read(struct dev *d, off_t off, size_t size, uint8_t *buf)
 {
 	int rc = -1;
 
@@ -142,13 +142,13 @@ int dev_read(struct dev *d, off_t off, size_t size)
 		goto out;
 	}
 
-	rc = d->ops->read(d, off, size);
+	rc = d->ops->read(d, off, size, buf);
 
  out:
 	return rc;
 }
 
-int dev_write(struct dev *d, off_t off, size_t size)
+int dev_write(struct dev *d, off_t off, size_t size, uint8_t *buf)
 {
 	int rc = -1;
 
@@ -162,7 +162,7 @@ int dev_write(struct dev *d, off_t off, size_t size)
 		goto out;
 	}
 
-	rc = d->ops->write(d, off, size);
+	rc = d->ops->write(d, off, size, buf);
 
  out:
 	return rc;

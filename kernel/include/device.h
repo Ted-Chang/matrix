@@ -18,8 +18,8 @@ struct dev;
 struct dev_ops {
 	int (*open)();
 	int (*close)(struct dev *d);
-	int (*read)(struct dev *d, off_t off, size_t size);
-	int (*write)(struct dev *d, off_t off, size_t size);
+	int (*read)(struct dev *d, off_t off, size_t size, uint8_t *buf);
+	int (*write)(struct dev *d, off_t off, size_t size, uint8_t *buf);
 	void (*destroy)(struct dev *d);
 };
 
@@ -37,8 +37,8 @@ struct dev {
 
 extern int dev_create(dev_t dev, int flags, void *ext, struct dev **dp);
 extern int dev_close(struct dev *d);
-extern int dev_read(struct dev *d, off_t off, size_t size);
-extern int dev_write(struct dev *d, off_t off, size_t size);
+extern int dev_read(struct dev *d, off_t off, size_t size, uint8_t *buf);
+extern int dev_write(struct dev *d, off_t off, size_t size, uint8_t *buf);
 extern void dev_destroy(dev_t dev);
 extern int dev_register(uint32_t major, const char *name);
 extern int dev_unregister(uint32_t major);

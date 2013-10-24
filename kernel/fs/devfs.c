@@ -147,7 +147,7 @@ static int devfs_read(struct vfs_node *node, uint32_t offset,
 	}
 	
 	d = (struct dev *)node->data;
-	rc = dev_read(d, offset, size);
+	rc = dev_read(d, offset, size, buffer);
 	if (rc != 0) {
 		DEBUG(DL_INF, ("read dev(%s) failed.\n", node->name));
 		goto out;
@@ -170,7 +170,7 @@ static int devfs_write(struct vfs_node *node, uint32_t offset,
 	}
 
 	d = (struct dev *)node->data;
-	rc = dev_write(d, offset, size);
+	rc = dev_write(d, offset, size, buffer);
 	if (rc != 0) {
 		DEBUG(DL_INF, ("write dev(%s) failed.\n", node->name));
 		goto out;
