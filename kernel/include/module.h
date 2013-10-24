@@ -8,6 +8,7 @@
 #define KMOD_KBD	5
 #define KMOD_FLPY	6
 #define KMOD_NULL	7
+#define KMOD_ZERO	8
 
 typedef int (*module_init_func_t)(void);
 

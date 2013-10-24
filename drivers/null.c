@@ -74,7 +74,7 @@ int null_init(void)
 	/* Register a node in devfs */
 	rc = devfs_register((devfs_handle_t)n, "null", 0, NULL, devno);
 	if (rc != 0) {
-		DEBUG(DL_ERR, ("register device(null) failed, error:%x\n", rc));
+		DEBUG(DL_ERR, ("register device(null) failed, err:%x\n", rc));
 		goto out;
 	}
 
@@ -95,7 +95,7 @@ int null_init(void)
 
 int null_unload(void)
 {
-	int rc = 0;
+	int rc = -1;
 
 	return rc;
 }

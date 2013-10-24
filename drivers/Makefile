@@ -10,6 +10,7 @@ TARGETOBJ := \
 	$(OBJ)/cmos.o \
 	$(OBJ)/pci.o \
 	$(OBJ)/null.o \
+	$(OBJ)/zero.o \
 
 .PHONY: clean
 

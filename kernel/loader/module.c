@@ -24,6 +24,8 @@ extern int floppy_init(void);
 extern int floppy_unload(void);
 extern int null_init(void);
 extern int null_unload(void);
+extern int zero_init(void);
+extern int zero_unload(void);
 
 /* List of loaded modules */
 static struct list _module_list = {
@@ -80,9 +82,16 @@ static int load_module_stub(struct module *m)
 		m->init = null_init;
 		m->unload = null_unload;
 		break;
+	case KMOD_ZERO:
+		m->name = "zero";
+		m->desc = "ZERO device driver";
+		m->init = zero_init;
+		m->unload = zero_unload;
+		break;
 	default:
 		DEBUG(DL_INF, ("unknown module(%s:%d).\n", m->name, m->handle));
 		rc = -1;
+		break;
 	}
 
 	return rc;

@@ -142,6 +142,14 @@ void load_modules()
 	} else {
 		printf("init: null module loaded successfully.\n");
 	}
+
+	handle = 8;
+	rc = create_module(handle);
+	if (rc != 0) {
+		printf("init: load zero module failed.\n");
+	} else {
+		printf("init: zero module loaded successfully.\n");
+	}
 }
 
 void make_nodes()
