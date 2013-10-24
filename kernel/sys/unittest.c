@@ -1,6 +1,7 @@
 #include <types.h>
 #include <stddef.h>
 #include <string.h>
+#include <limit.h>
 #include "matrix/matrix.h"
 #include "mm/malloc.h"
 #include "mm/slab.h"
@@ -12,6 +13,7 @@
 #include "proc/process.h"
 #include "rtl/bitmap.h"
 #include "rtl/fsrtl.h"
+#include "rtl/hashtable.h"
 #include "kstrdup.h"
 
 #define NR_AVL_NODES	13
@@ -32,6 +34,35 @@ char *_avl_vals[NR_AVL_NODES] = {
 	"node13",
 };
 
+struct word {
+	struct list link;
+	char *str;
+};
+
+static uint32_t test_hash(void *key, uint32_t nr_buckets)
+{
+	size_t len, i;
+	uint32_t hash_val = ULONG_MAX;
+	char *str = NULL;
+
+	str = (char *)key;
+	len = strlen(str);
+
+	for (i = 0; i < len; i++) {
+		hash_val += str[i];
+	}
+
+	return hash_val % nr_buckets;
+}
+
+static int test_compare(void *key, void *entry)
+{
+	char *k = (char *)key;
+	struct word *w = (struct word *)entry;
+
+	return strcmp((char *)k, w->str);
+}
+
 int do_unit_test(uint32_t round)
 {
 	int i, r, rc = 0;
@@ -49,6 +80,9 @@ int do_unit_test(uint32_t round)
 	char *val = NULL;
 	char *str1 = "ACPIA";
 	char *str2 = "ACPIB";
+	struct hashtable ht;
+	struct word w1, w2, w3, *ht_val = NULL;
+	void *buckets = NULL;
 
 	/* String function test */
 	ASSERT(strncmp(str1, str2, 4) == 0);
@@ -177,6 +211,33 @@ int do_unit_test(uint32_t round)
 		val = avl_tree_lookup(&avltree, i+1);
 		ASSERT(val == NULL);
 	}
+
+	/* Test hashtable functions */
+	w1.str = "You";
+	w2.str = "are";
+	w3.str = "shit";
+	buckets = kmalloc(sizeof(struct list) * 7, 0);
+	if (buckets) {
+		hashtable_init(&ht, buckets, 7, offsetof(struct word, link),
+			       test_hash, test_compare, 0);
+		hashtable_insert(&ht, w1.str, &w1);
+		hashtable_insert(&ht, w2.str, &w2);
+		hashtable_insert(&ht, w3.str, &w3);
+		rc = hashtable_lookup(&ht, "You", (void **)&ht_val);
+		ASSERT(rc == 0);
+		ASSERT(strcmp("You", ht_val->str) == 0);
+		rc = hashtable_lookup(&ht, "are", (void **)&ht_val);
+		ASSERT(rc == 0);
+		ASSERT(strcmp("are", ht_val->str) == 0);
+		rc = hashtable_lookup(&ht, "shit", (void **)&ht_val);
+		ASSERT(rc == 0);
+		ASSERT(strcmp("shit", ht_val->str) == 0);
+		rc = hashtable_remove(&ht, "shit");
+		ASSERT(rc == 0);
+		rc = hashtable_lookup(&ht, "shit", (void **)&ht_val);
+		ASSERT(rc != 0);
+	}
+	kfree(buckets);
 
  out:
 	for (i = 0; i < 4; i++) {
