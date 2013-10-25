@@ -51,8 +51,8 @@ void null_destroy(struct dev *d)
 int null_init(void)
 {
 	int rc = 0;
-	struct vfs_node *n;
-	struct dev *d;
+	struct vfs_node *n = NULL;
+	struct dev *d = NULL;
 	dev_t devno;
 
 	/* Register NULL device class */

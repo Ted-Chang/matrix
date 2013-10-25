@@ -1,12 +1,18 @@
 #include <types.h>
 #include <stddef.h>
+#include <string.h>
+#include <errno.h>
 #include "matrix/matrix.h"
 #include "hal/hal.h"
 #include "hal/isr.h"
+#include "fs.h"
+#include "device.h"
+#include "devfs.h"
 #include "floppy.h"
 #include "util.h"
 #include "debug.h"
 
+#define FLPY_MAJOR	5
 
 #define FDC_PRI		0x3F0		// Base port of the primary controller
 #define FDC_SEC		0x370		// Base port of the secondary controller
@@ -400,8 +406,26 @@ int flpy_write(struct fdd *d, uint32_t lba, const uint8_t buf, uint32_t nr_secto
 
 int floppy_init(void)
 {
+	int rc = 0;
 	int res, i;
+	struct vfs_node *n = NULL;
+	struct dev *d = NULL;
+	dev_t devno;
 	u_long cmos_drive0, cmos_drive1;
+
+	rc = dev_register(FLPY_MAJOR, "flpy");
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("register FLPY device class failed.\n"));
+		goto out;
+	}
+
+	/* Open the root of devfs */
+	n = vfs_lookup("/dev", VFS_DIRECTORY);
+	if (!n) {
+		rc = EGENERIC;
+		DEBUG(DL_DBG, ("devfs not mounted.\n"));
+		goto out;
+	}
 
 	/* Setup the interrupt handler */
 	register_irq_handler(IRQ6, &_flpy_hook, flpy_callback);
@@ -442,6 +466,11 @@ int floppy_init(void)
 	}
 
 	DEBUG(DL_DBG, ("module flpy initialize successfully.\n"));
+
+ out:
+	if (n) {
+		vfs_node_deref(n);
+	}
 	
 	return 0;
 }

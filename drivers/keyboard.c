@@ -1,11 +1,18 @@
 #include <types.h>
 #include <stddef.h>
+#include <string.h>
+#include <errno.h>
 #include "hal/hal.h"
 #include "hal/isr.h"
 #include "debug.h"
 #include "util.h"
 #include "timer.h"
+#include "fs.h"
+#include "device.h"
+#include "devfs.h"
 #include "keyboard.h"
+
+#define KBD_MAJOR	4
 
 /* Keyboard I/O ports */
 #define KBD_STATUS_PORT		0x64
@@ -248,6 +255,8 @@ static struct kbd_cmd _cmd_table[] = {
 	{KBD_CMD_SET_LEDS, 1, &_led_state}	// After the ACK, led state must be sent
 };
 #define NR_KBD_CMDS	(sizeof(_cmd_table)/sizeof(struct kbd_cmd))
+
+struct dev_ops _kbd_ops;
 
 static void kbd_state_reset()
 {
@@ -636,6 +645,41 @@ static void kbd_callback(struct registers *regs)
 
 int keyboard_init(void)
 {
+	int rc = 0;
+	struct vfs_node *n = NULL;
+	struct dev *d = NULL;
+	dev_t devno;
+
+	rc = dev_register(KBD_MAJOR, "kbd");
+	if (rc != 0) {
+		DEBUG(DL_DBG, ("register KBD device class failed.\n"));
+		goto out;
+	}
+
+	/* Open the root of devfs */
+	n = vfs_lookup("/dev", VFS_DIRECTORY);
+	if (!n) {
+		rc = EGENERIC;
+		DEBUG(DL_DBG, ("devfs not mounted.\n"));
+		goto out;
+	}
+
+	devno = MKDEV(KBD_MAJOR, 0);
+	rc = dev_create(devno, DEV_CREATE, NULL, &d);
+	if (rc != 0) {
+		DEBUG(DL_INF, ("create device failed.\n"));
+		goto out;
+	}
+
+	memset(&_kbd_ops, 0, sizeof(_kbd_ops));
+
+	/* Register a node in devfs */
+	rc = devfs_register((devfs_handle_t)n, "kbd", 0, NULL, devno);
+	if (rc != 0) {
+		DEBUG(DL_INF, ("register device(kbd) failed. err:%x\n", rc));
+		goto out;
+	}
+	
 	/* Choose keyboard layout */
 	//...
 	
@@ -649,6 +693,18 @@ int keyboard_init(void)
 	keyq_clear();
 
 	DEBUG(DL_DBG, ("module kbd initialize successfully.\n"));
+
+ out:
+	if (n) {
+		vfs_node_deref(n);
+	}
+
+	if (rc != 0) {
+		if (devno != 0) {
+			dev_destroy(devno);
+		}
+		dev_unregister(KBD_MAJOR);
+	}
 	
 	return 0;
 }
