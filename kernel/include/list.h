@@ -66,4 +66,13 @@ static INLINE void list_del(struct list *entry)
 	entry->next = entry;
 }
 
+/**
+ * Move the specified entry from the list to another
+ */
+static INLINE void list_move(struct list *link, struct list *head)
+{
+	__list_del(link->prev, link->next);
+	list_add(link, head);
+}
+
 #endif	/* __LIST_H__ */

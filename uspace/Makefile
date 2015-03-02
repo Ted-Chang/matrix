@@ -22,6 +22,7 @@ TARGETS := \
 	$(TARGETDIR)/dd \
 	$(TARGETDIR)/mknod \
 	$(TARGETDIR)/lsmod \
+	$(TARGETDIR)/sh \
 	$(TARGETDIR)/unit_test \
 	$(TARGETDIR)/process_test \
 
@@ -76,6 +77,9 @@ $(TARGETDIR)/mknod: $(OBJ)/mknod.o
 
 $(TARGETDIR)/lsmod: $(OBJ)/lsmod.o
 	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/lsmod.map -o $(TARGETDIR)/lsmod $(OBJ)/lsmod.o
+
+$(TARGETDIR)/sh: $(OBJ)/sh.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/sh.map -o $(TARGETDIR)/sh $(OBJ)/sh.o
 
 $(TARGETDIR)/process_test: $(OBJ)/process_test.o
 	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/process_test.map -o $(TARGETDIR)/process_test $(OBJ)/process_test.o

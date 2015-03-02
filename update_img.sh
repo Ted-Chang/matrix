@@ -1,5 +1,10 @@
 #!/bin/sh
 
+#
+# To add new binary into initrd, just append the path to command in 
+# update_prepare() function
+#
+
 usage="usage: update_img.sh [option]
     -h print this help message
     -f update floppy disk
@@ -19,7 +24,7 @@ update_prepare()
     $tool_path bin/init init bin/crond crond bin/echo echo bin/unit_test unit_test \
 	bin/ls ls bin/cat cat bin/clear clear bin/shutdown shutdown bin/mkdir mkdir \
 	bin/date date bin/mount mount bin/umount umount bin/mknod mknod bin/dd dd \
-	bin/lsmod lsmod bin/initrd
+	bin/lsmod lsmod bin/initrd bin/sh
 
 }
 
