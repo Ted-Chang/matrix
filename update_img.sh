@@ -24,7 +24,7 @@ update_prepare()
     $tool_path bin/init init bin/crond crond bin/echo echo bin/unit_test unit_test \
 	bin/ls ls bin/cat cat bin/clear clear bin/shutdown shutdown bin/mkdir mkdir \
 	bin/date date bin/mount mount bin/umount umount bin/mknod mknod bin/dd dd \
-	bin/lsmod lsmod bin/initrd bin/sh
+	bin/lsmod lsmod bin/initrd
 
 }
 
@@ -33,7 +33,7 @@ update_flpy()
 {
     result=`sudo losetup -a | grep loop0`
     if [ "$result" == "" ]; then
-	sudo losetup /dev/loop0 ~/vm/matrix/matrix-flpy.img
+	sudo losetup /dev/loop0 images/matrix-flpy.img
     fi
 
     update_prepare
@@ -59,25 +59,25 @@ update_hd()
 {
     if [ ! -e "/dev/mapper/hda" ]; then
         # Loop mount the disk image
-	sudo losetup /dev/loop1 ~/vm/matrix/matrix-hd.img
+	sudo losetup /dev/loop1 images/matrix-hd.img
 	# Create device mapper node for root device
 	echo '0 101808 linear 7:1 0' | sudo dmsetup create hda
     fi
 
     update_prepare
 
-    echo "Copying files to hard disk"
-
+    echo "Mounting hard disk image file"
     # Mount the root partition onto /mnt
     sudo mount /dev/mapper/hda /mnt/matrix
     
+    echo "Copying files to hard disk"
     sudo rm -f /mnt/matrix/matrix
     sudo rm -f /mnt/matrix/initrd
     # Copy the files to the disk image
     sudo cp bin/matrix /mnt/matrix/
     sudo cp bin/initrd /mnt/matrix/
 
-    # Sleep for 1 seconds as devmapper will be busy if we unmount it now
+    # Sleep for 1 seconds as device mapper will be busy if we unmount it now
     sleep 1s
 
     # Sync data to the image file
@@ -85,6 +85,12 @@ update_hd()
 
     # Umount the root partition
     sudo umount /mnt/matrix
+
+    # Remove the /dev/mapper/hda device
+    sudo dmsetup remove /dev/mapper/hda
+
+    # Detach loopback device
+    sudo losetup -d /dev/loop1
 }
 
 case "$1" in

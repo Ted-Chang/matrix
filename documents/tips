@@ -1,5 +1,8 @@
 [Build a debug version of bochs]
 * Download the sources
+* Install dependency package
+* rpm -qa|grep libX11-devel
+* rpm -qa|grep libXrandr-devel
 * ./configure --help
 * ./configure --enable-debugger --enable-disasm --enable-x86-64
 * --enable-term requires ncurses library
@@ -15,12 +18,22 @@ $ bximage
 $ sudo losetup --show --find matrix-hd.img
 /dev/loop0
 
+$ ll /dev/loop0
+brw-rw----. 1 root disk 7, 0 Jul 22 06:03 /dev/loop0
+                        ^  ^
+                      major|
+                         minor
+
 $ sudo fdisk /dev/loop0
 Command (m for help): w
 
 $ sudo parted -s /dev/loop0 mkpart primary vfat 0 50M
 
 $ echo '0 101808 linear 7:0 0' | sudo dmsetup create hda
+                        ^
+                      major
+                          ^
+                        minor
 
 $ sudo mkfs -t vfat /dev/mapper/hda
 

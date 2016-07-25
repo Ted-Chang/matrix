@@ -409,8 +409,8 @@ int floppy_init(void)
 	int rc = 0;
 	int res, i;
 	struct vfs_node *n = NULL;
-	struct dev *d = NULL;
-	dev_t devno;
+	//struct dev *d = NULL;
+	//dev_t devno;
 	u_long cmos_drive0, cmos_drive1;
 
 	rc = dev_register(FLPY_MAJOR, "flpy");
