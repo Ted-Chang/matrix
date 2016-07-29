@@ -29,53 +29,16 @@ OBJ := ../bin/obji386
 # Definition of LDFLAGS
 LDFLAGS := -melf_i386 -TLink.ld
 
-.PHONY: clean help
+.PHONY: all clean help
 
-# Add the default or global target
-all: $(TARGET)
-	@echo "Making default target."
-
-$(TARGET): hal_ libc_ rtl_ loader_ dbgk_ mm_ sys_ proc_ drivers_ fs_ time_ init_
+all: $(MODULES)
 	$(LD) $(LDFLAGS) -Map ../bin/matrix.map -o $(TARGET) $(OBJ)/*.o
 
-hal_:
-	@cd hal && $(MAKE) $(MAKEFLAGS)
-
-libc_:
-	@cd libc && $(MAKE) $(MAKEFLAGS)
-
-rtl_:
-	@cd rtl && $(MAKE) $(MAKEFLAGS)
-
-loader_:
-	@cd loader && $(MAKE) $(MAKEFLAGS)
-
-dbgk_:
-	@cd dbgk && $(MAKE) $(MAKEFLAGS)
-
-mm_:
-	@cd mm && $(MAKE) $(MAKEFLAGS)
-
-sys_:
-	@cd sys && $(MAKE) $(MAKEFLAGS)
-
-fs_:
-	@cd fs && $(MAKE) $(MAKEFLAGS)
-
-drivers_:
-	@cd ../drivers && $(MAKE) $(MAKEFLAGS)
-
-proc_:
-	@cd proc && $(MAKE) $(MAKEFLAGS)
-
-time_:
-	@cd time && $(MAKE) $(MAKEFLAGS)
-
-init_:
-	@cd init && $(MAKE) $(MAKEFLAGS)
+$(MODULES): Makefile
+	cd $@ && $(MAKE) $(MFLAGS)
 
 clean:
-	for d in $(MODULES); do (cd $$d; $(MAKE) clean); done; $(RM) $(TARGET) bin/matrix.map
+	for d in $(MODULES); do (cd $$d; $(MAKE) clean); done; $(RM) $(TARGET) ../bin/matrix.map
 
 help:
 	@echo "Available make targets:"

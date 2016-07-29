@@ -1,5 +1,8 @@
 How to build?
-To build matrix, execute build.sh in current directory.
+Clone the source repo and install the dependency tool chain.
+$ cd matrix && make
+To get available make options, run the following command.
+$ make help
 
 How to test matrix?
 I only tried it with bochs 2.4.6 and boot it with grub installed. 

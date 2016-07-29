@@ -88,6 +88,7 @@ $(OBJ)/%.o: %.c
 	$(CC) $(CFLAGS) -m32 -g -I../sdk/include -c -o $@ $<
 
 clean:
+	for f in $(TARGETS); do rm $$f.map; done;
 	$(RM) -f $(TARGETS)
 	$(RM) -f $(OBJ)/*
 
