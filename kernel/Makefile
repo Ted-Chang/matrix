@@ -1,5 +1,5 @@
 # Makefile for matrix kernel. 
-# This is the top level make file. You need to modified it when
+# This is the top level makefile of the kernel. You need to modified it when
 # you added a new module.
 
 VERSION = 0
@@ -9,13 +9,13 @@ EXTRAVERSION =
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
-# More info can be found in ./README
+# More info can be found in ../README
 
 # Include some global definition
 include Makefile.inc
 
 # The following is a list of non-source files that are part of the distribution.
-AUXFILES := Makefile README
+AUXFILES := Makefile
 
 # Define modules in the project.
 MODULES := hal libc rtl loader mm sys fs proc time init ../drivers dbgk
