@@ -95,4 +95,6 @@ clean:
 help:
 	@echo "Available make targets:"
 	@echo 
+	@echo "all	- build all userspace binaries"
+	@echo "clean	- remove all object files and binaries"
 	@echo "help	- print this help"

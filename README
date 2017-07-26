@@ -1,25 +1,137 @@
-How to build?
-Clone the source repo and install the dependency tool chain.
-$ cd matrix && make
-To get available make options, run the following command.
-$ make help
+Build Prerequisites
+===================
 
-How to test matrix?
-I only tried it with bochs 2.4.6 and boot it with grub installed. 
-You need to install grub and boot from the kernel file. Also a initrd 
-is needed. You can generate the initrd with the make_initrd tool. To 
-build make_initrd tool, just build the source file in tools directory.
+The list of RPM packages dependencies can be installed with:
+
+	$ ./install-deps.sh
+
+Building matrix
+===============
+
+To get available make targets, run the following command.
+
+	$ make help
+
+To build everything
+
+	$ make
+
+To build subsystem, for example, kernel
+
+	$ cd kernel && make
+
+To make the essential initrd
+
+	$ ./tools/make_initrd bin/init init bin/crond crond bin/echo echo \
+	  bin/unit_test unit_test bin/ls ls bin/cat cat bin/clear clear \
+	  bin/shutdown shutdown bin/mkdir mkdir bin/date date bin/mount mount \
+	  bin/umount umount bin/mknod mknod bin/dd dd bin/lsmod lsmod bin/initrd
+
+Testing matrix
+==============
+
+To build bochs
+--------------
+
+	$ wget https://sourceforge.net/projects/bochs/files/bochs/2.6.9/bochs-2.6.9.tar.gz
+	$ tar xzvf bochs-2.6.9.tar.gz
+	$ cd bochs-2.6.9
+	$ ./configure --help
+	$ ./configure --enable-x86-64 \
+	  --enable-smp \
+	  --enable-debugger \
+	  --enable-iodebug \
+	  --enable-disasm \
+	  --enable-readline
+	$ make
+	$ sudo make install
+
+To create bochs image
+---------------------
+
+	$ bximage -hd=50M matrix-hd.img
+	========================================================================
+	                                bximage
+	  Disk Image Creation / Conversion / Resize and Commit Tool for Bochs
+	         $Id: bximage.cc 13069 2017-02-12 16:51:52Z vruppert $
+	========================================================================
+
+	1. Create new floppy or hard disk image
+	2. Convert hard disk image to other format (mode)
+	3. Resize hard disk image
+	4. Commit 'undoable' redolog to base image
+	5. Disk image info
+
+	0. Quit
+
+	Please choose one [0] 1
+
+	Create image
+
+	Do you want to create a floppy disk image or a hard disk image?
+	Please type hd or fd. [hd]
+
+	What kind of image should I create?
+	Please type flat, sparse, growing, vpc or vmware4. [flat]
+
+	Enter the hard disk size in megabytes, between 10 and 8257535
+	[50]
+
+	What should be the name of the image?
+	[matrix-hd.img]
+
+	Creating hard disk image 'matrix-hd.img' with CHS=101/16/63
+
+	The following line should appear in your bochsrc:
+	  ata0-master: type=disk, path="matrix-hd.img", mode=flat	
+
+To install grub2 on image
+-------------------------
+
+	$ sudo losetup --show --find images/matrix-hd.img
+	/dev/loop2
+	$ sudo fdisk /dev/loop2
+	Command (m for help): o
+	Building a new DOS disklabel with disk identifier 0x3e537798.
+
+	Command (m for help): w
+	The partition table has been altered!
+
+	Calling ioctl() to re-read partition table.
+
+	WARNING: Re-reading the partition table failed with error 22: Invalid argument.
+	The kernel still uses the old table. The new table will be used at
+	the next reboot or after you run partprobe(8) or kpartx(8)
+	Syncing disks.
+	Command (m for help): w
+
+	$ sudo parted -s /dev/loop2 mkpart primary vfat 0 50M
+	$ sudo mkfs -t vfat /dev/loop2
+	$ sudo mount /dev/loop2 /mnt
+	$ sudo mkdir -p /mnt/boot/grub2
+	$ sudo grub2-install --force --boot-directory=/mnt /dev/loop2
+	$ sudo cp tools/grub.cfg /mnt/boot/grub2
+	
+To boot matrix
+--------------
+
+	$ sudo cp bin/matrix /mnt/boot
+	$ sudo cp bin/initrd /mnt/boot
+	$ ./run_bochs.sh
 
 What architecture does matrix support now?
+
 At this moment matrix only support the x86 architecture.
 
 How to debug matrix?
+
 When matrix booting it will config the serial port and write logs to 
 the serial port. If you are debugging with physical machine, you can 
 use a serial line. If you are debugging with bochs, you can redirect 
 the output to a file.
 
 How to create a bochs vm using the image?
+
 Create a file bochsrc.bxrc and write the configuration into the file. 
 You can refer to the documents on bochs site. Also there is a bochs 
 configuration file in tools directory.

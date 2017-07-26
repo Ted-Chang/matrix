@@ -5,7 +5,7 @@
 VERSION = 0
 PATCHLEVEL = 0
 SUBLEVEL = 1
-EXTRAVERSION = 
+EXTRAVERSION = 1
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"

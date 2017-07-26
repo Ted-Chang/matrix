@@ -25,6 +25,18 @@ brw-rw----. 1 root disk 7, 0 Jul 22 06:03 /dev/loop0
                          minor
 
 $ sudo fdisk /dev/loop0
+Command (m for help): o
+Building a new DOS disklabel with disk identifier 0x3e537798.
+
+Command (m for help): w
+The partition table has been altered!
+
+Calling ioctl() to re-read partition table.
+
+WARNING: Re-reading the partition table failed with error 22: Invalid argument.
+The kernel still uses the old table. The new table will be used at
+the next reboot or after you run partprobe(8) or kpartx(8)
+Syncing disks.
 Command (m for help): w
 
 $ sudo parted -s /dev/loop0 mkpart primary vfat 0 50M
