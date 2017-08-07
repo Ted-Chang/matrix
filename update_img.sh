@@ -1,8 +1,8 @@
 #!/bin/sh
 
 #
-# To add new binary into initrd, just append the path to command in 
-# update_prepare() function
+# To add new binary into initrd, you need to update the command in
+# make_initrd() function
 #
 
 usage="usage: update_img.sh [option]
@@ -14,6 +14,7 @@ usage="usage: update_img.sh [option]
 tool_path="tools/make_initrd"
 image_dir="images"
 mnt_point="images/mnt"
+loop_dev=""
 
 # Exit with an error message
 die()
@@ -40,7 +41,7 @@ check_env()
     fi
 }
 
-update_prepare()
+make_initrd()
 {
     echo "Preparing init ramdisk"
 
@@ -51,9 +52,9 @@ update_prepare()
 
 }
 
-update_files()
+update_kernel_and_initrd()
 {
-    echo "Updating files"
+    echo "Updating kernel and initrd"
 
     sudo rm -f "$mnt_point/matrix"
     sudo rm -f "$mnt_point/initrd"
@@ -63,57 +64,54 @@ update_files()
     sync
 }
 
-# update the matrix kernel in the floopy image
-update_flpy()
+find_loopdev()
 {
-    flpy_img="$image_dir/matrix-flpy.img"
-
-    if [ ! -e "$flpy_img" ]; then
-	die "$flpy_img not found"
+    res=$(sudo losetup -l | grep "$1");
+    if [ -z "$res" ]; then
+        loop_dev="";
+    else
+        loop_dev=$(echo $res | awk '{print $1}')
+	echo "Found loop device: $loop_dev"
     fi
-
-    update_prepare
-
-    sudo losetup /dev/loop0 "$flpy_img"
-
-    sleep 1s
-
-    # Mount the root partition onto $mnt_point
-    sudo mount /dev/loop0 "$mnt_point"
-
-    update_files
-
-    # Unmount the root partition
-    sudo umount "$mnt_point"
 }
 
-# update the matrix kernel in the hard disk image
-update_hd()
+setup_loopdev()
 {
-    hd_img="$image_dir/matrix-hd.img"
+    loop_dev=$(sudo losetup --show --find "$1")
+    echo "Set up loop device: $loop_dev"
+}
 
-    if [ ! -e "$hd_img" ]; then
-	die "$hd_img not found"
+update_image()
+{
+    img="$image_dir/$1"
+
+    if [ ! -e "$img" ]; then
+	die "$img not found"
     fi
 
-    update_prepare
+    make_initrd
 
-    sudo losetup /dev/loop1 "$hd_img"
+    # First try whether we can find the loop device
+    find_loopdev "$img"
+    if [ -z "$loop_dev" ]; then
+        setup_loopdev "$img"
+    fi
 
-    sleep 1s
+    # Mount the root partition onto $mnt_point
+    echo "Mounting $loop_dev to $mnt_point"
+    sudo mount $loop_dev "$mnt_point"
 
-    echo "Mounting hard disk image file"
+    update_kernel_and_initrd
 
-    # Mount the root partition onto /mnt
-    sudo mount /dev/loop1 "$mnt_point"
-    
-    update_files
+    # Unmount the root partition
+    echo "Umounting $loop_dev"
+    sudo umount "$loop_dev"
 
-    # Umount the root partition
-    sudo umount "$mnt_point"
+    # Delete loopback device
+    echo "Deleting $loop_dev"
+    sudo losetup -d "$loop_dev"
 
-    # Detach loopback device
-    sudo losetup -d /dev/loop1
+    echo "Done."
 }
 
 case "$1" in
@@ -122,20 +120,20 @@ case "$1" in
 	;;
     "-f")
 	check_env
-	update_flpy
+	update_image "matrix-flpy.img"
 	;;
     "-d")
 	check_env
-	update_hd
+	update_image "matrix-hd.img"
 	;;
     "-a")
 	check_env
-	update_flpy
-	update_hd
+	update_image "matrix-flpy.img"
+	update_image "matrix-hd.img"
 	;;
     *)
-	# If no option provided, just update the hard disk
-	update_hd
+	# If no option provided, just update the hard disk image
+	update_image "matrix-hd.img"
 	;;
 esac
 
