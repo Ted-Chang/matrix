@@ -31,26 +31,26 @@ static void syscall_handler(struct registers *regs);
 static struct irq_hook _syscall_hook;
 static char _hostname[MAX_HOSTNAME_LEN + 1];
 
-extern int do_unit_test(uint32_t round);
+extern int sys_unit_test(uint32_t round);
 
-int do_null()
+int sys_null()
 {
 	return 0;
 }
 
-int do_exit(int rc)
+int sys_exit(int rc)
 {
 	process_exit(rc);
 	return rc;
 }
 
-int do_putstr(const char *str)
+int sys_putstr(const char *str)
 {
 	putstr(str);
 	return 0;
 }
 
-int do_open(const char *file, int flags, int mode)
+int sys_open(const char *file, int flags, int mode)
 {
 	int fd = -1, rc = 0;
 	struct vfs_node *n;
@@ -79,7 +79,7 @@ int do_open(const char *file, int flags, int mode)
 	return fd;
 }
 
-int do_close(int fd)
+int sys_close(int fd)
 {
 	int rc = -1;
 	struct vfs_node *n;
@@ -102,7 +102,7 @@ int do_close(int fd)
 	return rc;
 }
 
-int do_read(int fd, char *buf, int len)
+int sys_read(int fd, char *buf, int len)
 {
 	uint32_t out = -1;
 	struct vfs_node *n;
@@ -117,7 +117,7 @@ int do_read(int fd, char *buf, int len)
 	return out;
 }
 
-int do_write(int fd, char *buf, int len)
+int sys_write(int fd, char *buf, int len)
 {
 	uint32_t out = -1;
 	struct vfs_node *n;
@@ -132,7 +132,7 @@ int do_write(int fd, char *buf, int len)
 	return out;
 }
 
-int do_gettimeofday(struct timeval *tv, struct timezone *tz)
+int sys_gettimeofday(struct timeval *tv, struct timezone *tz)
 {
 	struct tm t;
 	useconds_t usecs;
@@ -150,12 +150,12 @@ int do_gettimeofday(struct timeval *tv, struct timezone *tz)
 	return 0;
 }
 
-int do_settimeofday(const struct timeval *tv, const struct timezone *tz)
+int sys_settimeofday(const struct timeval *tv, const struct timezone *tz)
 {
 	return 0;
 }
 
-int do_readdir(int fd, int index, struct dirent *entry)
+int sys_readdir(int fd, int index, struct dirent *entry)
 {
 	int rc = -1;
 	struct vfs_node *n;
@@ -186,7 +186,7 @@ int do_readdir(int fd, int index, struct dirent *entry)
 	return rc;
 }
 
-int do_lseek(int fd, int offset, int whence)
+int sys_lseek(int fd, int offset, int whence)
 {
 	int off = -1;
 	struct vfs_node *n;
@@ -218,7 +218,7 @@ int do_lseek(int fd, int offset, int whence)
 	return off;
 }
 
-int do_lstat(int fd, void *stat)
+int sys_lstat(int fd, void *stat)
 {
 	int rc = -1;
 	struct vfs_node *n;
@@ -264,7 +264,7 @@ int do_lstat(int fd, void *stat)
 	return rc;
 }
 
-int do_chdir(const char *path)
+int sys_chdir(const char *path)
 {
 	int rc = -1;
 	struct vfs_node *n;
@@ -287,7 +287,7 @@ int do_chdir(const char *path)
 	return rc;
 }
 
-int do_mkdir(const char *path, uint32_t mode)
+int sys_mkdir(const char *path, uint32_t mode)
 {
 	int rc = -1;
 	struct vfs_node *n;
@@ -312,7 +312,7 @@ int do_mkdir(const char *path, uint32_t mode)
 	return rc;
 }
 
-int do_gethostname(char *name, size_t len)
+int sys_gethostname(char *name, size_t len)
 {
 	int rc = -1;
 
@@ -327,7 +327,7 @@ int do_gethostname(char *name, size_t len)
 	return rc;
 }
 
-int do_sethostname(const char *name, size_t len)
+int sys_sethostname(const char *name, size_t len)
 {
 	int rc = -1;
 
@@ -342,12 +342,12 @@ int do_sethostname(const char *name, size_t len)
 	return rc;
 }
 
-int do_getuid()
+int sys_getuid()
 {
 	return CURR_PROC->uid;
 }
 
-int do_setuid(uid_t uid)
+int sys_setuid(uid_t uid)
 {
 	int rc = -1;
 
@@ -357,12 +357,12 @@ int do_setuid(uid_t uid)
 	return rc;
 }
 
-int do_getgid()
+int sys_getgid()
 {
 	return CURR_PROC->gid;
 }
 
-int do_setgid(gid_t gid)
+int sys_setgid(gid_t gid)
 {
 	int rc = -1;
 
@@ -372,12 +372,12 @@ int do_setgid(gid_t gid)
 	return rc;
 }
 
-int do_getpid()
+int sys_getpid()
 {
 	return process_getid();
 }
 
-int do_sleep(uint32_t ms)
+int sys_sleep(uint32_t ms)
 {
 	timer_delay(ms);
 
@@ -419,7 +419,7 @@ static void free_args(char **args)
 	kfree(args);
 }
 
-int do_create_process(const char *path, const char *args[], int flags, int priority)
+int sys_create_process(const char *path, const char *args[], int flags, int priority)
 {
 	int rc = -1;
 	char **arguments = NULL;
@@ -456,7 +456,7 @@ int do_create_process(const char *path, const char *args[], int flags, int prior
 	return rc;
 }
 
-int do_waitpid(int pid)
+int sys_waitpid(int pid)
 {
 	int rc = -1;
 	struct process *proc;
@@ -493,13 +493,13 @@ int do_waitpid(int pid)
 	return rc;
 }
 
-int do_clear()
+int sys_clear()
 {
 	clear_scr();
 	return 0;
 }
 
-int do_shutdown()
+int sys_shutdown()
 {
 	shutdown_process();
 	
@@ -508,12 +508,12 @@ int do_shutdown()
 	return 0;
 }
 
-int do_syslog(char *buf, size_t len)
+int sys_syslog(char *buf, size_t len)
 {
 	return -1;
 }
 
-int do_mount(const char *src, const char *target, const char *fstype,
+int sys_mount(const char *src, const char *target, const char *fstype,
 	     int flags, const void *data)
 {
 	int rc = -1;
@@ -534,7 +534,7 @@ int do_mount(const char *src, const char *target, const char *fstype,
 	return rc;
 }
 
-int do_umount(const char *path)
+int sys_umount(const char *path)
 {
 	int rc = -1;
 
@@ -551,14 +551,14 @@ int do_umount(const char *path)
 	return rc;
 }
 
-int do_makedev()
+int sys_makedev()
 {
 	int ret = 0;
 
 	return ret;
 }
 
-int do_mknod(const char *path, mode_t mode, dev_t dev)
+int sys_mknod(const char *path, mode_t mode, dev_t dev)
 {
 	int rc = -1;
 	struct vfs_node *n;
@@ -583,7 +583,7 @@ int do_mknod(const char *path, mode_t mode, dev_t dev)
 	return rc;
 }
 
-int do_create_module(int handle)
+int sys_create_module(int handle)
 {
 	int rc = -1;
 
@@ -598,7 +598,7 @@ int do_create_module(int handle)
 	return rc;
 }
 
-int do_delete_module(const char *name)
+int sys_delete_module(const char *name)
 {
 	int rc = -1;
 
@@ -613,14 +613,14 @@ int do_delete_module(const char *name)
 	return rc;
 }
 
-int do_query_module(const char *name, void *data)
+int sys_query_module(const char *name, void *data)
 {
 	int rc = -1;
 
 	return rc;
 }
 
-int do_ioctl(int d, int request, void *input, void *output)
+int sys_ioctl(int d, int request, void *input, void *output)
 {
 	int rc = -1;
 
@@ -634,41 +634,41 @@ int do_ioctl(int d, int request, void *input, void *output)
  *   [3] define macro in /sdk/include/syscall.h
  */
 static void *_syscalls[] = {
-	do_null,
-	do_exit,
-	do_putstr,
-	do_open,
-	do_read,
-	do_write,
-	do_close,
-	do_gettimeofday,
-	do_settimeofday,
-	do_readdir,
-	do_lseek,
-	do_lstat,
-	do_chdir,
-	do_mkdir,
-	do_gethostname,
-	do_sethostname,
-	do_getuid,
-	do_setuid,
-	do_getgid,
-	do_setgid,
-	do_getpid,
-	do_sleep,
-	do_create_process,
-	do_waitpid,
-	do_unit_test,
-	do_clear,
-	do_shutdown,
-	do_syslog,
-	do_mount,
-	do_umount,
-	do_mknod,
-	do_create_module,
-	do_query_module,
-	do_delete_module,
-	do_ioctl,
+	sys_null,
+	sys_exit,
+	sys_putstr,
+	sys_open,
+	sys_read,
+	sys_write,
+	sys_close,
+	sys_gettimeofday,
+	sys_settimeofday,
+	sys_readdir,
+	sys_lseek,
+	sys_lstat,
+	sys_chdir,
+	sys_mkdir,
+	sys_gethostname,
+	sys_sethostname,
+	sys_getuid,
+	sys_setuid,
+	sys_getgid,
+	sys_setgid,
+	sys_getpid,
+	sys_sleep,
+	sys_create_process,
+	sys_waitpid,
+	sys_unit_test,
+	sys_clear,
+	sys_shutdown,
+	sys_syslog,
+	sys_mount,
+	sys_umount,
+	sys_mknod,
+	sys_create_module,
+	sys_query_module,
+	sys_delete_module,
+	sys_ioctl,
 	NULL
 };
 

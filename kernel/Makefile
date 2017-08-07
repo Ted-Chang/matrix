@@ -18,7 +18,7 @@ include Makefile.inc
 AUXFILES := Makefile
 
 # Define modules in the project.
-MODULES := hal libc rtl loader mm sys fs proc time init ../drivers dbgk
+MODULES := hal libc sys rtl loader mm fs proc time init ../drivers dbgk
 
 # Define target file
 TARGET := ../bin/matrix
@@ -35,7 +35,7 @@ all: $(MODULES)
 	$(LD) $(LDFLAGS) -Map ../bin/matrix.map -o $(TARGET) $(OBJ)/*.o
 
 $(MODULES): Makefile
-	cd $@ && $(MAKE) $(MFLAGS)
+	for d in $(MODULES); do (cd $$d; $(MAKE)); done;
 
 clean:
 	for d in $(MODULES); do (cd $$d; $(MAKE) clean); done; $(RM) $(TARGET) ../bin/matrix.map

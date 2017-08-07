@@ -63,7 +63,7 @@ static int test_compare(void *key, void *entry)
 	return strcmp((char *)k, w->str);
 }
 
-int do_unit_test(uint32_t round)
+int sys_unit_test(uint32_t round)
 {
 	int i, r, rc = 0;
 	slab_cache_t ut_cache;
