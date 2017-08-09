@@ -454,6 +454,8 @@ void init_sched()
 
 void sched_enter()
 {
+	DEBUG(DL_DBG, ("core:%d start scheduler.\n", CURR_CORE->id));
+	
 	/* Disable irq first */
 	local_irq_disable();
 

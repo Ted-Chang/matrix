@@ -248,8 +248,6 @@ static int process_alloc(const char *name, struct process *parent, struct va_spa
 	*procp = p;
 	rc = 0;
 
-	DEBUG(DL_DBG, ("allocated process(%s:%d:%p:%p).\n",
-		       p->name, p->id, p, p->vas));
 out:
 	if (rc != 0) {
 		if (p) {
@@ -510,6 +508,9 @@ int process_create(const char **args, struct process *parent, int flags,
 		*procp = p;
 	}
 	rc = info.status;	// We'are OK
+
+	DEBUG(DL_DBG, ("process(%s:%d:%p:%p) created, status(%x).\n",
+		       p->name, p->id, p, p->vas, rc));
 
  out:
 	if (rc != 0) {
