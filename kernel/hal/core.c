@@ -13,8 +13,8 @@
 #define FREQ_ATTEMPTS	9
 
 extern struct idt_ptr _idt_ptr;
-extern void init_idt();
 extern void idt_flush();
+extern void init_idt();
 extern void init_gdt(struct core *c);
 extern void init_tss(struct core *c);
 
@@ -135,7 +135,7 @@ static void arch_preinit_core()
 	init_idt();
 
 	/* Clear the irq handlers table and initialize them */
-	init_irqs();
+	init_IRQs();
 }
 
 static void arch_preinit_core_percore(struct core *c)

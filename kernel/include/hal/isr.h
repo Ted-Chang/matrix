@@ -53,7 +53,7 @@ struct irq_hook {
 	uint8_t irq;
 };
 
-extern void init_irqs();
+extern void init_IRQs();
 extern void dump_registers(struct registers *regs);
 extern void register_irq_handler(uint8_t irq, struct irq_hook *hook, isr_t handler);
 extern void unregister_irq_handler(struct irq_hook *hook);

@@ -28,7 +28,6 @@
 
 static void syscall_handler(struct registers *regs);
 
-static struct irq_hook _syscall_hook;
 static char _hostname[MAX_HOSTNAME_LEN + 1];
 
 extern int sys_unit_test(uint32_t round);
@@ -672,10 +671,12 @@ static void *_syscalls[] = {
 	NULL
 };
 
+extern isr_t _isr_table[];
+
 void init_syscalls()
 {
 	/* Register our syscall handler */
-	register_irq_handler(0x80, &_syscall_hook, syscall_handler);
+	_isr_table[0x80] = syscall_handler;
 
 	/* Initialize the hostname */
 	memset(_hostname, 0, MAX_HOSTNAME_LEN + 1);

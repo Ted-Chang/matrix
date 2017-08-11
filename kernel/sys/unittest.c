@@ -9,6 +9,7 @@
 #include "debug.h"
 #include "kd.h"
 #include "mutex.h"
+#include "semaphore.h"
 #include "proc/thread.h"
 #include "proc/process.h"
 #include "rtl/bitmap.h"
@@ -63,6 +64,15 @@ static int test_compare(void *key, void *entry)
 	return strcmp((char *)k, w->str);
 }
 
+static void unit_test_thread(void *ctx)
+{
+	struct semaphore *sem;
+
+	sem = (struct semaphore *)ctx;
+	DEBUG(DL_DBG, ("unittest thread running, ctx(%p)\n", ctx));
+	semaphore_up(sem, 1);
+}
+
 int sys_unit_test(uint32_t round)
 {
 	int i, r, rc = 0;
@@ -83,6 +93,7 @@ int sys_unit_test(uint32_t round)
 	struct hashtable ht;
 	struct word w1, w2, w3, *ht_val = NULL;
 	void *buckets = NULL;
+	struct semaphore sem;
 
 	/* String function test */
 	ASSERT(strncmp(str1, str2, 4) == 0);
@@ -238,6 +249,16 @@ int sys_unit_test(uint32_t round)
 		ASSERT(rc != 0);
 	}
 	kfree(buckets);
+
+
+	/* Multi-thread test */
+	semaphore_init(&sem, "unit-test-sem", 0);
+	rc = thread_create("unit-test", NULL, 0, unit_test_thread, &sem, NULL);
+	ASSERT(rc == 0);
+	
+	DEBUG(DL_DBG, ("Waiting on unittest semaphore(%p).\n", &sem));
+	semaphore_down(&sem);
+	DEBUG(DL_DBG, ("Woke up by unittest.\n"));
 
  out:
 	for (i = 0; i < 4; i++) {

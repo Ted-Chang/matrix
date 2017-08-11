@@ -4,6 +4,7 @@
 
 #include <types.h>
 #include <stddef.h>
+#include <string.h>
 #include "hal/isr.h"
 #include "hal/hal.h"
 #include "hal/spinlock.h"
@@ -19,42 +20,29 @@ typedef struct irq_chain irq_chain_t;
 
 /* Kernel Debugger hook and callback */
 extern struct irq_hook _kd_hook;
-extern void kd_callback(struct registers *regs);
+
+/* trap/exception handlers table */
+isr_t _isr_table[NR_IDT_ENTRIES];
 
 /* Global interrupt hook chain */
 static struct irq_chain _irq_chains[256];
 
-/* Exception handler hook array */
-static struct irq_hook _exceptn_hooks[17];
-
 /*
- * Software interrupt handler, call the exception handlers
+ * Software interrupt handler, call the trap/exception handlers
  */
 void isr_handler(struct registers regs)
 {
-	struct irq_hook *hook;
-	boolean_t processed = FALSE;
-	uint8_t int_no;
+	isr_t handler = NULL;
+	uint8_t int_no = (uint8_t)regs.int_no;
 	
-	/* Avoid the problem caused by the signed interrupt number if it is
-	 * more than 0x80
-	 */
-	int_no = (uint8_t)regs.int_no;
+	ASSERT(int_no < NR_IDT_ENTRIES);
 
-	/* Call each handler on the ISR hook chain */
-	hook = _irq_chains[int_no].head;
-	while (hook) {
-		isr_t handler = hook->handler;
-		if (handler) {
-			handler(&regs);
-			processed = TRUE;
-		}
-		hook = hook->next;
-	}
-
-	if (!processed) {
-		kprintf("ISR %d not handled\n", int_no);
-		for (; ; ) ;
+	/* Call the trap/exception handler */
+	handler = _isr_table[int_no];
+	if (handler) {
+		handler(&regs);
+	} else {
+		kprintf("Unknown trap/exception:%d\n", int_no);
 	}
 }
 
@@ -257,9 +245,12 @@ void simd_fpu_fault(struct registers *regs)
  * Initialize the exception handlers. Exception handlers don't need to
  * call local_irq_done now as we didn't go that far.
  */
-void init_irqs()
+void init_IRQs()
 {
 	int i;
+
+	/* Initialize ISR table */
+	memset(&_isr_table, 0, sizeof(_isr_table));
 
 	/* Initialize the IRQ chain */
 	for (i = 0; i < 256; i++) {
@@ -268,26 +259,23 @@ void init_irqs()
 	}
 	
 	/* Install the exception handlers */
-	register_irq_handler(0, &_exceptn_hooks[0], divide_by_zero_fault);
-	register_irq_handler(1, &_exceptn_hooks[1], single_step_fault);
-	register_irq_handler(2, &_exceptn_hooks[2], nmi_trap);
-	register_irq_handler(3, &_exceptn_hooks[3], breakpoint_trap);
-	register_irq_handler(4, &_exceptn_hooks[4], overflow_trap);
-	register_irq_handler(5, &_exceptn_hooks[5], bounds_check_fault);
-	register_irq_handler(6, &_exceptn_hooks[6], invalid_opcode_fault);
-	register_irq_handler(7, &_exceptn_hooks[7], no_device_fault);
-	register_irq_handler(8, &_exceptn_hooks[8], double_fault_abort);
-	register_irq_handler(10, &_exceptn_hooks[9], invalid_tss_fault);
-	register_irq_handler(11, &_exceptn_hooks[10], no_segment_fault);
-	register_irq_handler(12, &_exceptn_hooks[11], stack_fault);
-	register_irq_handler(13, &_exceptn_hooks[12], general_protection_fault);
-	register_irq_handler(16, &_exceptn_hooks[13], fpu_fault);
-	register_irq_handler(17, &_exceptn_hooks[14], alignment_check_fault);
-	register_irq_handler(18, &_exceptn_hooks[15], machine_check_abort);
-	register_irq_handler(19, &_exceptn_hooks[16], simd_fpu_fault);
-
-	/* Install the serial IRQ handler */
-	register_irq_handler(IRQ4, &_kd_hook, kd_callback);
+	_isr_table[0] = divide_by_zero_fault;
+	_isr_table[1] = single_step_fault;
+	_isr_table[2] = nmi_trap;
+	_isr_table[3] = breakpoint_trap;
+	_isr_table[4] = overflow_trap;
+	_isr_table[5] = bounds_check_fault;
+	_isr_table[6] = invalid_opcode_fault;
+	_isr_table[7] = no_device_fault;
+	_isr_table[8] = double_fault_abort;
+	_isr_table[10] = invalid_tss_fault;
+	_isr_table[11] = no_segment_fault;
+	_isr_table[12] = stack_fault;
+	_isr_table[13] = general_protection_fault;
+	_isr_table[16] = fpu_fault;
+	_isr_table[17] = alignment_check_fault;
+	_isr_table[18] = machine_check_abort;
+	_isr_table[19] = simd_fpu_fault;
 
 	kprintf("IRQ dispatch table initialized.\n");
 }

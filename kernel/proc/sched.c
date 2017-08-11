@@ -456,9 +456,6 @@ void sched_enter()
 {
 	DEBUG(DL_DBG, ("core:%d start scheduler.\n", CURR_CORE->id));
 	
-	/* Disable irq first */
-	local_irq_disable();
-
 	// TODO: Find a better place to do the following
 	CURR_CORE->timer_enabled = TRUE;
 
