@@ -5,6 +5,8 @@
 extern "C" {
 #endif	/* __cplusplus */
 
+#include <stddef.h>
+
 typedef unsigned long clock_t;
 typedef long time_t;
 typedef int64_t suseconds_t;
@@ -30,6 +32,11 @@ struct timezone {
 	int tz_minuteswest;	/* minutes west of Greenwich */
 	int tz_dsttime;		/* type of DST correction */
 };
+
+int gettimeofday(struct timeval *tv, struct timezone *tz);
+int settimeofday(const struct timeval *tv, const struct timezone *tz);
+struct tm *localtime(const time_t *tp);
+size_t strftime(char *s, size_t max, const char *fmt, const struct tm *tm);
 
 #ifdef __cplusplus
 }

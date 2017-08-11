@@ -4,6 +4,7 @@
 #include <string.h>
 #include <syscall.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <errno.h>
 
 static void usage();

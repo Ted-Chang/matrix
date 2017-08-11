@@ -8,4 +8,6 @@
 #define O_CREAT		0100
 #define O_EXCL		0200
 
+extern int open(const char *file, int flags, int mode);
+
 #endif	/* __FCNTL_H__ */

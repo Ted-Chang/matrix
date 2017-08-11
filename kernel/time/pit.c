@@ -16,7 +16,7 @@
 #define LEAPYEAR(y)	(((y) % 4) == 0 && (((y) % 100) != 0 || ((y) % 400) == 0))
 #define DAYS(y)		(LEAPYEAR(y) ? 366 : 365)
 
-static struct irq_hook _pit_hook;
+static struct irq_desc _pit_desc;
 
 /* Table containing number of days before a month */
 static int _days_before_month[] = {
@@ -117,7 +117,7 @@ void init_pit()
 	uint32_t divisor;
 
 	/* Register our timer callback first */
-	register_irq_handler(IRQ0, &_pit_hook, &pit_callback);
+	register_irq_handler(IRQ0, &_pit_desc, &pit_callback);
 
 	/* The value we send to the PIT is the value to divide. it's input
 	 * clock (1193182 Hz) by, to get our required frequency. Important

@@ -6,8 +6,8 @@
 #include <string.h>	// memset
 #include <errno.h>
 #include "hal/hal.h"
-#include "hal/isr.h"	// register interrupt handler
 #include "hal/core.h"
+#include "hal/isr.h"
 #include "mm/mm.h"
 #include "mm/mlayout.h"
 #include "mm/mmu.h"
@@ -42,9 +42,8 @@ struct pdir {
 
 struct mmu_ctx _kernel_mmu_ctx;
 
-static struct irq_hook _pf_hook;
-
 extern uint32_t _placement_addr;
+extern isr_t _isr_table[];
 
 static void *alloc_structure(size_t size, phys_addr_t *phys, int mmflag)
 {
@@ -398,7 +397,7 @@ void init_mmu()
 	}
 
 	/* Before we enable paging, we must register our page fault handler */
-	register_irq_handler(14, &_pf_hook, page_fault);
+	_isr_table[X86_TRAP_PF] = page_fault;
 
 	/* Switch to our kernel mmu context, kernel mmu context will be used
 	 * by every process.

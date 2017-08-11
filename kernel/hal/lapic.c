@@ -19,7 +19,7 @@ static volatile uint8_t *_lapic_mapping = NULL;
 /* Local APIC base address */
 static phys_addr_t _lapic_base = 0;
 
-static struct irq_hook _lapic_hook[3];
+static struct irq_desc _lapic_desc[3];
 
 static INLINE uint32_t lapic_read(uint32_t reg)
 {
@@ -139,11 +139,11 @@ void init_lapic()
 			base, _lapic_mapping);
 
 		/* Register interrupt handlers */
-		register_irq_handler(LAPIC_VECT_SPURIOUS, &_lapic_hook[0],
+		register_irq_handler(LAPIC_VECT_SPURIOUS, &_lapic_desc[0],
 				     lapic_spurious_handler);
-		register_irq_handler(LAPIC_VECT_TIMER, &_lapic_hook[1],
+		register_irq_handler(LAPIC_VECT_TIMER, &_lapic_desc[1],
 				     lapic_timer_handler);
-		register_irq_handler(LAPIC_VECT_IPI, &_lapic_hook[2],
+		register_irq_handler(LAPIC_VECT_IPI, &_lapic_desc[2],
 				     lapic_ipi_handler);
 
 		/* Hardware enable the local APIC if it wasn't enabled */

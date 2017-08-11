@@ -90,7 +90,7 @@ struct drive_param _dft_drive_params[] = {
 	{6,15,  400*MS, 3000*MS, 20*MS, 3000*MS, {7, 8, 4,25,28,22,31,21}, 8, "3.5\" ED, 2880 KiB"}
 };
 
-static struct irq_hook _flpy_hook;
+static struct irq_desc _flpy_desc;
 static volatile boolean_t _irq_signaled = FALSE;
 static volatile boolean_t _busy = FALSE;
 
@@ -428,7 +428,7 @@ int floppy_init(void)
 	}
 
 	/* Setup the interrupt handler */
-	register_irq_handler(IRQ6, &_flpy_hook, flpy_callback);
+	register_irq_handler(IRQ6, &_flpy_desc, flpy_callback);
 
 	/* Reset primary controller */
 	_primary_fdc.base_port = FDC_PRI;

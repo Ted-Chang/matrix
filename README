@@ -14,11 +14,11 @@ To get available make targets, run the following command.
 
 To build everything
 
-	$ make
+	$ make all
 
 To build subsystem, for example, kernel
 
-	$ cd kernel && make
+	$ make kernel
 
 To make the essential initrd
 
@@ -94,6 +94,7 @@ To install grub2 on image
 	Command (m for help): o
 	Building a new DOS disklabel with disk identifier 0x3e537798.
 
+	Command (m for help): n
 	Command (m for help): w
 	The partition table has been altered!
 
@@ -105,7 +106,6 @@ To install grub2 on image
 	Syncing disks.
 	Command (m for help): w
 
-	$ sudo parted -s /dev/loop2 mkpart primary vfat 0 50M
 	$ sudo mkfs -t vfat /dev/loop2
 	$ sudo mount /dev/loop2 /mnt
 	$ sudo mkdir -p /mnt/boot/grub2
@@ -117,6 +117,7 @@ To boot matrix
 
 	$ sudo cp bin/matrix /mnt/boot
 	$ sudo cp bin/initrd /mnt/boot
+	$ cp tools/{bochsrc.bxrc,.bochsrc.bxrc}
 	$ ./run_bochs.sh
 
 What architecture does matrix support now?

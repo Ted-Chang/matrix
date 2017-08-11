@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <syscall.h>
+#include <unistd.h>
 #include <errno.h>
 #include "matrix/matrix.h"
 

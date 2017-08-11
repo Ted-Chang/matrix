@@ -19,6 +19,31 @@
 #define IRQ15	47
 
 /*
+ * Definitions for traps/exceptions numbers.
+ */
+#define X86_TRAP_DE	0	// Divide Error
+#define X86_TRAP_DB	1	// Debug
+#define X86_TRAP_NMI	2	// Non-maskable Interrupt
+#define X86_TRAP_BP	3	// Breakpoint
+#define X86_TRAP_OF	4	// Overflow
+#define X86_TRAP_BR	5	// Bound Range Exceeded
+#define X86_TRAP_UD	6	// Invalid Opcode
+#define X86_TRAP_NM	7	// Device Not Available
+#define X86_TRAP_DF	8	// Double Fault
+#define X86_TRAP_OLD_MF	9	// Coprocessor Segment Overrun
+#define X86_TRAP_TS	10	// Invalid TSS
+#define X86_TRAP_NP	11	// Segment Not Present
+#define X86_TRAP_SS	12	// Stack Segment Fault
+#define X86_TRAP_GP	13	// General Protection Fault
+#define X86_TRAP_PF	14	// Page Fault
+#define X86_TRAP_SPURIOUS 15	// Spurious Interrupt
+#define X86_TRAP_MF	16	// x87 Floating-Point Exception
+#define X86_TRAP_AC	17	// Alignment Check
+#define X86_TRAP_MC	18	// Machine Check
+#define X86_TRAP_XF	19	// SIMD Floating-Point Exception
+#define X86_TRAP_IRET	32	// IRET Exception
+
+/*
  * Note that gs, fs segment register was reserved for other
  * purpose, so we don't put it here
  */
@@ -47,16 +72,16 @@ typedef void (*isr_t)(struct registers *);
 /*
  * IRQ hook chain for precess the interrupt
  */
-struct irq_hook {
-	struct irq_hook *next;
+struct irq_desc {
+	struct irq_desc *next;
 	isr_t handler;
 	uint8_t irq;
 };
 
 extern void init_IRQs();
 extern void dump_registers(struct registers *regs);
-extern void register_irq_handler(uint8_t irq, struct irq_hook *hook, isr_t handler);
-extern void unregister_irq_handler(struct irq_hook *hook);
+extern void register_irq_handler(uint8_t irq, struct irq_desc *desc, isr_t handler);
+extern void unregister_irq_handler(struct irq_desc *desc);
 
 /* Declaration of the interrupt service routines */
 extern void isr0();

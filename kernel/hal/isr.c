@@ -14,12 +14,12 @@
 
 struct irq_chain {
 	struct spinlock lock;
-	struct irq_hook *head;
+	struct irq_desc *head;
 };
 typedef struct irq_chain irq_chain_t;
 
 /* Kernel Debugger hook and callback */
-extern struct irq_hook _kd_hook;
+extern struct irq_desc _kd_desc;
 
 /* trap/exception handlers table */
 isr_t _isr_table[NR_IDT_ENTRIES];
@@ -52,7 +52,7 @@ void isr_handler(struct registers regs)
 void irq_handler(struct registers regs)
 {
 	uint8_t int_no;
-	struct irq_hook *hook;
+	struct irq_desc *desc;
 	boolean_t processed = FALSE;
 
 	/* Avoid the problem caused by the signed interrupt number if it is
@@ -60,15 +60,15 @@ void irq_handler(struct registers regs)
 	 */
 	int_no = (uint8_t)regs.int_no;
 
-	/* Call each handler on the IRQ hook chain */
-	hook = _irq_chains[int_no].head;
-	while (hook) {
-		isr_t handler = hook->handler;
+	/* Call each handler on the IRQ chain */
+	desc = _irq_chains[int_no].head;
+	while (desc) {
+		isr_t handler = desc->handler;
 		if (handler) {
 			handler(&regs);
 			processed = TRUE;
 		}
-		hook = hook->next;
+		desc = desc->next;
 	}
 
 	/* Notify the PIC that we have done so we can accept >= priority
@@ -83,40 +83,40 @@ void irq_handler(struct registers regs)
 	}
 }
 
-void register_irq_handler(uint8_t irq, struct irq_hook *hook, isr_t handler)
+void register_irq_handler(uint8_t irq, struct irq_desc *desc, isr_t handler)
 {
-	struct irq_hook **line;
+	struct irq_desc **line;
 	
 	spinlock_acquire(&_irq_chains[irq].lock);
 
 	line = &_irq_chains[irq].head;
 	while (*line) {
-		/* Check if the hook has been registered already */
-		if (hook == (*line)) {
+		/* Check if the desc has been registered already */
+		if (desc == (*line)) {
 			local_irq_enable();
 			return;
 		}
 		line = &((*line)->next);
 	}
 
-	hook->next = NULL;
-	hook->handler = handler;
-	hook->irq = irq;
-	*line = hook;
+	desc->next = NULL;
+	desc->handler = handler;
+	desc->irq = irq;
+	*line = desc;
 
 	spinlock_release(&_irq_chains[irq].lock);
 }
 
-void unregister_irq_handler(struct irq_hook *hook)
+void unregister_irq_handler(struct irq_desc *desc)
 {
-	int irq = hook->irq;
-	struct irq_hook **line;
+	int irq = desc->irq;
+	struct irq_desc **line;
 
 	spinlock_acquire(&_irq_chains[irq].lock);
 
 	line = &_irq_chains[irq].head;
 	while (*line) {
-		if ((*line) == hook) {
+		if ((*line) == desc) {
 			*line = (*line)->next;
 			break;
 		}
@@ -259,23 +259,23 @@ void init_IRQs()
 	}
 	
 	/* Install the exception handlers */
-	_isr_table[0] = divide_by_zero_fault;
-	_isr_table[1] = single_step_fault;
-	_isr_table[2] = nmi_trap;
-	_isr_table[3] = breakpoint_trap;
-	_isr_table[4] = overflow_trap;
-	_isr_table[5] = bounds_check_fault;
-	_isr_table[6] = invalid_opcode_fault;
-	_isr_table[7] = no_device_fault;
-	_isr_table[8] = double_fault_abort;
-	_isr_table[10] = invalid_tss_fault;
-	_isr_table[11] = no_segment_fault;
-	_isr_table[12] = stack_fault;
-	_isr_table[13] = general_protection_fault;
-	_isr_table[16] = fpu_fault;
-	_isr_table[17] = alignment_check_fault;
-	_isr_table[18] = machine_check_abort;
-	_isr_table[19] = simd_fpu_fault;
+	_isr_table[X86_TRAP_DE] = divide_by_zero_fault;
+	_isr_table[X86_TRAP_DB] = single_step_fault;
+	_isr_table[X86_TRAP_NMI] = nmi_trap;
+	_isr_table[X86_TRAP_BP] = breakpoint_trap;
+	_isr_table[X86_TRAP_OF] = overflow_trap;
+	_isr_table[X86_TRAP_BR] = bounds_check_fault;
+	_isr_table[X86_TRAP_UD] = invalid_opcode_fault;
+	_isr_table[X86_TRAP_NM] = no_device_fault;
+	_isr_table[X86_TRAP_DF] = double_fault_abort;
+	_isr_table[X86_TRAP_TS] = invalid_tss_fault;
+	_isr_table[X86_TRAP_NP] = no_segment_fault;
+	_isr_table[X86_TRAP_SS] = stack_fault;
+	_isr_table[X86_TRAP_GP] = general_protection_fault;
+	_isr_table[X86_TRAP_MF] = fpu_fault;
+	_isr_table[X86_TRAP_AC] = alignment_check_fault;
+	_isr_table[X86_TRAP_MC] = machine_check_abort;
+	_isr_table[X86_TRAP_XF] = simd_fpu_fault;
 
 	kprintf("IRQ dispatch table initialized.\n");
 }

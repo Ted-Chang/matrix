@@ -140,8 +140,8 @@ struct kbd_cmd {
 	uint8_t *data;
 };
 
-/* Keyboard IRQ hook */
-struct irq_hook _kbd_hook;
+/* Keyboard IRQ descriptor */
+struct irq_desc _kbd_desc;
 
 static char _scan_code;
 static union kbd_std_status _kbdst;
@@ -687,7 +687,7 @@ int keyboard_init(void)
 	kbd_state_reset();
 
 	/* Register the interrupt handler */
-	register_irq_handler(IRQ1, &_kbd_hook, kbd_callback);
+	register_irq_handler(IRQ1, &_kbd_desc, kbd_callback);
 
 	/* Clear the keyboard queue */
 	keyq_clear();

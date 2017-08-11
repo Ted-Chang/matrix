@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <syscall.h>
+#include <unistd.h>
 #include <errno.h>
 
 static void usage();
@@ -64,6 +65,8 @@ int main(int argc, char **argv)
 	lsmod_test();
 
 	null_dev_test();
+
+	multi_processes_test();
 
 	clear_test();
 
@@ -360,17 +363,17 @@ void multi_processes_test()
 
 	rc = waitpid(pid1, &status, 0);
 	if (rc != 0) {
-		;
+		printf("wait alice failed, err(%d).\n", rc);
 	}
 
 	rc = waitpid(pid2, &status, 0);
 	if (rc != 0) {
-		;
+		printf("wait bob failed, err(%d).\n", rc);
 	}
 
 	rc = waitpid(pid3, &status, 0);
 	if (rc != 0) {
-		;
+		printf("wait cathy failed, err(%d).\n", rc);
 	}
 
  out:
