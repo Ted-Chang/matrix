@@ -50,9 +50,6 @@ typedef struct kd_line kd_line_t;
 
 int kd_main(int reason, struct registers *regs, u_long index);
 
-/* Debug interrupt handler */
-struct irq_desc _kd_desc;
-
 /* Whether KD is currently running on any CORE */
 atomic_t _kd_running = 0;
 

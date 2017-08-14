@@ -12,29 +12,24 @@
 #include "util.h"
 #include "debug.h"
 
-struct irq_chain {
-	struct spinlock lock;
-	struct irq_desc *head;
-};
-typedef struct irq_chain irq_chain_t;
-
-/* Kernel Debugger hook and callback */
-extern struct irq_desc _kd_desc;
+#define IRQ_COUNT	(NR_IDT_ENTRIES)
 
 /* trap/exception handlers table */
 isr_t _isr_table[NR_IDT_ENTRIES];
 
-/* Global interrupt hook chain */
-static struct irq_chain _irq_chains[256];
+/* Interrupt handlers table */
+isr_t _irq_table[IRQ_COUNT];
 
 /*
  * Software interrupt handler, call the trap/exception handlers
  */
 void isr_handler(struct registers regs)
 {
-	isr_t handler = NULL;
-	uint8_t int_no = (uint8_t)regs.int_no;
-	
+	isr_t handler;
+	uint8_t int_no;
+
+	int_no = (uint8_t)regs.int_no;
+
 	ASSERT(int_no < NR_IDT_ENTRIES);
 
 	/* Call the trap/exception handler */
@@ -43,6 +38,7 @@ void isr_handler(struct registers regs)
 		handler(&regs);
 	} else {
 		kprintf("Unknown trap/exception:%d\n", int_no);
+		ASSERT(0);
 	}
 }
 
@@ -51,80 +47,41 @@ void isr_handler(struct registers regs)
  */
 void irq_handler(struct registers regs)
 {
+	isr_t handler;
 	uint8_t int_no;
-	struct irq_desc *desc;
-	boolean_t processed = FALSE;
 
 	/* Avoid the problem caused by the signed interrupt number if it is
 	 * more than 0x80
 	 */
 	int_no = (uint8_t)regs.int_no;
 
-	/* Call each handler on the IRQ chain */
-	desc = _irq_chains[int_no].head;
-	while (desc) {
-		isr_t handler = desc->handler;
-		if (handler) {
-			handler(&regs);
-			processed = TRUE;
-		}
-		desc = desc->next;
+	handler = _irq_table[int_no];
+	if (handler) {
+		handler(&regs);
+	} else {
+		kprintf("Unknown interrupt:(%d)\n", int_no);
 	}
 
 	/* Notify the PIC that we have done so we can accept >= priority
 	 * IRQs now
 	 */
 	local_irq_done(int_no);
-
-	if (!processed) {
-#ifdef _DEBUG_HAL
-		DEBUG(DL_DBG, ("IRQ %d not handled\n", int_no));
-#endif
-	}
 }
 
-void register_irq_handler(uint8_t irq, struct irq_desc *desc, isr_t handler)
+void register_IRQ(uint8_t irq, isr_t handler)
 {
-	struct irq_desc **line;
-	
-	spinlock_acquire(&_irq_chains[irq].lock);
-
-	line = &_irq_chains[irq].head;
-	while (*line) {
-		/* Check if the desc has been registered already */
-		if (desc == (*line)) {
-			local_irq_enable();
-			return;
-		}
-		line = &((*line)->next);
+	if (irq >= IRQ_COUNT) {
+		DEBUG(DL_ERR, ("Invalid irq number(%d)!\n", irq));
+		return;
 	}
 
-	desc->next = NULL;
-	desc->handler = handler;
-	desc->irq = irq;
-	*line = desc;
-
-	spinlock_release(&_irq_chains[irq].lock);
+	_irq_table[irq] = handler;
 }
 
-void unregister_irq_handler(struct irq_desc *desc)
+void unregister_IRQ(uint8_t irq, isr_t handler)
 {
-	int irq = desc->irq;
-	struct irq_desc **line;
-
-	spinlock_acquire(&_irq_chains[irq].lock);
-
-	line = &_irq_chains[irq].head;
-	while (*line) {
-		if ((*line) == desc) {
-			*line = (*line)->next;
-			break;
-		}
-		
-		line = &((*line)->next);
-	}
-
-	spinlock_release(&_irq_chains[irq].lock);
+	DEBUG(DL_INF, ("unregistering irq(%d).\n"));
+	_irq_table[irq] = NULL;
 }
 
 void dump_registers(struct registers *regs)
@@ -247,16 +204,11 @@ void simd_fpu_fault(struct registers *regs)
  */
 void init_IRQs()
 {
-	int i;
-
 	/* Initialize ISR table */
 	memset(&_isr_table, 0, sizeof(_isr_table));
 
-	/* Initialize the IRQ chain */
-	for (i = 0; i < 256; i++) {
-		spinlock_init(&_irq_chains[i].lock, "irq-lock");
-		_irq_chains[i].head = NULL;
-	}
+	/* Initialize the IRQ table */
+	memset(&_irq_table, 0, sizeof(_irq_table));
 	
 	/* Install the exception handlers */
 	_isr_table[X86_TRAP_DE] = divide_by_zero_fault;

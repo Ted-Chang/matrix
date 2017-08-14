@@ -233,6 +233,7 @@ void sched_reschedule(boolean_t state)
 	/* Get current schedule CORE */
 	c = CURR_CORE->sched;
 
+	/* Lock current CORE for operating on scheduler queues */
 	spinlock_acquire_noirq(&c->lock);
 
 	/* Thread cannot be in ready state if we are running it now */
@@ -456,9 +457,6 @@ void sched_enter()
 {
 	DEBUG(DL_DBG, ("core:%d start scheduler.\n", CURR_CORE->id));
 	
-	// TODO: Find a better place to do the following
-	CURR_CORE->timer_enabled = TRUE;
-
 	/* Switch to current process */
 	arch_thread_switch(CURR_THREAD, NULL);
 	PANIC("Should not get here");

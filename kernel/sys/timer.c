@@ -145,10 +145,6 @@ void timer_tick()
 	useconds_t now;
 	boolean_t prempt = FALSE;
 
-	if (!CURR_CORE->timer_enabled) {
-		return;
-	}
-
 	now = sys_time();
 
 	spinlock_acquire(&CURR_CORE->timer_lock);

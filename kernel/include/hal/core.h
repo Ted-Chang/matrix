@@ -223,7 +223,6 @@ struct core {
 	struct va_space *aspace;	// Address space currently in use
 	struct spinlock timer_lock;	// Lock to protect timers list
 	struct list timers;		// List of active timers
-	boolean_t timer_enabled;	// Whether timer is enabled on this CORE
 };
 typedef struct core core_t;
 

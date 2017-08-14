@@ -67,7 +67,6 @@ static void core_ctor(struct core *c, core_id_t id, int state)
 	/* Initialize timer information */
 	spinlock_init(&c->timer_lock, "tmr-lock");
 	LIST_INIT(&c->timers);
-	c->timer_enabled = FALSE;
 }
 
 void dump_core(struct core *c)

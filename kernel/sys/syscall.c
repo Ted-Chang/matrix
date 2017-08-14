@@ -676,7 +676,7 @@ extern isr_t _isr_table[];
 void init_syscalls()
 {
 	/* Register our syscall handler */
-	_isr_table[0x80] = syscall_handler;
+	_isr_table[SYSCALL_VECTOR] = syscall_handler;
 
 	/* Initialize the hostname */
 	memset(_hostname, 0, MAX_HOSTNAME_LEN + 1);
