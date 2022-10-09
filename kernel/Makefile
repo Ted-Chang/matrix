@@ -1,44 +1,49 @@
 # Makefile for matrix kernel. 
-# This is the top level makefile of the kernel. You need to modified it when
-# you added a new module.
+# This is the top level makefile of the kernel. You need to modified it
+#  when you added a new module.
+MATRIX_ROOT_DIR := $(abspath $(CURDIR)/..)
+include $(MATRIX_ROOT_DIR)/kernel/Makefile.inc
 
 VERSION = 0
 PATCHLEVEL = 0
 SUBLEVEL = 1
 EXTRAVERSION = 1
 
+DIRS-y = hal libc rtl sys mm fs loader proc time init dbgk ../drivers
+
+TARGET := $(MATRIX_ROOT_DIR)/bin/matrix
+MAP := $(MATRIX_ROOT_DIR)/bin/matrix.map
+
+MATRIX_LIB_LIST = init hal proc dbgk time sys rtl mm loader cstd drivers fs
+LIBS += $(MATRIX_LIB_LINKER_ARGS)
+
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
 # More info can be found in ../README
 
-# Include some global definition
-include Makefile.inc
-
-# The following is a list of non-source files that are part of the distribution.
+# The following is a list of non-source files that are part of the
+# distribution.
 AUXFILES := Makefile
-
-# Define modules in the project.
-MODULES := hal libc sys rtl loader mm fs proc time init ../drivers dbgk
-
-# Define target file
-TARGET := ../bin/matrix
-
-# Define object file directory
-OBJ := ../bin/obji386
 
 # Definition of LDFLAGS
 LDFLAGS := -melf_i386 -TLink.ld
 
-.PHONY: all clean help
+.PHONY: all clean $(DIRS-y) help
 
-all: $(MODULES)
-	$(LD) $(LDFLAGS) -Map ../bin/matrix.map -o $(TARGET) $(OBJ)/*.o
+all: $(TARGET)
+	@:
 
-$(MODULES): Makefile
-	for d in $(MODULES); do (cd $$d; $(MAKE)); done;
+empty_rule:
+	@:
 
-clean:
-	for d in $(MODULES); do (cd $$d; $(MAKE) clean); done; $(RM) $(TARGET) ../bin/matrix.map
+$(TARGET): $(DIRS-y)
+	$(LD) $(LDFLAGS) -Map $(MAP) -o $(TARGET) $(OBJS) $(LIBS)
+
+clean: $(DIRS-y)
+	$(CLEAN_C) $(TARGET) $(MAP)
+
+$(DIRS-y):
+	$(Q)$(MAKE) -C $@ S=$S$(S:%=/)$@ $(MAKECMDGOALS) $(MAKESUBDIRFLAGS)
 
 help:
 	@echo "Available make targets:"
@@ -46,3 +51,4 @@ help:
 	@echo "all      - build matrix"
 	@echo "clean    - remove all object files, dependency files"
 	@echo "help     - print this help info"
+

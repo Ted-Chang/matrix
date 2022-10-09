@@ -1,26 +1,18 @@
-
 # Makefile for proc module
+MATRIX_ROOT_DIR := $(abspath $(CURDIR)/../..)
+include $(MATRIX_ROOT_DIR)/kernel/Makefile.inc
 
-include ../Makefile.inc
-
-OBJ := ../../bin/obji386
-
-TARGETOBJ := \
-	$(OBJ)/process.o \
-	$(OBJ)/sched.o \
-	$(OBJ)/switch.o \
-	$(OBJ)/thread.o \
-	$(OBJ)/signal.o \
+C_SRCS = process.c sched.c thread.c signal.c
+AS_SRCS = switch.s
+LIB := $(call matrix_lib_list_to_static_libs,proc)
 
 .PHONY: clean help
 
-all: $(TARGETOBJ)
-
-$(OBJ)/%.o: %.c
-	$(CC) -D_DEBUG_SCHED -DBITS_PER_LONG=32 -m32 -I../include -I../../sdk/include $(CFLAGS_global) -c -o $@ $<
-
-$(OBJ)/switch.o:
-	nasm $(ASFLAGS) -o $(OBJ)/switch.o switch.s
+all: $(LIB)
+	@:
 
 clean:
-	$(RM) $(TARGETOBJ)
+	$(CLEAN_C) $(LIB)
+
+$(LIB): $(OBJS)
+	$(LIB_C)

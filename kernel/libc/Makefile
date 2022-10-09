@@ -1,25 +1,19 @@
 # Makefile for libc module
-include ../Makefile.inc
+MATRIX_ROOT_DIR := $(abspath $(CURDIR)/../..)
+include $(MATRIX_ROOT_DIR)/kernel/Makefile.inc
 
-OBJ := ../../bin/obji386
+CSTDDIR=$(MATRIX_ROOT_DIR)/sdk/libc
 
-TARGETOBJ := \
-	$(OBJ)/stdio.o \
-	$(OBJ)/string.o \
-	$(OBJ)/div64.o \
-	$(OBJ)/vsprintf.o \
-	$(OBJ)/sprintf.o \
-	$(OBJ)/format.o \
+C_SRCS = $(CSTDDIR)/stdio.c $(CSTDDIR)/string.c $(CSTDDIR)/div64.c $(CSTDDIR)/vsprintf.c $(CSTDDIR)/sprintf.c $(CSTDDIR)/format.c
+LIB := $(call matrix_lib_list_to_static_libs,cstd)
 
 .PHONY: clean help
 
-all: $(TARGETOBJ)
-
-$(OBJ)/%.o: ../../sdk/libc/%.c
-	$(CC) -m32 -DBITS_PER_LONG=32 -g -I../include -I../../sdk/include $(CFLAGS_global) -c -o $@ $<
-
-$(OBJ)/%.o: %.c
-	$(CC) -m32 -DBITS_PER_LONG=32 -g -I../include -I../../sdk/include $(CFLAGS_global) -c -o $@ $<
+all: $(LIB)
+	@:
 
 clean:
-	$(RM) $(TARGETOBJ)
+	$(CLEAN_C) $(LIB) -r $(CSTDDIR)/*.o
+
+$(LIB): $(OBJS)
+	$(LIB_C)

@@ -1,21 +1,17 @@
 # Makefile for fs module
-include ../Makefile.inc
+MATRIX_ROOT_DIR := $(abspath $(CURDIR)/../..)
+include $(MATRIX_ROOT_DIR)/kernel/Makefile.inc
 
-OBJ := ../../bin/obji386
-
-TARGETOBJ := \
-	$(OBJ)/vfs.o \
-	$(OBJ)/fd.o \
-	$(OBJ)/initrd.o \
-	$(OBJ)/devfs.o \
-	$(OBJ)/procfs.o \
+C_SRCS = vfs.c fd.c initrd.c devfs.c procfs.c
+LIB := $(call matrix_lib_list_to_static_libs,fs)
 
 .PHONY: clean help
 
-all: $(TARGETOBJ)
-
-$(OBJ)/%.o: %.c
-	$(CC) -m32 $(CFLAGS_global) -g -I../include -I../../sdk/include -c -o $@ $<
+all: $(LIB)
+	@:
 
 clean:
-	$(RM) $(TARGETOBJ)
+	$(CLEAN_C) $(LIB)
+
+$(LIB): $(OBJS)
+	$(LIB_C)

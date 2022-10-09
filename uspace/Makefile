@@ -33,64 +33,64 @@ OBJ := ./obji386
 all: $(TARGETS)
 	@echo "Making default applications"
 
-$(TARGETDIR)/init: $(OBJ)/init.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/init.map -o $(TARGETDIR)/init $(OBJ)/init.o
+$(TARGETDIR)/init: init.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/init.map -o $(TARGETDIR)/init init.o
 
-$(TARGETDIR)/echo: $(OBJ)/echo.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/echo.map -o $(TARGETDIR)/echo $(OBJ)/echo.o
+$(TARGETDIR)/echo: echo.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/echo.map -o $(TARGETDIR)/echo echo.o
 
-$(TARGETDIR)/crond: $(OBJ)/crond.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/crond.map -o $(TARGETDIR)/crond $(OBJ)/crond.o
+$(TARGETDIR)/crond: crond.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/crond.map -o $(TARGETDIR)/crond crond.o
 
-$(TARGETDIR)/unit_test: $(OBJ)/unit_test.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/unit_test.map -o $(TARGETDIR)/unit_test $(OBJ)/unit_test.o
+$(TARGETDIR)/unit_test: unit_test.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/unit_test.map -o $(TARGETDIR)/unit_test unit_test.o
 
-$(TARGETDIR)/ls: $(OBJ)/ls.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/ls.map -o $(TARGETDIR)/ls $(OBJ)/ls.o
+$(TARGETDIR)/ls: ls.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/ls.map -o $(TARGETDIR)/ls ls.o
 
-$(TARGETDIR)/cat: $(OBJ)/cat.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/cat.map -o $(TARGETDIR)/cat $(OBJ)/cat.o
+$(TARGETDIR)/cat: cat.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/cat.map -o $(TARGETDIR)/cat cat.o
 
-$(TARGETDIR)/clear: $(OBJ)/clear.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/clear.map -o $(TARGETDIR)/clear $(OBJ)/clear.o
+$(TARGETDIR)/clear: clear.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/clear.map -o $(TARGETDIR)/clear clear.o
 
-$(TARGETDIR)/shutdown: $(OBJ)/shutdown.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/shutdown.map -o $(TARGETDIR)/shutdown $(OBJ)/shutdown.o
+$(TARGETDIR)/shutdown: shutdown.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/shutdown.map -o $(TARGETDIR)/shutdown shutdown.o
 
-$(TARGETDIR)/mkdir: $(OBJ)/mkdir.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/mkdir.map -o $(TARGETDIR)/mkdir $(OBJ)/mkdir.o
+$(TARGETDIR)/mkdir: mkdir.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/mkdir.map -o $(TARGETDIR)/mkdir mkdir.o
 
-$(TARGETDIR)/date: $(OBJ)/date.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/date.map -o $(TARGETDIR)/date $(OBJ)/date.o
+$(TARGETDIR)/date: date.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/date.map -o $(TARGETDIR)/date date.o
 
-$(TARGETDIR)/mount: $(OBJ)/mount.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/mount.map -o $(TARGETDIR)/mount $(OBJ)/mount.o
+$(TARGETDIR)/mount: mount.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/mount.map -o $(TARGETDIR)/mount mount.o
 
-$(TARGETDIR)/umount: $(OBJ)/umount.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/umount.map -o $(TARGETDIR)/umount $(OBJ)/umount.o
+$(TARGETDIR)/umount: umount.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/umount.map -o $(TARGETDIR)/umount umount.o
 
-$(TARGETDIR)/dd: $(OBJ)/dd.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/dd.map -o $(TARGETDIR)/dd $(OBJ)/dd.o
+$(TARGETDIR)/dd: dd.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/dd.map -o $(TARGETDIR)/dd dd.o
 
-$(TARGETDIR)/mknod: $(OBJ)/mknod.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/mknod.map -o $(TARGETDIR)/mknod $(OBJ)/mknod.o
+$(TARGETDIR)/mknod: mknod.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/mknod.map -o $(TARGETDIR)/mknod mknod.o
 
-$(TARGETDIR)/lsmod: $(OBJ)/lsmod.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/lsmod.map -o $(TARGETDIR)/lsmod $(OBJ)/lsmod.o
+$(TARGETDIR)/lsmod: lsmod.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/lsmod.map -o $(TARGETDIR)/lsmod lsmod.o
 
-$(TARGETDIR)/sh: $(OBJ)/sh.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/sh.map -o $(TARGETDIR)/sh $(OBJ)/sh.o
+$(TARGETDIR)/sh: sh.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/sh.map -o $(TARGETDIR)/sh sh.o
 
-$(TARGETDIR)/process_test: $(OBJ)/process_test.o
-	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/process_test.map -o $(TARGETDIR)/process_test $(OBJ)/process_test.o
+$(TARGETDIR)/process_test: process_test.o
+	$(LD) $(LDFLAGS) -Map $(TARGETDIR)/process_test.map -o $(TARGETDIR)/process_test process_test.o
 
-$(OBJ)/%.o: %.c
+%.o: %.c
 	$(CC) $(CFLAGS) -m32 -g -I../sdk/include -c -o $@ $<
 
 clean:
-	for f in $(TARGETS); do rm $$f.map; done;
-	$(RM) -f $(TARGETS)
-	$(RM) -f $(OBJ)/*
+	for f in $(TARGETS); do $(RM) $$f.map; done;
+	$(RM) $(TARGETS)
+	$(RM) *.o
 
 help:
 	@echo "Available make targets:"

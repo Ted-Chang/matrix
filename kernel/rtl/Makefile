@@ -1,25 +1,17 @@
 # Makefile for librt module
+MATRIX_ROOT_DIR := $(abspath $(CURDIR)/../..)
+include $(MATRIX_ROOT_DIR)/kernel/Makefile.inc
 
-include ../Makefile.inc
-
-OBJ := ../../bin/obji386
-
-TARGETOBJ := \
-	$(OBJ)/avltree.o \
-	$(OBJ)/radixtree.o \
-	$(OBJ)/hashtable.o \
-	$(OBJ)/notifier.o \
-	$(OBJ)/object.o \
-	$(OBJ)/bitmap.o \
-	$(OBJ)/name.o \
-	$(OBJ)/kstrdup.o \
+C_SRCS = avltree.c radixtree.c hashtable.c notifier.c object.c bitmap.c name.c kstrdup.c
+LIB := $(call matrix_lib_list_to_static_libs,rtl)
 
 .PHONY: clean help
 
-all: $(TARGETOBJ)
-
-$(OBJ)/%.o: %.c
-	$(CC) -DBITS_PER_LONG=32 -m32 -I../include -I../../sdk/include $(CFLAGS_global) -c -o $@ $<
+all: $(LIB)
+	@:
 
 clean:
-	$(RM) $(TARGETOBJ)
+	$(CLEAN_C) $(LIB)
+
+$(LIB): $(OBJS)
+	$(LIB_C)

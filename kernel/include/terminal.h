@@ -3,6 +3,8 @@
 
 #include "list.h"
 
+#define CONFIG_SERIAL_PORT 1
+
 #if CONFIG_SERIAL_PORT == 1
 #define SERIAL_PORT	0x3F8
 #elif CONFIG_SERIAL_PORT == 2

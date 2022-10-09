@@ -9,21 +9,21 @@
 AUXFILES := README
 
 # Define subsystems in the project.
-SUBSYS := kernel sdk uspace tools
+DIRS-y = kernel sdk uspace tools
 
-.PHONY: all clean help kernel
+.PHONY: all clean $(DIRS-y) help
 
-all: $(SUBSYS)
-	@echo "system build done."
+all: $(DIRS-y)
+	@:
 
-$(SUBSYS): Makefile
-	for d in $(SUBSYS); do (cd $$d; $(MAKE)); done;
+empty_rule:
+	@:
 
-clean:
-	for d in $(SUBSYS); do (cd $$d; $(MAKE) clean); done;
+clean: $(DIRS-y)
+	@:
 
-kernel:
-	cd kernel; $(MAKE);
+$(DIRS-y):
+	$(Q)$(MAKE) -C $@ S=$S$(S:%=/)$@ $(MAKECMDGOALS) $(MAKESUBDIRFLAGS)
 
 help:
 	@echo "Available make targets:"

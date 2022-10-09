@@ -1,29 +1,18 @@
 # Makefile for hal module
+MATRIX_ROOT_DIR := $(abspath $(CURDIR)/../..)
+include $(MATRIX_ROOT_DIR)/kernel/Makefile.inc
 
-include ../Makefile.inc
-
-OBJ := ../../bin/obji386
-
-TARGETOBJ := $(OBJ)/hal.o \
-	$(OBJ)/dscptr.o \
-	$(OBJ)/interrupt.o \
-	$(OBJ)/isr.o \
-	$(OBJ)/spinlock.o \
-	$(OBJ)/core.o \
-	$(OBJ)/lapic.o \
+C_SRCS = core.c hal.c isr.c lapic.c spinlock.c
+AS_SRCS = dscptr.s interrupt.s
+LIB := $(call matrix_lib_list_to_static_libs,hal)
 
 .PHONY: clean help
 
-all: $(TARGETOBJ)
-
-$(OBJ)/%.o: %.c
-	$(CC) -DBITS_PER_LONG=32 -m32 -I../include -I../../sdk/include $(CFLAGS_global) -c -o $@ $<
-
-$(OBJ)/dscptr.o:
-	nasm $(ASFLAGS) -o $(OBJ)/dscptr.o dscptr.s
-
-$(OBJ)/interrupt.o:
-	nasm $(ASFLAGS) -o $(OBJ)/interrupt.o interrupt.s
+all: $(LIB)
+	@:
 
 clean:
-	$(RM) $(TARGETOBJ)
+	$(CLEAN_C) $(LIB)
+
+$(LIB): $(OBJS)
+	$(LIB_C)

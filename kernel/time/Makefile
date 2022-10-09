@@ -1,19 +1,17 @@
 # Makefile for sys module
+MATRIX_ROOT_DIR := $(abspath $(CURDIR)/../..)
+include $(MATRIX_ROOT_DIR)/kernel/Makefile.inc
 
-include ../Makefile.inc
-
-OBJ := ../../bin/obji386
-
-TARGETOBJ := \
-	$(OBJ)/rtc.o \
-	$(OBJ)/pit.o \
+C_SRCS = rtc.c pit.c
+LIB := $(call matrix_lib_list_to_static_libs,time)
 
 .PHONY: clean help
 
-all: $(TARGETOBJ)
-
-$(OBJ)/%.o: %.c
-	$(CC) -DBITS_PER_LONG=32 -m32 -I../include -I../../sdk/include $(CFLAGS_global) -c -o $@ $<
+all: $(LIB)
+	@:
 
 clean:
-	$(RM) $(TARGETOBJ)
+	$(CLEAN_C) $(LIB)
+
+$(LIB): $(OBJS)
+	$(LIB_C)

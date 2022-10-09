@@ -1,23 +1,17 @@
 # Make file for drivers module
+MATRIX_ROOT_DIR := $(abspath $(CURDIR)/..)
+include $(MATRIX_ROOT_DIR)/kernel/Makefile.inc
 
-include ../kernel/Makefile.inc
+C_SRCS = keyboard.c floppy.c cmos.c pci.c null.c zero.c
+LIB := $(call matrix_lib_list_to_static_libs,drivers)
 
-OBJ := ../bin/obji386
+.PHONY: clean help
 
-TARGETOBJ := \
-	$(OBJ)/keyboard.o \
-	$(OBJ)/floppy.o \
-	$(OBJ)/cmos.o \
-	$(OBJ)/pci.o \
-	$(OBJ)/null.o \
-	$(OBJ)/zero.o \
-
-.PHONY: clean
-
-all: $(TARGETOBJ)
-
-$(OBJ)/%.o: %.c
-	$(CC) -D__KERNEL__ -m32 -I../kernel/include -I../sdk/include $(CFLAGS_global) -c -o $@ $<
+all: $(LIB)
+	@:
 
 clean:
-	$(RM) $(TARGETOBJ)
+	$(CLEAN_C) $(LIB)
+
+$(LIB): $(OBJS)
+	$(LIB_C)

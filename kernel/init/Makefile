@@ -1,21 +1,19 @@
 # Makefile for init module
+MATRIX_ROOT_DIR := $(abspath $(CURDIR)/../..)
+include $(MATRIX_ROOT_DIR)/kernel/Makefile.inc
 
-include ../Makefile.inc
+C_SRCS = main.c
+AS_SRCS = entry.s
+LIB := $(call matrix_lib_list_to_static_libs,init)
 
-OBJ := ../../bin/obji386
+.PHONY: all clean
 
-TARGETOBJ := $(OBJ)/entry.o \
-	$(OBJ)/main.o
-
-.PHONY: clean help
-
-all: $(TARGETOBJ)
-
-$(OBJ)/%.o: %.c
-	$(CC) -D_UNIT_TEST -m32 $(CFLAGS_global) -I../include -I../../sdk/include -c -o $@ $<
-
-$(OBJ)/entry.o:
-	nasm $(ASFLAGS) -o $(OBJ)/entry.o entry.s
+all: $(LIB)
+	@:
 
 clean:
-	$(RM) $(TARGETOBJ)
+	$(CLEAN_C) $(LIB)
+
+$(LIB): $(OBJS)
+	$(LIB_C)
+

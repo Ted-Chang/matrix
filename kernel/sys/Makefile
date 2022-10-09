@@ -1,33 +1,18 @@
 # Makefile for sys module
+MATRIX_ROOT_DIR := $(abspath $(CURDIR)/../..)
+include $(MATRIX_ROOT_DIR)/kernel/Makefile.inc
 
-include ../Makefile.inc
-
-OBJ := ../../bin/obji386
-
-TARGETOBJ := \
-	$(OBJ)/timer.o \
-	$(OBJ)/syscall.o \
-	$(OBJ)/util.o \
-	$(OBJ)/mutex.o \
-	$(OBJ)/semaphore.o \
-	$(OBJ)/terminal.o \
-	$(OBJ)/unittest.o \
-	$(OBJ)/platform.o \
-	$(OBJ)/ioctx.o \
-	$(OBJ)/device.o \
-	$(OBJ)/acpi.o \
-	$(OBJ)/smp.o \
-	$(OBJ)/acboot.o \
+C_SRCS = timer.c syscall.c util.c mutex.c semaphore.c terminal.c unittest.c platform.c ioctx.c device.c acpi.c smp.c
+AS_SRCS = acboot.s
+LIB := $(call matrix_lib_list_to_static_libs,sys)
 
 .PHONY: clean help
 
-all: $(TARGETOBJ)
-
-$(OBJ)/%.o: %.c
-	$(CC) -DCONFIG_SERIAL_PORT=2 -DBITS_PER_LONG=32 -m32 -I../include -I../../sdk/include $(CFLAGS_global) -c -o $@ $<
-
-$(OBJ)/acboot.o: acboot.s
-	nasm $(ASFLAGS) -o $(OBJ)/acboot.o acboot.s
+all: $(LIB)
+	@:
 
 clean:
-	$(RM) $(TARGETOBJ)
+	$(CLEAN_C) $(LIB)
+
+$(LIB): $(OBJS)
+	$(LIB_C)

@@ -1,26 +1,17 @@
 # Makefile for mm module
+MATRIX_ROOT_DIR := $(abspath $(CURDIR)/../..)
+include $(MATRIX_ROOT_DIR)/kernel/Makefile.inc
 
-include ../Makefile.inc
-
-OBJ := ../../bin/obji386
-
-TARGETOBJ := \
-	$(OBJ)/vector.o \
-	$(OBJ)/mmu.o \
-	$(OBJ)/kmem.o \
-	$(OBJ)/page.o \
-	$(OBJ)/malloc.o \
-	$(OBJ)/slab.o \
-	$(OBJ)/phys.o \
-	$(OBJ)/va.o \
-
+C_SRCS = vector.c mmu.c kmem.c page.c malloc.c slab.c phys.c va.c
+LIB := $(call matrix_lib_list_to_static_libs,mm)
 
 .PHONY: clean help
 
-all: $(TARGETOBJ)
-
-$(OBJ)/%.o: %.c
-	$(CC) -m32 -I../include -I../../sdk/include $(CFLAGS_global) -c -o $@ $<
+all: $(LIB)
+	@:
 
 clean:
-	$(RM) $(TARGETOBJ)
+	$(CLEAN_C) $(LIB)
+
+$(LIB): $(OBJS)
+	$(LIB_C)
